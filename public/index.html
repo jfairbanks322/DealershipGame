@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classroom Stock Arena</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="background-orb orb-one"></div>
+    <div class="background-orb orb-two"></div>
+    <main class="shell">
+      <section class="hero card lift">
+        <div>
+          <p class="eyebrow">Classroom Stock Simulation</p>
+          <h1>Stock Arena</h1>
+          <p class="hero-copy">
+            Students start with <strong>$10,000</strong>, trade fake companies during the market window, and climb a
+            running leaderboard while teacher-created news events move prices.
+          </p>
+        </div>
+        <div class="status-panel" id="market-status-panel"></div>
+      </section>
+
+      <section id="auth-section" class="grid auth-grid">
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Students</p>
+            <h2>Login or Register</h2>
+          </div>
+          <form id="student-register-form" class="stack">
+            <label>
+              Display Name
+              <input name="displayName" type="text" maxlength="32" placeholder="Avery" required />
+            </label>
+            <label>
+              Username
+              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" minlength="4" placeholder="4+ characters" required />
+            </label>
+            <button type="submit">Create Student Account</button>
+          </form>
+
+          <div class="divider"></div>
+
+          <form id="student-login-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" minlength="4" placeholder="Password" required />
+            </label>
+            <button type="submit" class="secondary">Student Login</button>
+          </form>
+        </div>
+
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Teacher</p>
+            <h2>Control the Market</h2>
+          </div>
+          <form id="teacher-login-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" placeholder="teacher" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" placeholder="Teacher password" required />
+            </label>
+            <button type="submit">Teacher Login</button>
+          </form>
+          <p class="note">
+            Teacher access unlocks market open/close controls and classroom event publishing.
+          </p>
+        </div>
+      </section>
+
+      <section id="session-bar" class="session-bar hidden"></section>
+
+      <section id="student-view" class="hidden stack-block">
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Portfolio</p>
+              <h2 id="student-name-heading">Your Account</h2>
+            </div>
+            <div id="portfolio-summary"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Recent Activity</p>
+              <h2>Trade History</h2>
+            </div>
+            <div id="transactions-list"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">My Watchlist</p>
+              <h2>Quick Research Picks</h2>
+            </div>
+            <div id="watchlist-panel"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="teacher-view" class="hidden stack-block">
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Teacher Dashboard</p>
+              <h2>Control Center</h2>
+            </div>
+            <div id="teacher-summary" class="stack"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Teacher Settings</p>
+              <h2>Login and Cash Rules</h2>
+            </div>
+            <form id="teacher-settings-form" class="stack">
+              <label>
+                Teacher Username
+                <input name="teacherUsername" type="text" maxlength="20" required />
+              </label>
+              <label>
+                Starting Cash Per Student
+                <input name="startingCash" type="number" min="100" step="100" required />
+              </label>
+              <label>
+                Current Teacher Password
+                <input name="currentPassword" type="password" placeholder="Required only for login changes" />
+              </label>
+              <label>
+                New Teacher Password
+                <input name="newPassword" type="password" minlength="4" placeholder="Leave blank to keep current password" />
+              </label>
+              <button type="submit">Save Teacher Settings</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Market Operations</p>
+              <h2>Open, Close, and Reset</h2>
+            </div>
+            <div id="teacher-controls" class="stack"></div>
+            <div id="reset-tools" class="stack"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Classroom Events</p>
+              <h2>Publish News</h2>
+            </div>
+            <div id="event-presets" class="stack"></div>
+            <form id="event-form" class="stack">
+              <label>
+                Headline
+                <input name="headline" type="text" maxlength="100" placeholder="MegaCorp buys a goat robotics startup" required />
+              </label>
+              <label>
+                Story
+                <textarea name="body" rows="3" placeholder="Add the classroom news blurb students will read."></textarea>
+              </label>
+              <div id="event-effects" class="effects-grid"></div>
+              <div id="event-summary"></div>
+              <button id="publish-event-button" type="submit">Publish Event</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Student Roster</p>
+              <h2>Manage Accounts</h2>
+            </div>
+            <div id="student-roster"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Teacher Feed</p>
+              <h2>Recent Trades</h2>
+            </div>
+            <div id="teacher-trades"></div>
+          </div>
+        </div>
+
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Company Editor</p>
+            <h2>Adjust Profiles and Prices</h2>
+          </div>
+          <div id="company-editor" class="company-editor-grid"></div>
+        </div>
+      </section>
+
+      <section class="card lift stack-block">
+        <div class="section-head">
+          <p class="eyebrow">Companies</p>
+          <h2>Trade Board</h2>
+        </div>
+        <div id="companies-toolbar"></div>
+        <div id="market-movers"></div>
+        <div id="companies-grid" class="companies-grid"></div>
+      </section>
+
+      <section class="card lift stack-block">
+        <div class="section-head">
+          <p class="eyebrow">Standings</p>
+          <h2>Leaderboard</h2>
+        </div>
+        <div id="leaderboard"></div>
+      </section>
+
+      <section class="card lift stack-block">
+        <div class="section-head">
+          <p class="eyebrow">News Wire</p>
+          <h2>Recent Events</h2>
+        </div>
+        <div id="events-feed"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
