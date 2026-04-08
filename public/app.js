@@ -4,7 +4,8 @@ const state = {
     companySearch: "",
     volatilityFilter: "all",
     industryFilter: "all",
-    selectedCompanyTicker: null
+    selectedCompanyTicker: null,
+    companyListScrollTop: 0
   }
 };
 
@@ -337,6 +338,11 @@ function handleCompanySelection(event) {
     return;
   }
 
+  const companyList = refs.companiesGrid.querySelector(".company-list");
+  if (companyList) {
+    state.ui.companyListScrollTop = companyList.scrollTop;
+  }
+
   state.ui.selectedCompanyTicker = button.dataset.companySelect;
   renderCompanies();
 }
@@ -372,6 +378,8 @@ function updateCompanyScrollIndicator() {
   if (!list || !indicator || !thumb) {
     return;
   }
+
+  state.ui.companyListScrollTop = list.scrollTop;
 
   const railHeight = indicator.clientHeight || list.clientHeight;
   const scrollHeight = list.scrollHeight;
@@ -1297,6 +1305,9 @@ function renderCompanies() {
   });
 
   const companyList = refs.companiesGrid.querySelector(".company-list");
+  if (companyList) {
+    companyList.scrollTop = state.ui.companyListScrollTop;
+  }
   companyList?.addEventListener("scroll", updateCompanyScrollIndicator, { passive: true });
   window.requestAnimationFrame(updateCompanyScrollIndicator);
 }
