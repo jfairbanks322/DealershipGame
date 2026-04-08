@@ -131,6 +131,20 @@ textarea {
   font-weight: 700;
 }
 
+.auth-block-label {
+  margin: 6px 0 14px;
+  color: var(--accent-dark);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.auth-help-text {
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .grid {
   display: grid;
   gap: 18px;
@@ -967,6 +981,55 @@ button:disabled {
   z-index: 9;
 }
 
+.event-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 12;
+}
+
+.event-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 4, 10, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.event-modal-card {
+  position: relative;
+  width: min(680px, calc(100vw - 28px));
+  display: grid;
+  gap: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(240, 193, 75, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(34, 18, 54, 0.98), rgba(15, 10, 24, 0.98));
+}
+
+.event-modal-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.event-modal-close {
+  white-space: nowrap;
+}
+
+.event-modal-note {
+  border: 1px solid rgba(240, 193, 75, 0.18);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.event-modal-note strong {
+  color: var(--ink);
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1007,6 +1070,7 @@ button:disabled {
   .company-summary-main,
   .teacher-session-top,
   .teacher-event-preview-head,
+  .event-modal-top,
   .student-section-head,
   .leaderboard-row,
   .leaderboard-main,

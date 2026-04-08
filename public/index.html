@@ -28,6 +28,23 @@
             <p class="eyebrow">Students</p>
             <h2>Login or Register</h2>
           </div>
+          <div class="auth-block-label">Returning student? Log in here first.</div>
+          <form id="student-login-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" minlength="4" placeholder="Password" required />
+            </label>
+            <button type="submit" class="secondary">Student Login</button>
+          </form>
+          <p class="auth-help-text">Use your lowercase username. If you forgot your password, ask your teacher to reset it.</p>
+
+          <div class="divider"></div>
+
+          <div class="auth-block-label">New student? Create your account below.</div>
           <form id="student-register-form" class="stack">
             <label>
               Display Name
@@ -42,20 +59,6 @@
               <input name="password" type="password" minlength="4" placeholder="4+ characters" required />
             </label>
             <button type="submit">Create Student Account</button>
-          </form>
-
-          <div class="divider"></div>
-
-          <form id="student-login-form" class="stack">
-            <label>
-              Username
-              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" minlength="4" placeholder="Password" required />
-            </label>
-            <button type="submit" class="secondary">Student Login</button>
           </form>
         </div>
 
@@ -230,6 +233,19 @@
     </main>
 
     <div id="toast" class="toast hidden"></div>
+    <div id="event-modal" class="event-modal hidden" aria-hidden="true">
+      <div class="event-modal-backdrop" data-event-close></div>
+      <div class="event-modal-card card" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
+        <div class="event-modal-top">
+          <div>
+            <p class="eyebrow">Market Alert</p>
+            <h2 id="event-modal-title">New Event</h2>
+          </div>
+          <button type="button" class="subtle event-modal-close" data-event-close>Close</button>
+        </div>
+        <div id="event-modal-body" class="stack"></div>
+      </div>
+    </div>
     <script src="/app.js"></script>
   </body>
 </html>

@@ -1558,7 +1558,12 @@ function sendFile(res, filePath) {
       ".svg": "image/svg+xml; charset=utf-8"
     }[ext] || "application/octet-stream";
 
-  res.writeHead(200, { "Content-Type": contentType });
+  const headers = { "Content-Type": contentType };
+  if ([".html", ".css", ".js"].includes(ext)) {
+    headers["Cache-Control"] = "no-store";
+  }
+
+  res.writeHead(200, headers);
   fs.createReadStream(filePath).pipe(res);
 }
 
