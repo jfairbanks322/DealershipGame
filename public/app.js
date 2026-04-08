@@ -7,6 +7,7 @@ const state = {
     selectedCompanyTicker: null,
     companyListScrollTop: 0,
     activeEventModalId: null,
+    authPending: false,
     eventDraft: {
       headline: "",
       body: "",
@@ -243,33 +244,54 @@ async function bootstrap() {
 }
 
 function shouldPauseBackgroundRefresh() {
+  if (state.ui.authPending) {
+    return true;
+  }
+
   const activeElement = document.activeElement;
-  if (!activeElement) {
+  if (!activeElement || !refs.authSection) {
     return false;
   }
 
-  const isTypingIntoAuth =
-    refs.authSection.contains(activeElement) &&
-    ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
+  return refs.authSection.contains(activeElement);
+}
 
-  return Boolean(isTypingIntoAuth);
+function setAuthPending(isPending) {
+  state.ui.authPending = isPending;
+
+  refs.authSection.querySelectorAll("input, textarea, select, button").forEach((element) => {
+    element.disabled = isPending;
+  });
 }
 
 async function handleAuth(event, endpoint) {
   event.preventDefault();
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
-  const ok = await postJson(endpoint, payload);
-  if (ok) {
-    form.reset();
+  setAuthPending(true);
+
+  try {
+    const ok = await postJson(endpoint, payload);
+    if (ok) {
+      form.reset();
+    }
+  } finally {
+    setAuthPending(false);
   }
 }
 
 async function handleTeacherLogin(event) {
   event.preventDefault();
-  const ok = await postJson("/api/admin/login", Object.fromEntries(new FormData(event.currentTarget).entries()));
-  if (ok) {
-    event.currentTarget.reset();
+  const form = event.currentTarget;
+  setAuthPending(true);
+
+  try {
+    const ok = await postJson("/api/admin/login", Object.fromEntries(new FormData(form).entries()));
+    if (ok) {
+      form.reset();
+    }
+  } finally {
+    setAuthPending(false);
   }
 }
 
@@ -559,30 +581,35 @@ async function handleCompanyEditorSubmit(event) {
 }
 
 async function postJson(url, payload) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    showToast(data.error || "Something went wrong.");
+    const data = await response.json();
+    if (!response.ok) {
+      showToast(data.error || "Something went wrong.");
+      return false;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(data, "user")) {
+      state.data = data;
+    } else {
+      await bootstrap();
+    }
+
+    if (url !== "/api/logout") {
+      showToast(data.message || "Updated.");
+    }
+    return true;
+  } catch (error) {
+    showToast("Could not reach the server. Please try again.");
     return false;
   }
-
-  if (Object.prototype.hasOwnProperty.call(data, "user")) {
-    state.data = data;
-  } else {
-    await bootstrap();
-  }
-
-  if (url !== "/api/logout") {
-    showToast(data.message || "Updated.");
-  }
-  return true;
 }
 
 function render() {
