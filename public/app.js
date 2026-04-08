@@ -614,6 +614,7 @@ async function postJson(url, payload) {
 
     if (Object.prototype.hasOwnProperty.call(data, "user")) {
       state.data = data;
+      render();
     } else {
       await bootstrap();
     }
