@@ -264,10 +264,25 @@ function setAuthPending(isPending) {
   });
 }
 
+function normalizeStudentUsername(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "");
+}
+
 async function handleAuth(event, endpoint) {
   event.preventDefault();
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
+
+  if (Object.prototype.hasOwnProperty.call(payload, "username")) {
+    payload.username = normalizeStudentUsername(payload.username);
+    if (form.elements.username) {
+      form.elements.username.value = payload.username;
+    }
+  }
+
   setAuthPending(true);
 
   try {
@@ -283,10 +298,11 @@ async function handleAuth(event, endpoint) {
 async function handleTeacherLogin(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
   setAuthPending(true);
 
   try {
-    const ok = await postJson("/api/admin/login", Object.fromEntries(new FormData(form).entries()));
+    const ok = await postJson("/api/admin/login", payload);
     if (ok) {
       form.reset();
     }
