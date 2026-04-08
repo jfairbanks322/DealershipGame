@@ -6,7 +6,12 @@ const state = {
     industryFilter: "all",
     selectedCompanyTicker: null,
     companyListScrollTop: 0,
-    activeEventModalId: null
+    activeEventModalId: null,
+    eventDraft: {
+      headline: "",
+      body: "",
+      effects: {}
+    }
   }
 };
 
@@ -281,6 +286,11 @@ async function handleEventSubmit(event) {
 
   if (ok) {
     form.reset();
+    state.ui.eventDraft = {
+      headline: "",
+      body: "",
+      effects: {}
+    };
   }
 }
 
@@ -299,6 +309,12 @@ function handleEventPresetClick(event) {
   const effectsByTicker = new Map(
     preset.effects.filter((effect) => companyTickers.has(effect.ticker)).map((effect) => [effect.ticker, effect.percentChange])
   );
+
+  state.ui.eventDraft = {
+    headline: preset.headline,
+    body: preset.body,
+    effects: Object.fromEntries((state.data?.companies || []).map((company) => [company.ticker, effectsByTicker.get(company.ticker) ?? 0]))
+  };
 
   refs.eventForm.elements.headline.value = preset.headline;
   refs.eventForm.elements.body.value = preset.body;
@@ -328,6 +344,16 @@ function handleCompanyToolbarChange(event) {
 }
 
 function handleEventFormChange() {
+  state.ui.eventDraft = {
+    headline: String(refs.eventForm.elements.headline?.value || ""),
+    body: String(refs.eventForm.elements.body?.value || ""),
+    effects: Object.fromEntries(
+      (state.data?.companies || []).map((company) => [
+        company.ticker,
+        Number(refs.eventForm.elements[`effect_${company.ticker}`]?.value || 0)
+      ])
+    )
+  };
   renderTeacherEventSummary();
 }
 
@@ -923,12 +949,22 @@ function renderTeacherView() {
           </div>
           <label>
             Price change %
-            <input type="number" name="effect_${company.ticker}" min="-90" max="200" step="1" value="0" />
+            <input
+              type="number"
+              name="effect_${company.ticker}"
+              min="-90"
+              max="200"
+              step="1"
+              value="${Number(state.ui.eventDraft.effects?.[company.ticker] || 0)}"
+            />
           </label>
         </div>
       `
     )
     .join("");
+
+  refs.eventForm.elements.headline.value = state.ui.eventDraft.headline || "";
+  refs.eventForm.elements.body.value = state.ui.eventDraft.body || "";
 
   renderTeacherEventSummary();
 
