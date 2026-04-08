@@ -78,9 +78,9 @@ const copy = [
   },
   {
     ticker: "DBM",
-    bio: "?",
-    pros: ["?"],
-    cons: ["?"]
+    bio: "REDACTED",
+    pros: ["REDACTED"],
+    cons: ["REDACTED"]
   },
   {
     ticker: "SC",

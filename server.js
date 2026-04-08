@@ -146,9 +146,9 @@ const COMPANY_SEEDS = [
     industry: "Military Contracting",
     startingPrice: 92,
     volatility: "High",
-    bio: "?",
-    pros: ["?"],
-    cons: ["?"]
+    bio: "REDACTED",
+    pros: ["REDACTED"],
+    cons: ["REDACTED"]
   },
   {
     ticker: "SC",
