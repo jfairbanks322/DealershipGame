@@ -344,7 +344,7 @@ function handleCompanySelection(event) {
   }
 
   state.ui.selectedCompanyTicker = button.dataset.companySelect;
-  renderCompanies();
+  refreshCompanySelectionView();
 }
 
 function handleWatchlistPanelClick(event) {
@@ -1074,11 +1074,8 @@ function renderTeacherEventSummary() {
     : `<div class="empty-state">Choose one or more stock changes above to preview the event impact before you publish it.</div>`;
 }
 
-function renderCompanies() {
-  const industries = [...new Set(state.data.companies.map((company) => company.industry))].sort((a, b) =>
-    a.localeCompare(b)
-  );
-  const filteredCompanies = state.data.companies.filter((company) => {
+function getFilteredCompanies() {
+  return state.data.companies.filter((company) => {
     const search = state.ui.companySearch.trim().toLowerCase();
     const matchesSearch =
       !search ||
@@ -1091,6 +1088,111 @@ function renderCompanies() {
       state.ui.industryFilter === "all" || company.industry === state.ui.industryFilter;
     return matchesSearch && matchesVolatility && matchesIndustry;
   });
+}
+
+function buildCompanyDetailCard(selectedCompany, isWatchingSelected) {
+  const previousPrice = selectedCompany.history[1]?.price ?? selectedCompany.startingPrice;
+  const delta = roundMoney(selectedCompany.price - previousPrice);
+  const deltaClass = delta > 0 ? "price-up" : delta < 0 ? "price-down" : "";
+  const deltaLabel = delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${formatMoney(delta)}`;
+
+  let footer = `<div class="empty-state">Log in as a student to trade this stock during the market window.</div>`;
+  if (state.data.user) {
+    footer = `
+      <div class="trade-controls">
+        <input name="shares" type="number" min="1" step="1" placeholder="Shares" ${state.data.market.isOpen ? "" : "disabled"} />
+        <button data-side="buy" ${state.data.market.isOpen ? "" : "disabled"}>Buy</button>
+        <button class="secondary" data-side="sell" ${state.data.market.isOpen ? "" : "disabled"}>Sell</button>
+      </div>
+    `;
+  } else if (state.data.isAdmin) {
+    footer = `<div class="empty-state">Teacher mode: edit this company in the Company Editor above.</div>`;
+  }
+
+  return `
+    <article class="company-card company-detail-card" data-ticker="${selectedCompany.ticker}">
+      <div class="company-top">
+        <div>
+          <h3>${escapeHtml(selectedCompany.name)}</h3>
+          <div class="company-summary-subtitle">
+            <span class="ticker">${selectedCompany.ticker}</span>
+            <span>${escapeHtml(selectedCompany.industry)}</span>
+            <span class="vol-pill">${selectedCompany.volatility} Volatility</span>
+          </div>
+        </div>
+        <div class="company-summary-price">
+          ${
+            state.data.user
+              ? `
+                <button
+                  type="button"
+                  class="watch-toggle detail-watch-toggle ${isWatchingSelected ? "watching" : ""}"
+                  data-watch-toggle="${selectedCompany.ticker}"
+                  data-watching="${isWatchingSelected ? "true" : "false"}"
+                  aria-label="${isWatchingSelected ? "Remove" : "Add"} ${escapeAttribute(selectedCompany.name)} ${isWatchingSelected ? "from" : "to"} watchlist"
+                  title="${isWatchingSelected ? "Remove from watchlist" : "Add to watchlist"}"
+                >${isWatchingSelected ? "&#9733; Watching" : "&#9734; Watchlist"}</button>
+              `
+              : ""
+          }
+          <div class="money">${formatMoney(selectedCompany.price)}</div>
+          <div class="${deltaClass}">${deltaLabel}</div>
+        </div>
+      </div>
+      <div class="company-meta">
+        <span>${escapeHtml(selectedCompany.industry)}</span>
+        <span class="vol-pill">${selectedCompany.volatility} Volatility</span>
+        <span>Start: ${formatMoney(selectedCompany.startingPrice)}</span>
+      </div>
+      <p>${escapeHtml(selectedCompany.bio)}</p>
+      <div class="pros-cons">
+        <div>
+          <strong>Pros</strong>
+          <span>${selectedCompany.pros.map(escapeHtml).join(", ")}</span>
+        </div>
+        <div>
+          <strong>Cons</strong>
+          <span>${selectedCompany.cons.map(escapeHtml).join(", ")}</span>
+        </div>
+      </div>
+      ${footer}
+    </article>
+  `;
+}
+
+function refreshCompanySelectionView() {
+  const filteredCompanies = getFilteredCompanies();
+  if (!filteredCompanies.length) {
+    renderCompanies();
+    return;
+  }
+
+  const selectedCompany =
+    filteredCompanies.find((company) => company.ticker === state.ui.selectedCompanyTicker) || filteredCompanies[0];
+  const watchlistTickers = new Set((state.data.user?.watchlist || []).map((item) => item.ticker));
+  const isWatchingSelected = watchlistTickers.has(selectedCompany.ticker);
+
+  refs.companiesGrid.querySelectorAll("button[data-company-select]").forEach((entryButton) => {
+    entryButton.classList.toggle("selected", entryButton.dataset.companySelect === selectedCompany.ticker);
+  });
+
+  const detailCard = refs.companiesGrid.querySelector(".company-detail-card");
+  if (!detailCard) {
+    renderCompanies();
+    return;
+  }
+
+  detailCard.outerHTML = buildCompanyDetailCard(selectedCompany, isWatchingSelected);
+  refs.companiesGrid.querySelectorAll("button[data-side]").forEach((tradeButton) => {
+    tradeButton.addEventListener("click", () => handleTrade(tradeButton));
+  });
+}
+
+function renderCompanies() {
+  const industries = [...new Set(state.data.companies.map((company) => company.industry))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  const filteredCompanies = getFilteredCompanies();
 
   if (!filteredCompanies.some((company) => company.ticker === state.ui.selectedCompanyTicker)) {
     state.ui.selectedCompanyTicker = filteredCompanies[0]?.ticker || null;
@@ -1180,25 +1282,8 @@ function renderCompanies() {
 
   const selectedCompany =
     filteredCompanies.find((company) => company.ticker === state.ui.selectedCompanyTicker) || filteredCompanies[0];
-  const previousPrice = selectedCompany.history[1]?.price ?? selectedCompany.startingPrice;
-  const delta = roundMoney(selectedCompany.price - previousPrice);
-  const deltaClass = delta > 0 ? "price-up" : delta < 0 ? "price-down" : "";
-  const deltaLabel = delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${formatMoney(delta)}`;
   const watchlistTickers = new Set((state.data.user?.watchlist || []).map((item) => item.ticker));
   const isWatchingSelected = watchlistTickers.has(selectedCompany.ticker);
-
-  let footer = `<div class="empty-state">Log in as a student to trade this stock during the market window.</div>`;
-  if (state.data.user) {
-    footer = `
-      <div class="trade-controls">
-        <input name="shares" type="number" min="1" step="1" placeholder="Shares" ${state.data.market.isOpen ? "" : "disabled"} />
-        <button data-side="buy" ${state.data.market.isOpen ? "" : "disabled"}>Buy</button>
-        <button class="secondary" data-side="sell" ${state.data.market.isOpen ? "" : "disabled"}>Sell</button>
-      </div>
-    `;
-  } else if (state.data.isAdmin) {
-    footer = `<div class="empty-state">Teacher mode: edit this company in the Company Editor above.</div>`;
-  }
 
   refs.companiesGrid.innerHTML = `
     <div class="company-layout">
@@ -1250,53 +1335,7 @@ function renderCompanies() {
           <div class="company-scroll-thumb"></div>
         </div>
       </div>
-      <article class="company-card company-detail-card" data-ticker="${selectedCompany.ticker}">
-        <div class="company-top">
-          <div>
-            <h3>${escapeHtml(selectedCompany.name)}</h3>
-            <div class="company-summary-subtitle">
-              <span class="ticker">${selectedCompany.ticker}</span>
-              <span>${escapeHtml(selectedCompany.industry)}</span>
-              <span class="vol-pill">${selectedCompany.volatility} Volatility</span>
-            </div>
-          </div>
-          <div class="company-summary-price">
-            ${
-              state.data.user
-                ? `
-                  <button
-                    type="button"
-                    class="watch-toggle detail-watch-toggle ${isWatchingSelected ? "watching" : ""}"
-                    data-watch-toggle="${selectedCompany.ticker}"
-                    data-watching="${isWatchingSelected ? "true" : "false"}"
-                    aria-label="${isWatchingSelected ? "Remove" : "Add"} ${escapeAttribute(selectedCompany.name)} ${isWatchingSelected ? "from" : "to"} watchlist"
-                    title="${isWatchingSelected ? "Remove from watchlist" : "Add to watchlist"}"
-                  >${isWatchingSelected ? "&#9733; Watching" : "&#9734; Watchlist"}</button>
-                `
-                : ""
-            }
-            <div class="money">${formatMoney(selectedCompany.price)}</div>
-            <div class="${deltaClass}">${deltaLabel}</div>
-          </div>
-        </div>
-        <div class="company-meta">
-          <span>${escapeHtml(selectedCompany.industry)}</span>
-          <span class="vol-pill">${selectedCompany.volatility} Volatility</span>
-          <span>Start: ${formatMoney(selectedCompany.startingPrice)}</span>
-        </div>
-        <p>${escapeHtml(selectedCompany.bio)}</p>
-        <div class="pros-cons">
-          <div>
-            <strong>Pros</strong>
-            <span>${selectedCompany.pros.map(escapeHtml).join(", ")}</span>
-          </div>
-          <div>
-            <strong>Cons</strong>
-            <span>${selectedCompany.cons.map(escapeHtml).join(", ")}</span>
-          </div>
-        </div>
-        ${footer}
-      </article>
+      ${buildCompanyDetailCard(selectedCompany, isWatchingSelected)}
     </div>
   `;
 
