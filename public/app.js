@@ -228,13 +228,31 @@ refs.eventModal.addEventListener("click", handleEventModalClick);
 window.addEventListener("resize", updateCompanyScrollIndicator);
 
 bootstrap();
-setInterval(bootstrap, 15000);
+setInterval(async () => {
+  if (shouldPauseBackgroundRefresh()) {
+    return;
+  }
+  await bootstrap();
+}, 15000);
 
 async function bootstrap() {
   const response = await fetch("/api/bootstrap");
   const data = await response.json();
   state.data = data;
   render();
+}
+
+function shouldPauseBackgroundRefresh() {
+  const activeElement = document.activeElement;
+  if (!activeElement) {
+    return false;
+  }
+
+  const isTypingIntoAuth =
+    refs.authSection.contains(activeElement) &&
+    ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
+
+  return Boolean(isTypingIntoAuth);
 }
 
 async function handleAuth(event, endpoint) {
