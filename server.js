@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const { DatabaseSync } = require("node:sqlite");
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || "127.0.0.1";
+const HOST = process.env.HOST || "0.0.0.0";
 const DATA_DIR = path.join(__dirname, "data");
 const DB_PATH = path.join(DATA_DIR, "stock-arena.db");
 const LEGACY_STORE_PATH = path.join(DATA_DIR, "store.json");
