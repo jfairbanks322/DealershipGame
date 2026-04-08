@@ -5,7 +5,8 @@ const state = {
     volatilityFilter: "all",
     industryFilter: "all",
     selectedCompanyTicker: null,
-    companyListScrollTop: 0
+    companyListScrollTop: 0,
+    activeEventModalId: null
   }
 };
 
@@ -193,6 +194,9 @@ const refs = {
   leaderboard: document.getElementById("leaderboard"),
   eventsFeed: document.getElementById("events-feed"),
   toast: document.getElementById("toast"),
+  eventModal: document.getElementById("event-modal"),
+  eventModalBody: document.getElementById("event-modal-body"),
+  eventModalTitle: document.getElementById("event-modal-title"),
   registerForm: document.getElementById("student-register-form"),
   studentLoginForm: document.getElementById("student-login-form"),
   teacherLoginForm: document.getElementById("teacher-login-form"),
@@ -215,6 +219,7 @@ refs.companiesToolbar.addEventListener("input", handleCompanyToolbarChange);
 refs.companiesToolbar.addEventListener("change", handleCompanyToolbarChange);
 refs.companiesGrid.addEventListener("click", handleCompanySelection);
 refs.watchlistPanel.addEventListener("click", handleWatchlistPanelClick);
+refs.eventModal.addEventListener("click", handleEventModalClick);
 window.addEventListener("resize", updateCompanyScrollIndicator);
 
 bootstrap();
@@ -324,6 +329,14 @@ function handleCompanyToolbarChange(event) {
 
 function handleEventFormChange() {
   renderTeacherEventSummary();
+}
+
+function handleEventModalClick(event) {
+  if (!event.target.closest("[data-event-close]")) {
+    return;
+  }
+
+  dismissActiveEventModal();
 }
 
 function handleCompanySelection(event) {
@@ -541,6 +554,7 @@ function render() {
   renderCompanies();
   renderLeaderboard();
   renderEvents();
+  syncStudentEventModal();
 }
 
 function renderAuthSection() {
@@ -1407,6 +1421,106 @@ function renderEvents() {
         )
         .join("")}</div>`
     : `<div class="empty-state">Teacher-published market events will appear here.</div>`;
+}
+
+function getSeenEventsStorageKey() {
+  const username = state.data?.user?.username;
+  return username ? `stock-arena:seen-events:${username}` : null;
+}
+
+function loadSeenEventIds() {
+  const key = getSeenEventsStorageKey();
+  if (!key) {
+    return new Set();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveSeenEventIds(seenIds) {
+  const key = getSeenEventsStorageKey();
+  if (!key) {
+    return;
+  }
+
+  window.localStorage.setItem(key, JSON.stringify([...seenIds]));
+}
+
+function syncStudentEventModal() {
+  if (!state.data?.user || state.data.isAdmin) {
+    closeEventModal(false);
+    return;
+  }
+
+  const seenIds = loadSeenEventIds();
+  const nextEvent = (state.data.events || []).find(
+    (event) => event.effects?.length && !seenIds.has(event.id)
+  );
+
+  if (!nextEvent) {
+    closeEventModal(false);
+    return;
+  }
+
+  if (state.ui.activeEventModalId === nextEvent.id && !refs.eventModal.classList.contains("hidden")) {
+    return;
+  }
+
+  openEventModal(nextEvent);
+}
+
+function openEventModal(event) {
+  state.ui.activeEventModalId = event.id;
+  refs.eventModalTitle.textContent = event.headline;
+  refs.eventModalBody.innerHTML = `
+    ${event.body ? `<p class="hero-copy">${escapeHtml(event.body)}</p>` : ""}
+    <div class="event-effect-list">
+      ${event.effects
+        .map(
+          (effect) => `
+            <span class="event-tag ${effect.percentChange > 0 ? "preview-up" : "preview-down"}">
+              ${effect.ticker} ${effect.percentChange > 0 ? "+" : ""}${effect.percentChange}% to ${formatMoney(effect.newPrice)}
+            </span>
+          `
+        )
+        .join("")}
+    </div>
+    <div class="event-modal-note">
+      <strong>What this means:</strong> Prices changed immediately. Check your portfolio, watchlist, and trade board before making your next move.
+    </div>
+  `;
+  refs.eventModal.classList.remove("hidden");
+  refs.eventModal.setAttribute("aria-hidden", "false");
+}
+
+function dismissActiveEventModal() {
+  if (!state.ui.activeEventModalId) {
+    closeEventModal(false);
+    return;
+  }
+
+  const seenIds = loadSeenEventIds();
+  seenIds.add(state.ui.activeEventModalId);
+  saveSeenEventIds(seenIds);
+  closeEventModal(false);
+  syncStudentEventModal();
+}
+
+function closeEventModal(resetActiveId = true) {
+  refs.eventModal.classList.add("hidden");
+  refs.eventModal.setAttribute("aria-hidden", "true");
+  refs.eventModalBody.innerHTML = "";
+  if (resetActiveId) {
+    state.ui.activeEventModalId = null;
+  } else {
+    state.ui.activeEventModalId = null;
+  }
 }
 
 function formatMoney(value) {
