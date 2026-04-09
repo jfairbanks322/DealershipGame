@@ -1,7 +1,11 @@
 .DS_Store
+.env
+.env.local
 node_modules/
 output/
 progress.md
+.feature-work/
+backups/
 ios/Pods/
 data/*.db
 data/*.db-shm

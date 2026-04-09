@@ -1,0 +1,546 @@
+{
+  "meta": {
+    "appName": "Pilot Ledger",
+    "createdAt": "2026-04-08T16:53:03.252Z",
+    "updatedAt": "2026-04-08T23:43:37.825Z",
+    "gradingScale": {
+      "range": "1-5",
+      "labels": {
+        "1": "flat",
+        "2": "fine",
+        "3": "good",
+        "4": "great",
+        "5": "all-timer"
+      }
+    },
+    "providerRegion": "US",
+    "metadataRefresh": {
+      "enabled": true,
+      "intervalHours": 24,
+      "lastRunAt": "2026-04-08T23:08:23.090Z",
+      "lastSummary": "No imported shows were available to refresh."
+    },
+    "providerRegionSource": "auto"
+  },
+  "shows": [
+    {
+      "id": "88af9438-3f85-4f9f-8549-eb5c97eb695c",
+      "title": "The Bear",
+      "platform": "Disney Plus",
+      "platforms": [
+        "Disney Plus",
+        "Hulu"
+      ],
+      "status": "planned",
+      "totalSeasons": 4,
+      "totalEpisodes": 38,
+      "genres": [
+        "Drama",
+        "Comedy"
+      ],
+      "overview": "Carmy, a young fine-dining chef, comes home to Chicago to run his family sandwich shop. As he fights to transform the shop and himself, he works alongside a rough-around-the-edges crew that ultimately reveal themselves as his chosen family.",
+      "firstAirDate": "2022-06-23",
+      "posterUrl": "https://image.tmdb.org/t/p/w342/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg",
+      "metadataRefreshedAt": null,
+      "archivedAt": null,
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "name": "Season 1",
+          "episodeCount": 8,
+          "airDate": "2022-06-23",
+          "overview": null,
+          "posterUrl": "https://image.tmdb.org/t/p/w342/i6sJI3O1874FBdDtM0jn6fpPE0x.jpg"
+        },
+        {
+          "seasonNumber": 2,
+          "name": "Season 2",
+          "episodeCount": 10,
+          "airDate": "2023-06-22",
+          "overview": "In season two, Carmen 'Carmy' Berzatto, Sydney Adamu and Richard 'Richie' Jerimovich work to transform their grimy sandwich joint into a next-level spot. As they strip the restaurant down to its bones, the crew undertakes transformational journeys of their own, each forced to confront the past and reckon with who they want to be in the future.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/3MVHF64rlvH1eofKefIoazXwOK0.jpg"
+        },
+        {
+          "seasonNumber": 3,
+          "name": "Season 3",
+          "episodeCount": 10,
+          "airDate": "2024-06-26",
+          "overview": "In season three, Carmen 'Carmy' Berzatto, Sydney Adamu, and Richard 'Richie' Jerimovich do what it takes to elevate The Bear, their beef stand turned fine dining establishment, to the highest level, all while doing their best just to stay in business. Our chefs have learned that every second counts, but this season we'll find out if they have what it takes to make it to tomorrow.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/kmKOXOC6txne2tXjcnZPHNtsY9E.jpg"
+        },
+        {
+          "seasonNumber": 4,
+          "name": "Season 4",
+          "episodeCount": 10,
+          "airDate": "2025-06-25",
+          "overview": "Season four finds Carmen \"Carmy\" Berzatto, Sydney Adamu and Richard \"Richie\" Jerimovich pushing forward, determined not only to survive, but also to take The Bear to the next level. With new challenges around every corner, the team must adapt, adjust and overcome. This season, the pursuit of excellence isn't just about getting better - it's about deciding what's worth holding on to.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/eKfVzzEazSIjJMrw9ADa2x8ksLz.jpg"
+        }
+      ],
+      "catalog": {
+        "source": "tmdb",
+        "id": "136315",
+        "providerRegion": "US"
+      },
+      "progress": {
+        "lastSeason": 0,
+        "lastEpisode": 0,
+        "lastWatchedOn": null
+      },
+      "nextEpisode": null,
+      "overallReview": null,
+      "createdAt": "2026-04-08T23:16:08.600Z",
+      "updatedAt": "2026-04-08T23:16:08.600Z"
+    },
+    {
+      "id": "a3673592-763f-4e98-9b46-b97870957067",
+      "title": "The Sopranos",
+      "platform": "HBO Max",
+      "platforms": [
+        "HBO Max",
+        "HBO Max Amazon Channel"
+      ],
+      "status": "planned",
+      "totalSeasons": 6,
+      "totalEpisodes": 86,
+      "genres": [
+        "Crime",
+        "Drama"
+      ],
+      "overview": "The story of New Jersey-based Italian-American mobster Tony Soprano and the difficulties he faces as he tries to balance the conflicting requirements of his home life and the criminal organization he heads. Those difficulties are often highlighted through his ongoing professional relationship with psychiatrist Jennifer Melfi. The show features Tony's family members and Mafia associates in prominent roles and story arcs, most notably his wife Carmela and his cousin and protégé Christopher Moltisanti.",
+      "firstAirDate": "1999-01-10",
+      "posterUrl": "https://image.tmdb.org/t/p/w342/rTc7ZXdroqjkKivFPvCPX0Ru7uw.jpg",
+      "metadataRefreshedAt": null,
+      "archivedAt": null,
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "name": "Season 1",
+          "episodeCount": 13,
+          "airDate": "1999-01-10",
+          "overview": "In Season 1, feeling his handle on his family and his business slipping away, mob boss Tony Soprano suffers a series of anxiety attacks that land him in the office of a psychiatrist. Opening up to his shrink, Tony relates the details of his life as a “waste-management consultant,” and tries to come to terms with the professional and private strains that have brought him to the brink of a breakdown.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/3NsJzafk0Sp7yE9yShzQsybHw4x.jpg"
+        },
+        {
+          "seasonNumber": 2,
+          "name": "Season 2",
+          "episodeCount": 13,
+          "airDate": "2000-01-16",
+          "overview": "His uncle's in jail. His mother's in the hospital. His best friend's still missing. His sister's moving home. His panic attacks are back. And his shrink refuses to see him. Tony Soprano has recently been elevated to the status of mob boss following a federal bust and as the second season picks up, Tony is under more stress than ever as he deals with the demands of his new position. Making matters worse, his long-lost sister Janice has arrived to take care of their ailing mother.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/wvCOKWM1abB5CfuWKqDYeMRV3lN.jpg"
+        },
+        {
+          "seasonNumber": 3,
+          "name": "Season 3",
+          "episodeCount": 13,
+          "airDate": "2001-03-04",
+          "overview": "In season three, the federal wiretap begins and Meadow goes to college. Tony faces challenges from some tough newcomers, such as hothead Ralph Cifaretto, New York crime boss Johnny Sack and a sexy car saleswoman.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/zFuz2PgkHDr9Lx5YAEmiWbXKCio.jpg"
+        },
+        {
+          "seasonNumber": 4,
+          "name": "Season 4",
+          "episodeCount": 13,
+          "airDate": "2002-09-15",
+          "overview": "With Paulie in jail, Christopher becomes acting capo in season four. Junior faces a RICO trial while Tony finds that the recession affects his businesses. Meanwhile, Furio catches Carmela's eye, and Janice sets her sights on Bobby.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/q01fVFY7rQEMMnexa9Urv7NOdKO.jpg"
+        },
+        {
+          "seasonNumber": 5,
+          "name": "Season 5",
+          "episodeCount": 13,
+          "airDate": "2004-03-07",
+          "overview": "In season five, a separated Tony and Carmela negotiate family and money issues. Meanwhile, Tony's reunion with paroled cousin Tony Blundetto may endanger his alliance with Johnny Sack; and Adriana gets in deeper with the Feds.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/p651eYM0Vd0CWDvndbMyaS0lDeD.jpg"
+        },
+        {
+          "seasonNumber": 6,
+          "name": "Season 6",
+          "episodeCount": 21,
+          "airDate": "2006-03-12",
+          "overview": "As the final episodes take shape, Tony faces a myriad of stress-inducing crises at home, at work, and from the law. While his wife and children each make choices that promise to change the face of the Sopranos' domestic life, Tony also comes to doubt the allegiances of some of those closest to him at work . . . none of whom is above suspicion.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/b1P9PAUI18mb62N0DtHOd71L3CT.jpg"
+        }
+      ],
+      "catalog": {
+        "source": "tmdb",
+        "id": "1398",
+        "providerRegion": "US"
+      },
+      "progress": {
+        "lastSeason": 0,
+        "lastEpisode": 0,
+        "lastWatchedOn": null
+      },
+      "nextEpisode": null,
+      "overallReview": null,
+      "createdAt": "2026-04-08T23:16:46.974Z",
+      "updatedAt": "2026-04-08T23:16:46.974Z"
+    },
+    {
+      "id": "bde66d23-4c91-462a-9010-0f9ac0c12368",
+      "title": "Malcolm in the Middle: Life's Still Unfair",
+      "platform": "Unknown",
+      "platforms": [],
+      "status": "planned",
+      "totalSeasons": 1,
+      "totalEpisodes": 4,
+      "genres": [
+        "Comedy",
+        "Drama"
+      ],
+      "overview": "After shielding himself and his daughter from his family for over a decade, Malcolm is dragged back into their orbit when Hal and Lois demand his presence at their 40th anniversary party.",
+      "firstAirDate": "2026-04-10",
+      "posterUrl": "https://image.tmdb.org/t/p/w342/4uXAZRYtcMfoX2XtY1gcUxLHhjj.jpg",
+      "metadataRefreshedAt": null,
+      "archivedAt": null,
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "name": "Miniseries",
+          "episodeCount": 4,
+          "airDate": "2026-04-10",
+          "overview": "Twenty years have gone by since we last saw Malcolm and his family — and after all that time, they've learned absolutely nothing.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/9858jJxp4PlIwE7rxKyc196UiXg.jpg"
+        }
+      ],
+      "catalog": {
+        "source": "tmdb",
+        "id": "279471",
+        "providerRegion": "US"
+      },
+      "progress": {
+        "lastSeason": 0,
+        "lastEpisode": 0,
+        "lastWatchedOn": null
+      },
+      "nextEpisode": {
+        "title": "Episode One",
+        "season": 1,
+        "episode": 1,
+        "airDate": "2026-04-10T12:00:00.000Z",
+        "reminderEnabled": false,
+        "notifiedAt": null
+      },
+      "overallReview": null,
+      "createdAt": "2026-04-08T23:43:08.694Z",
+      "updatedAt": "2026-04-08T23:43:08.694Z"
+    },
+    {
+      "id": "b2686530-f350-4293-b9b0-01698349b0ea",
+      "title": "Raw",
+      "platform": "Netflix",
+      "platforms": [
+        "Netflix",
+        "Netflix Standard with Ads"
+      ],
+      "status": "planned",
+      "totalSeasons": 34,
+      "totalEpisodes": 1721,
+      "genres": [
+        "Reality"
+      ],
+      "overview": "A regularly scheduled, live, year-round program featuring some of the biggest WWE Superstars.",
+      "firstAirDate": "1993-01-11",
+      "posterUrl": "https://image.tmdb.org/t/p/w342/pv5WNnLUo7mpT8k901Lo8UovrqI.jpg",
+      "metadataRefreshedAt": "2026-04-08T23:43:37.824Z",
+      "archivedAt": null,
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "name": "1993",
+          "episodeCount": 45,
+          "airDate": "1993-01-10",
+          "overview": "This is the year that started a sports-entertainment phenomenon. Don't miss Monday Night Raw's inaugural season, featuring classic rivalries like Razor Ramon vs. 1-2-3 Kid, Bret Hart vs. Jerry Lawler, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/iZY3funQBvnqiKNHg2Zx4VsylCl.jpg"
+        },
+        {
+          "seasonNumber": 2,
+          "name": "1994",
+          "episodeCount": 47,
+          "airDate": "1994-01-03",
+          "overview": "Throughout 1994, Monday Night Raw hosts a family feud as members of the Hart family choose sides in the heated brother-against-brother war between Bret \"Hit Man\" Hart and the youngest member of the family, Owen.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/4J79G0lvPvzWELujZnn0h1RtQ8E.jpg"
+        },
+        {
+          "seasonNumber": 3,
+          "name": "1995",
+          "episodeCount": 48,
+          "airDate": "1995-01-02",
+          "overview": "The stars of sports and entertainment shine bright on Monday Night Raw in 1995. William Shatner has a heated rivalry with Jerry Lawler while football great Lawrence Taylor set his sights on Bam Bam Bigelow.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/lJtdXMT2bWCyGb3iU7fwFcj94gb.jpg"
+        },
+        {
+          "seasonNumber": 4,
+          "name": "1996",
+          "episodeCount": 51,
+          "airDate": "1996-01-01",
+          "overview": "The game changes on Monday Night Raw in 1996 as legends like Triple H, \"Stone Cold\" Steve Austin, Mankind, and The Rock rise to prominence in WWE just as the Monday Night War with WCW kicks into high gear.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/diWOoOrn5uoJI9cRil4ycNjGWsS.jpg"
+        },
+        {
+          "seasonNumber": 5,
+          "name": "1997",
+          "episodeCount": 52,
+          "airDate": "1997-01-06",
+          "overview": "A new era is dawning on Monday Night Raw in 1997 as a pair of degenerates run roughshod over WWE, Canada's hero gets screwed by the boss...or himself, and The Deadman's brother appears from beyond the grave.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/aZzdmpbh5SDqVmTbdY79nsfYs3c.jpg"
+        },
+        {
+          "seasonNumber": 6,
+          "name": "1998",
+          "episodeCount": 52,
+          "airDate": "1998-01-05",
+          "overview": "The Attitude Era kicks into high gear on Raw in 1998 as \"Stone Cold\" Steve Austin makes Mr. McMahon's life a living hell while Triple H leads D-Generation X to war not only against the entire WWE, but also WCW.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/rNhEWSChgjmZHIYvsKhapeSmni8.jpg"
+        },
+        {
+          "seasonNumber": 7,
+          "name": "1999",
+          "episodeCount": 52,
+          "airDate": "1999-01-04",
+          "overview": "Authority is threatened at every turn on Raw in 1999 as \"Stone Cold\" Steve Austin continues to torment Mr. McMahon while The Chairman's daughter Stephanie unites with her husband Triple H to take control of WWE.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/yu0restcsQomBbD6R05SmCYssGv.jpg"
+        },
+        {
+          "seasonNumber": 8,
+          "name": "2000",
+          "episodeCount": 52,
+          "airDate": "2000-01-03",
+          "overview": "The McMahon family is fractured as a new millennium dawns on Raw in the year 2000. Superstars from down south join WWE, Mick Foley says goodbye to the ring and hello to a new role as WWE Commissioner, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/vxqChitYWBi8zyF8p50j69OtNhY.jpg"
+        },
+        {
+          "seasonNumber": 9,
+          "name": "2001",
+          "episodeCount": 53,
+          "airDate": "2001-01-01",
+          "overview": "WWE stands tall as the victor of the Monday Night War in 2001, but an invading alliance between WCW and ECW threatens the very existence of WWE. Plus, WWE gets a new stylin' and profilin' co-owner and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/hWyxKRbOMzp1ng6QDzfJmoMeapT.jpg"
+        },
+        {
+          "seasonNumber": 10,
+          "name": "2002",
+          "episodeCount": 52,
+          "airDate": "2002-01-07",
+          "overview": "A new era begins in 2002 as the Brand Extension Draft divides WWE Superstars between Raw and SmackDown. Mr. McMahon shocks the WWE Universe by hiring his former arch nemesis from WCW as Raw's General Manager.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/4yqu0RrLUA63h7biYmlnDGElWak.jpg"
+        },
+        {
+          "seasonNumber": 11,
+          "name": "2003",
+          "episodeCount": 52,
+          "airDate": "2003-01-06",
+          "overview": "Raw gets stunning new leadership in 2003 as \"Stone Cold\" Steve Austin is hired to work along Eric Bischoff as Co-General Manager. Triple H forms Evolution and takes the fight to Goldberg. Plus, much more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/uAkpgNEm4lve8M8uxtq14DiYgKa.jpg"
+        },
+        {
+          "seasonNumber": 12,
+          "name": "2004",
+          "episodeCount": 52,
+          "airDate": "2004-01-05",
+          "overview": "Evolution takes its next step in 2004 as Triple H, Ric Flair, Randy Orton, and Batista run roughshod over Raw. Lita rides an emotional roller coaster, a Rock 'n' Sock reunion electrifies, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/9C7crJAU5Dq1wGx1Ihf89emho9J.jpg"
+        },
+        {
+          "seasonNumber": 13,
+          "name": "2005",
+          "episodeCount": 52,
+          "airDate": "2005-01-03",
+          "overview": "Things heat up in 2005 as John Cena declares \"The champ is here!\" on Raw, Evolution is fractured, wedding bells ring for Lita and Edge, and more. Plus, Raw is home to Tribute to the Troops for the first time.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/hg8oWjvCFSzF1pgoUlyRVf7KVqL.jpg"
+        },
+        {
+          "seasonNumber": 14,
+          "name": "2006",
+          "episodeCount": 52,
+          "airDate": "2006-01-02",
+          "overview": "Raw gets extreme in 2006 as the reborn ECW invades the red brand. D-Generation X reunites to make Mr. McMahon's life miserable. John Cena and Edge begin their epic rivalry. Plus, The Miz hosts the Diva Search.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/8lQGy5RN1YT3skVwDHEuqVFgGV1.jpg"
+        },
+        {
+          "seasonNumber": 15,
+          "name": "2007",
+          "episodeCount": 53,
+          "airDate": "2007-01-01",
+          "overview": "The beginning of the legendary rivalry between John Cena and Randy Orton highlights Raw in 2007. Plus, don't miss other unforgettable matches and moments like Umaga vs. Bobby Lashley and Mr. McMahon's son.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/gCHAltF1DmLsZuPCU1OVr1RToq.jpg"
+        },
+        {
+          "seasonNumber": 16,
+          "name": "2008",
+          "episodeCount": 52,
+          "airDate": "2008-01-07",
+          "overview": "Raw's 2008 marks the end the most legendary career in sports-entertainment history as Ric Flair says goodbye to the WWE Universe. Plus, Mr. McMahon gives away millions, Randy Orton crafts his legacy, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/iZyQwjhCenAHVDO25gQdAlhctJb.jpg"
+        },
+        {
+          "seasonNumber": 17,
+          "name": "2009",
+          "episodeCount": 52,
+          "airDate": "2009-01-05",
+          "overview": "Expect the unexpected on Raw in 2009 as Special Guests Hosts take the reins as the power on the red brand. Don't miss such memorable Guest Hosts as Seth Green, Bob Barker, Shaquille O'Neal, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/239GxcjyKCGz45PkThV5hJAqP8P.jpg"
+        },
+        {
+          "seasonNumber": 18,
+          "name": "2010",
+          "episodeCount": 52,
+          "airDate": "2010-01-04",
+          "overview": "After 12 years, Bret \"Hit Man\" Hart returns to Raw in 2010 to put his issues with Mr. McMahon and Shawn Michaels to rest, compete in the ring, and serve as Raw General Manager. Plus, the Nexus rises and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/fNQvSZzKyl7eoCHn7d6DLYKignO.jpg"
+        },
+        {
+          "seasonNumber": 19,
+          "name": "2011",
+          "episodeCount": 52,
+          "airDate": "2011-01-03",
+          "overview": "The Rock returns. CM Punk throws a pipe bomb. A tournament to crown a new WWE Champion. Dolph Ziggler meets Hugh Jackman's fist. All this and more make 2011 an unforgettable year on Raw.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/4SRS7eknX7RMEOZYQ1SukRM2rvw.jpg"
+        },
+        {
+          "seasonNumber": 20,
+          "name": "2012",
+          "episodeCount": 53,
+          "airDate": "2012-01-02",
+          "overview": "Chaos ensues all over Raw as WWE's flagship surpasses 1000 episodes in 2012. Plus, don't miss the years best rivalries, including John Cena vs. The Rock, Daniel Bryan vs. CM Punk vs. Kane, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/p9klJ9eUD8uvnBNiAVgGeVNStLm.jpg"
+        },
+        {
+          "seasonNumber": 21,
+          "name": "2013",
+          "episodeCount": 52,
+          "airDate": "2013-01-07",
+          "overview": "Triple H and Stephanie McMahon show Raw who's boss by forming the Authority in 2013. Along with Kane and others, the Authority oppresses many WWE Superstars, but Daniel Bryan fights back with the Yes! Movement.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/2pyuLjuYfWmrbmgDGCw8VE03Mmi.jpg"
+        },
+        {
+          "seasonNumber": 22,
+          "name": "2014",
+          "episodeCount": 52,
+          "airDate": "2014-01-05",
+          "overview": "As the Yes! Movement builds momentum and occupies Raw, the Beast sets his eyes on a legendary streak. Plus, The Rock and NWO both return, the Shield and the Bellas each breakup, and more action on Raw in 2014.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/sfpqGTYQDQZBO35MWYbZRILaaLx.jpg"
+        },
+        {
+          "seasonNumber": 23,
+          "name": "2015",
+          "episodeCount": 52,
+          "airDate": "2015-01-04",
+          "overview": "2015 is the year of Roman Reigns on Raw. The Big Dog faces the brand's top Superstars and battles for the WWE Championship. Plus, the legendary Sting competes on Raw for the first time. Plus, much more action.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/7Nky411nVTKIbQC2HJ1fJS1P29H.jpg"
+        },
+        {
+          "seasonNumber": 24,
+          "name": "2016",
+          "episodeCount": 52,
+          "airDate": "2016-01-03",
+          "overview": "History is made on Raw in 2016 as Shane McMahon and Goldberg both make shocking returns to WWE, a new Women's Championship is introduced, and the WWE Draft again splits Superstars between Raw and SmackDown LIVE.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/re2RF89z7hGw2v0zZoCDRG1TsZf.jpg"
+        },
+        {
+          "seasonNumber": 25,
+          "name": "2017",
+          "episodeCount": 52,
+          "airDate": "2017-01-01",
+          "overview": "In 2017 on Raw, witness the rise of Braun Strowman as The Monster Among Men battles top Superstars like Brock Lesnar, Roman Reigns, and Kevin Owens. Plus, Goldberg says goodbye, The Hardy Boyz return, and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/54S23P9X4f6Ii9mdc0l9vwSbvZn.jpg"
+        },
+        {
+          "seasonNumber": 26,
+          "name": "2018",
+          "episodeCount": 53,
+          "airDate": "2017-12-31",
+          "overview": "As Raw celebrates its 25th anniversary in 2018, the red brand gets dangerous with the arrival of \"Rowdy\" Ronda Rousey. Plus, DX reunites, Roman Reigns makes a heartbreaking announcement, and much more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/weWx9ZUPoGGnMrV3p8WJ32cNI6r.jpg"
+        },
+        {
+          "seasonNumber": 27,
+          "name": "2019",
+          "episodeCount": 52,
+          "airDate": "2019-01-06",
+          "overview": "The longest-running weekly episodic television series in history continues to make history. This season, the McMahon Family retakes control of Raw and enforces its will on Superstars like Becky Lynch and more.",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/h7i34hOwSGJlZRdTJsbrHpKKjmV.jpg"
+        },
+        {
+          "seasonNumber": 28,
+          "name": "2020",
+          "episodeCount": 52,
+          "airDate": "2020-01-05",
+          "overview": "2020 season of WWE Raw",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/6VUma92LqStYr4EszaASf1zaclc.jpg"
+        },
+        {
+          "seasonNumber": 29,
+          "name": "2021",
+          "episodeCount": 52,
+          "airDate": "2021-01-03",
+          "overview": "2021 season of WWE Raw",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/vzPMp5116A8xoZBmIZlghzTM0QE.jpg"
+        },
+        {
+          "seasonNumber": 30,
+          "name": "2022",
+          "episodeCount": 52,
+          "airDate": "2022-01-02",
+          "overview": "2022 season of WWE Raw",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/dmpU9FtnjcsNpsBAHhJzbgJXw25.jpg"
+        },
+        {
+          "seasonNumber": 31,
+          "name": "2023",
+          "episodeCount": 52,
+          "airDate": "2023-01-01",
+          "overview": "2023 season of WWE Raw",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/rS6LAOptOiliEDP8uuyTqknzqLK.jpg"
+        },
+        {
+          "seasonNumber": 32,
+          "name": "2024",
+          "episodeCount": 53,
+          "airDate": "2023-12-29",
+          "overview": "2024 season of WWE Raw",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/3rTpSjHeGyRlsc5v54pN8GURPu4.jpg"
+        },
+        {
+          "seasonNumber": 33,
+          "name": "2025",
+          "episodeCount": 52,
+          "airDate": "2024-12-31",
+          "overview": "2025 season of WWE Raw",
+          "posterUrl": "https://image.tmdb.org/t/p/w342/5sy0ZTQaGT95o9lwQMqQYsvOwtg.jpg"
+        },
+        {
+          "seasonNumber": 34,
+          "name": "2026",
+          "episodeCount": 17,
+          "airDate": "2026-01-05",
+          "overview": "2026 season of WWE Raw",
+          "posterUrl": null
+        }
+      ],
+      "catalog": {
+        "source": "tmdb",
+        "id": "4656",
+        "providerRegion": "US"
+      },
+      "progress": {
+        "lastSeason": 0,
+        "lastEpisode": 0,
+        "lastWatchedOn": null
+      },
+      "nextEpisode": {
+        "title": "April 13, 2026",
+        "season": 34,
+        "episode": 15,
+        "airDate": "2026-04-13T12:00:00.000Z",
+        "reminderEnabled": false,
+        "notifiedAt": null
+      },
+      "overallReview": null,
+      "createdAt": "2026-04-08T23:43:34.462Z",
+      "updatedAt": "2026-04-08T23:43:37.825Z"
+    }
+  ],
+  "watchLogs": []
+}

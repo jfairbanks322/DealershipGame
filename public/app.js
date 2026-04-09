@@ -1,178 +1,52 @@
 const state = {
   data: null,
   ui: {
-    companySearch: "",
-    volatilityFilter: "all",
-    industryFilter: "all",
-    selectedCompanyTicker: null,
-    companyListScrollTop: 0,
-    activeEventModalId: null,
     authPending: false,
-    eventDraft: {
+    scenarioDraft: {
+      presetId: "",
       headline: "",
-      body: "",
-      effects: {}
+      body: ""
     }
   }
 };
 
-const EVENT_PRESETS = [
-  {
-    category: "Momentum",
-    id: "hhs-viral",
-    label: "HHS goes viral",
-    headline: "Haven Holistics explodes on social media",
-    body: "A wave of influencers claims Haven Holistics changed their lives, their sleep, and somehow their Wi-Fi signal.",
-    effects: [
-      { ticker: "HHS", percentChange: 18 },
-      { ticker: "WW", percentChange: 4 }
-    ]
+const STAFF_DIRECTORY = {
+  jake: {
+    name: "Jake",
+    title: "Floor Sales",
+    avatar: "/assets/staff/jake.svg",
+    accent: "sales",
+    badge: "Closer"
   },
-  {
-    category: "Scandals",
-    id: "mc-hearing",
-    label: "MegaCorp hearing",
-    headline: "MegaCorp dragged into another antitrust hearing",
-    body: "Lawmakers are once again asking whether one company really needs this much power, this many subsidiaries, and this many suspiciously loyal goats.",
-    effects: [
-      { ticker: "MC", percentChange: -8 },
-      { ticker: "HFW", percentChange: 6 }
-    ]
+  nina: {
+    name: "Nina",
+    title: "Online Sales",
+    avatar: "/assets/staff/nina.svg",
+    accent: "online",
+    badge: "CRM"
   },
-  {
-    category: "Momentum",
-    id: "snack-hit",
-    label: "Snack City hit",
-    headline: "Snack City launches a chaotic best-seller",
-    body: "Kids cannot stop buying the new flavor even though teachers keep finding glowing orange fingerprints on every worksheet.",
-    effects: [
-      { ticker: "SC", percentChange: 15 },
-      { ticker: "YTT", percentChange: -3 }
-    ]
+  marcus: {
+    name: "Marcus",
+    title: "Accounting",
+    avatar: "/assets/staff/marcus.svg",
+    accent: "accounting",
+    badge: "Numbers"
   },
-  {
-    category: "Scandals",
-    id: "ssc-scare",
-    label: "Security scandal",
-    headline: "Steel Services faces a privacy scandal",
-    body: "A reporter asks whether Steel Services is protecting data or collecting enough of it to write a memoir about everyone.",
-    effects: [
-      { ticker: "SSC", percentChange: -10 },
-      { ticker: "HFW", percentChange: -3 }
-    ]
+  tasha: {
+    name: "Tasha",
+    title: "Service Bay",
+    avatar: "/assets/staff/tasha.svg",
+    accent: "service",
+    badge: "Shop"
   },
-  {
-    category: "Momentum",
-    id: "uno-hype",
-    label: "UNO hype train",
-    headline: "Utter Nonsense unveils a dangerously exciting demo",
-    body: "The company's new VR preview looks amazing, although the legal team would like everyone to stop using the word 'injury' in the reviews.",
-    effects: [
-      { ticker: "UNO", percentChange: 22 },
-      { ticker: "JHS", percentChange: 5 }
-    ]
-  },
-  {
-    category: "Breakthroughs",
-    id: "imm-breakthrough",
-    label: "IMM breakthrough",
-    headline: "Immortal Life claims a breakthrough",
-    body: "Scientists are skeptical, investors are euphoric, and the CEO is already using the phrase 'pre-post-mortality economy.'",
-    effects: [
-      { ticker: "IMM", percentChange: 28 },
-      { ticker: "HHS", percentChange: -4 }
-    ]
-  },
-  {
-    category: "Scandals",
-    id: "wmoo-ethics",
-    label: "WeMoo backlash",
-    headline: "WeMoo faces ethics backlash",
-    body: "Consumers love cheap deals until a documentary reminds them there might be actual people involved in making the cheap deals.",
-    effects: [
-      { ticker: "WMO", percentChange: -11 },
-      { ticker: "MC", percentChange: 3 }
-    ]
-  },
-  {
-    category: "Momentum",
-    id: "sae-merch",
-    label: "SAE merch boom",
-    headline: "Sir Animal merchandise sells out again",
-    body: "The internet star's newest snack, hoodie, and lunch tray bundle sells out in minutes because apparently branding remains undefeated.",
-    effects: [
-      { ticker: "SAE", percentChange: 14 },
-      { ticker: "SC", percentChange: 4 }
-    ]
-  },
-  {
-    category: "Breakthroughs",
-    id: "sky-contract",
-    label: "SKY lands deal",
-    headline: "SkyRacers wins a massive aircraft contract",
-    body: "A major airline just signed a long-term fleet deal, which is exciting news for shareholders and deeply boring news for everyone else.",
-    effects: [
-      { ticker: "SKY", percentChange: 11 },
-      { ticker: "MCM", percentChange: 3 }
-    ]
-  },
-  {
-    category: "Scandals",
-    id: "ytt-recall",
-    label: "YTT recall",
-    headline: "Yum Yum Tum Tum issues a snack recall",
-    body: "The company insists the neon cheese dust was only 'unexpectedly energetic,' but regulators have asked several follow-up questions.",
-    effects: [
-      { ticker: "YTT", percentChange: -9 },
-      { ticker: "SC", percentChange: 5 }
-    ]
-  },
-  {
-    category: "Rivalries",
-    id: "mc-vs-hfw",
-    label: "Phone war",
-    headline: "MegaCorp and Hello Fellow go to war over phones",
-    body: "Both companies unveiled suspiciously similar devices within the same hour and are now accusing each other of copying rectangles.",
-    effects: [
-      { ticker: "MC", percentChange: -4 },
-      { ticker: "HFW", percentChange: -4 },
-      { ticker: "WW", percentChange: 2 }
-    ]
-  },
-  {
-    category: "Chaos",
-    id: "dbm-mystery",
-    label: "DBM mystery spike",
-    headline: "Don't Buy Me surges for reasons nobody can explain",
-    body: "No press release was posted, no product was announced, and yet traders are acting like they know something, which usually ends well for absolutely no one.",
-    effects: [
-      { ticker: "DBM", percentChange: 19 },
-      { ticker: "MC", percentChange: -2 }
-    ]
-  },
-  {
-    category: "Momentum",
-    id: "ww-ad-boom",
-    label: "WW ad boom",
-    headline: "Wik Wok reports a monster ad-sales quarter",
-    body: "The company says engagement is up, advertisers are thrilled, and productivity experts are once again asking society to please calm down.",
-    effects: [
-      { ticker: "WW", percentChange: 13 },
-      { ticker: "SAE", percentChange: 4 }
-    ]
-  },
-  {
-    category: "Chaos",
-    id: "jhs-meme-run",
-    label: "Horse meme stampede",
-    headline: "Just Horses becomes the internet's weird obsession of the week",
-    body: "One viral clip led to millions of new viewers, countless horse puns, and several investors making decisions they may later need to explain.",
-    effects: [
-      { ticker: "JHS", percentChange: 24 },
-      { ticker: "WW", percentChange: 3 }
-    ]
+  elena: {
+    name: "Elena",
+    title: "Marketing",
+    avatar: "/assets/staff/elena.svg",
+    accent: "marketing",
+    badge: "Brand"
   }
-];
+};
 
 const refs = {
   marketStatusPanel: document.getElementById("market-status-panel"),
@@ -181,64 +55,61 @@ const refs = {
   studentView: document.getElementById("student-view"),
   teacherView: document.getElementById("teacher-view"),
   studentNameHeading: document.getElementById("student-name-heading"),
-  portfolioSummary: document.getElementById("portfolio-summary"),
-  watchlistPanel: document.getElementById("watchlist-panel"),
-  transactionsList: document.getElementById("transactions-list"),
+  studentSummary: document.getElementById("student-summary"),
+  studentRoundPanel: document.getElementById("student-round-panel"),
+  staffGrid: document.getElementById("staff-grid"),
+  historyPanel: document.getElementById("history-panel"),
   teacherSummary: document.getElementById("teacher-summary"),
   teacherControls: document.getElementById("teacher-controls"),
   teacherSettingsForm: document.getElementById("teacher-settings-form"),
-  resetTools: document.getElementById("reset-tools"),
+  scenarioForm: document.getElementById("scenario-form"),
+  presetSelect: document.getElementById("preset-select"),
+  scenarioPreview: document.getElementById("scenario-preview"),
   studentRoster: document.getElementById("student-roster"),
-  teacherTrades: document.getElementById("teacher-trades"),
-  companyEditor: document.getElementById("company-editor"),
-  eventEffects: document.getElementById("event-effects"),
-  eventSummary: document.getElementById("event-summary"),
-  companiesToolbar: document.getElementById("companies-toolbar"),
-  marketMovers: document.getElementById("market-movers"),
-  companiesGrid: document.getElementById("companies-grid"),
+  teacherFeed: document.getElementById("teacher-feed"),
   leaderboard: document.getElementById("leaderboard"),
-  eventsFeed: document.getElementById("events-feed"),
-  toast: document.getElementById("toast"),
-  eventModal: document.getElementById("event-modal"),
-  eventModalBody: document.getElementById("event-modal-body"),
-  eventModalTitle: document.getElementById("event-modal-title"),
+  roundFeed: document.getElementById("round-feed"),
+  launchScenarioButton: document.getElementById("launch-scenario-button"),
   registerForm: document.getElementById("student-register-form"),
   studentLoginForm: document.getElementById("student-login-form"),
   teacherLoginForm: document.getElementById("teacher-login-form"),
-  eventForm: document.getElementById("event-form")
+  toast: document.getElementById("toast")
 };
 
 refs.registerForm.addEventListener("submit", (event) => handleAuth(event, "/api/register"));
 refs.studentLoginForm.addEventListener("submit", (event) => handleAuth(event, "/api/login"));
 refs.teacherLoginForm.addEventListener("submit", handleTeacherLogin);
 refs.teacherSettingsForm.addEventListener("submit", handleTeacherSettingsSubmit);
-refs.eventForm.addEventListener("submit", handleEventSubmit);
-refs.eventForm.addEventListener("input", handleEventFormChange);
-refs.eventForm.addEventListener("change", handleEventFormChange);
+refs.scenarioForm.addEventListener("submit", handleScenarioSubmit);
+refs.scenarioForm.addEventListener("input", handleScenarioDraftChange);
+refs.scenarioForm.addEventListener("change", handleScenarioDraftChange);
+refs.teacherControls.addEventListener("click", handleTeacherControlsClick);
+refs.studentRoundPanel.addEventListener("click", handleStudentRoundClick);
 refs.studentRoster.addEventListener("click", handleStudentRosterClick);
 refs.studentRoster.addEventListener("submit", handleStudentRosterSubmit);
-refs.resetTools.addEventListener("click", handleResetClick);
-refs.companyEditor.addEventListener("submit", handleCompanyEditorSubmit);
-refs.companiesToolbar.addEventListener("input", handleCompanyToolbarChange);
-refs.companiesToolbar.addEventListener("change", handleCompanyToolbarChange);
-refs.companiesGrid.addEventListener("click", handleCompanySelection);
-refs.watchlistPanel.addEventListener("click", handleWatchlistPanelClick);
-refs.eventModal.addEventListener("click", handleEventModalClick);
-window.addEventListener("resize", updateCompanyScrollIndicator);
 
 bootstrap();
 setInterval(async () => {
   if (shouldPauseBackgroundRefresh()) {
     return;
   }
-  await bootstrap();
-}, 15000);
+  await bootstrap(false);
+}, 10000);
 
-async function bootstrap() {
-  const response = await fetch("/api/bootstrap");
-  const data = await response.json();
-  state.data = data;
-  render();
+async function bootstrap(showErrors = true) {
+  try {
+    const response = await fetch("/api/bootstrap");
+    if (!response.ok) {
+      throw new Error("Could not load the latest game state.");
+    }
+    state.data = await response.json();
+    syncScenarioDraft();
+    render();
+  } catch (error) {
+    if (showErrors) {
+      showToast(error.message || "Could not reach the server.");
+    }
+  }
 }
 
 function shouldPauseBackgroundRefresh() {
@@ -247,17 +118,27 @@ function shouldPauseBackgroundRefresh() {
   }
 
   const activeElement = document.activeElement;
-  if (!activeElement || !refs.authSection) {
+  if (!activeElement) {
     return false;
   }
 
-  return refs.authSection.contains(activeElement);
+  return refs.authSection.contains(activeElement) || refs.scenarioForm.contains(activeElement) || refs.teacherSettingsForm.contains(activeElement);
+}
+
+function syncScenarioDraft() {
+  if (!state.data?.presets?.length) {
+    return;
+  }
+
+  const stillExists = state.data.presets.some((preset) => preset.id === state.ui.scenarioDraft.presetId);
+  if (!stillExists) {
+    state.ui.scenarioDraft.presetId = state.data.presets[0].id;
+  }
 }
 
 function setAuthPending(isPending) {
   state.ui.authPending = isPending;
-
-  refs.authSection.querySelectorAll("input, textarea, select, button").forEach((element) => {
+  refs.authSection.querySelectorAll("input, button").forEach((element) => {
     element.disabled = isPending;
   });
 }
@@ -273,7 +154,6 @@ async function handleAuth(event, endpoint) {
   event.preventDefault();
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
-
   if (Object.prototype.hasOwnProperty.call(payload, "username")) {
     payload.username = normalizeStudentUsername(payload.username);
     if (form.elements.username) {
@@ -282,7 +162,6 @@ async function handleAuth(event, endpoint) {
   }
 
   setAuthPending(true);
-
   try {
     const ok = await postJson(endpoint, payload);
     if (ok) {
@@ -298,7 +177,6 @@ async function handleTeacherLogin(event) {
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
   setAuthPending(true);
-
   try {
     const ok = await postJson("/api/admin/login", payload);
     if (ok) {
@@ -313,7 +191,7 @@ async function handleTeacherSettingsSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const payload = Object.fromEntries(new FormData(form).entries());
-  payload.startingCash = Number(payload.startingCash);
+  payload.salesGoal = Number(payload.salesGoal);
   const ok = await postJson("/api/admin/settings", payload);
   if (ok) {
     form.elements.currentPassword.value = "";
@@ -321,207 +199,95 @@ async function handleTeacherSettingsSubmit(event) {
   }
 }
 
-async function handleEventSubmit(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const formData = new FormData(form);
-  const effects = (state.data?.companies || [])
-    .map((company) => ({
-      ticker: company.ticker,
-      percentChange: Number(formData.get(`effect_${company.ticker}`))
-    }))
-    .filter((effect) => Number.isFinite(effect.percentChange) && effect.percentChange !== 0);
-
-  const ok = await postJson("/api/admin/event", {
-    headline: formData.get("headline"),
-    body: formData.get("body"),
-    effects
-  });
-
-  if (ok) {
-    form.reset();
-    state.ui.eventDraft = {
-      headline: "",
-      body: "",
-      effects: {}
-    };
-  }
-}
-
-function handleCompanyToolbarChange(event) {
-  const target = event.target;
-  if (target.name === "companySearch") {
-    state.ui.companySearch = target.value;
-  }
-  if (target.name === "volatilityFilter") {
-    state.ui.volatilityFilter = target.value;
-  }
-  if (target.name === "industryFilter") {
-    state.ui.industryFilter = target.value;
-  }
-  renderCompanies();
-}
-
-function handleEventFormChange() {
-  state.ui.eventDraft = {
-    headline: String(refs.eventForm.elements.headline?.value || ""),
-    body: String(refs.eventForm.elements.body?.value || ""),
-    effects: Object.fromEntries(
-      (state.data?.companies || []).map((company) => [
-        company.ticker,
-        Number(refs.eventForm.elements[`effect_${company.ticker}`]?.value || 0)
-      ])
-    )
+function handleScenarioDraftChange() {
+  state.ui.scenarioDraft = {
+    presetId: String(refs.presetSelect.value || ""),
+    headline: String(refs.scenarioForm.elements.headline.value || ""),
+    body: String(refs.scenarioForm.elements.body.value || "")
   };
-  renderTeacherEventSummary();
+  renderScenarioPreview();
 }
 
-function handleEventModalClick(event) {
-  if (!event.target.closest("[data-event-close]")) {
-    return;
-  }
-
-  dismissActiveEventModal();
-}
-
-function handleCompanySelection(event) {
-  const watchButton = event.target.closest("button[data-watch-toggle]");
-  if (watchButton) {
-    handleWatchToggle(watchButton);
-    return;
-  }
-
-  const button = event.target.closest("button[data-company-select]");
-  if (!button) {
-    return;
-  }
-
-  const companyList = refs.companiesGrid.querySelector(".company-list");
-  if (companyList) {
-    state.ui.companyListScrollTop = companyList.scrollTop;
-  }
-
-  state.ui.selectedCompanyTicker = button.dataset.companySelect;
-  refreshCompanySelectionView();
-}
-
-function handleWatchlistPanelClick(event) {
-  const watchButton = event.target.closest("button[data-watch-toggle]");
-  if (watchButton) {
-    handleWatchToggle(watchButton);
-    return;
-  }
-
-  const button = event.target.closest("button[data-company-focus]");
-  if (!button) {
-    return;
-  }
-
-  state.ui.selectedCompanyTicker = button.dataset.companyFocus;
-  renderCompanies();
-  document.getElementById("companies-grid")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-async function handleWatchToggle(button) {
-  const ticker = button.dataset.watchToggle;
-  const watching = button.dataset.watching !== "true";
-  await postJson("/api/watchlist", { ticker, watching });
-}
-
-function updateCompanyScrollIndicator() {
-  const list = refs.companiesGrid.querySelector(".company-list");
-  const indicator = refs.companiesGrid.querySelector(".company-scroll-indicator");
-  const thumb = refs.companiesGrid.querySelector(".company-scroll-thumb");
-
-  if (!list || !indicator || !thumb) {
-    return;
-  }
-
-  state.ui.companyListScrollTop = list.scrollTop;
-
-  const railHeight = indicator.clientHeight || list.clientHeight;
-  const scrollHeight = list.scrollHeight;
-  const clientHeight = list.clientHeight;
-  const maxScroll = Math.max(0, scrollHeight - clientHeight);
-  const hasOverflow = maxScroll > 0;
-
-  indicator.classList.toggle("has-overflow", hasOverflow);
-
-  if (!hasOverflow || railHeight <= 0) {
-    thumb.style.height = `${Math.max(railHeight, 32)}px`;
-    thumb.style.transform = "translateY(0)";
-    return;
-  }
-
-  const thumbHeight = Math.max(42, Math.round((clientHeight / scrollHeight) * railHeight));
-  const maxThumbTravel = Math.max(0, railHeight - thumbHeight);
-  const thumbOffset = maxScroll ? Math.round((list.scrollTop / maxScroll) * maxThumbTravel) : 0;
-
-  thumb.style.height = `${thumbHeight}px`;
-  thumb.style.transform = `translateY(${thumbOffset}px)`;
-}
-
-async function handleLogout() {
-  await postJson("/api/logout", {});
-}
-
-async function handleTrade(button) {
-  const card = button.closest("[data-ticker]");
-  const input = card.querySelector("input[name='shares']");
-  const shares = Number(input.value);
-  const side = button.dataset.side;
-  const ticker = card.dataset.ticker;
-  const ok = await postJson("/api/trade", { ticker, side, shares });
+async function handleScenarioSubmit(event) {
+  event.preventDefault();
+  const payload = {
+    presetId: state.ui.scenarioDraft.presetId,
+    headline: state.ui.scenarioDraft.headline.trim(),
+    body: state.ui.scenarioDraft.body.trim()
+  };
+  const ok = await postJson("/api/admin/round/publish", payload);
   if (ok) {
-    input.value = "";
+    refs.scenarioForm.elements.headline.value = "";
+    refs.scenarioForm.elements.body.value = "";
+    state.ui.scenarioDraft.headline = "";
+    state.ui.scenarioDraft.body = "";
+    renderScenarioPreview();
   }
 }
 
-async function toggleMarket(isOpen) {
-  await postJson("/api/admin/market", { isOpen });
-}
-
-async function handleStudentRosterClick(event) {
+async function handleTeacherControlsClick(event) {
   const button = event.target.closest("button[data-action]");
   if (!button) {
     return;
   }
 
   const action = button.dataset.action;
-  const userId = button.dataset.userId;
-
-  if (action === "reset") {
-    const confirmed = window.confirm("Reset this student back to the starting cash amount and clear all trades?");
-    if (!confirmed) {
-      return;
-    }
-    await postJson("/api/admin/student/reset", { userId });
+  if (action === "open-session") {
+    await postJson("/api/admin/session", { isOpen: true });
     return;
   }
 
-  if (action === "delete") {
-    const confirmed = window.confirm("Delete this student account completely? This cannot be undone.");
-    if (!confirmed) {
-      return;
+  if (action === "close-session") {
+    await postJson("/api/admin/session", { isOpen: false });
+    return;
+  }
+
+  if (action === "close-round") {
+    await postJson("/api/admin/round/close", {});
+    return;
+  }
+
+  if (action === "reset-results") {
+    if (window.confirm("Reset standings, morale, trust, and event history but keep student accounts?")) {
+      await postJson("/api/admin/reset", { scope: "results" });
     }
-    await postJson("/api/admin/student/delete", { userId });
+    return;
+  }
+
+  if (action === "reset-full") {
+    if (window.confirm("Delete all student accounts and reset the whole simulation?")) {
+      await postJson("/api/admin/reset", { scope: "full" });
+    }
   }
 }
 
-async function handleStudentRosterSubmit(event) {
-  const rewardForm = event.target.closest("form[data-reward-form]");
-  if (rewardForm) {
-    event.preventDefault();
-    const payload = Object.fromEntries(new FormData(rewardForm).entries());
-    payload.amount = Number(payload.amount);
-    const ok = await postJson("/api/admin/student/reward", payload);
-    if (ok) {
-      rewardForm.reset();
-      showToast("Student reward added.");
-    }
+async function handleStudentRoundClick(event) {
+  const button = event.target.closest("button[data-option-id]");
+  if (!button) {
     return;
   }
 
+  await postJson("/api/respond", {
+    optionId: button.dataset.optionId
+  });
+}
+
+async function handleStudentRosterClick(event) {
+  const button = event.target.closest("button[data-delete-user]");
+  if (!button) {
+    return;
+  }
+
+  const userId = button.dataset.deleteUser;
+  const name = button.dataset.studentName || "this student";
+  if (!window.confirm(`Delete ${name}'s account?`)) {
+    return;
+  }
+
+  await postJson("/api/admin/student/delete", { userId });
+}
+
+async function handleStudentRosterSubmit(event) {
   const form = event.target.closest("form[data-password-form]");
   if (!form) {
     return;
@@ -532,44 +298,24 @@ async function handleStudentRosterSubmit(event) {
   const ok = await postJson("/api/admin/student/password", payload);
   if (ok) {
     form.reset();
-    showToast("Student password updated.");
   }
 }
 
-async function handleResetClick(event) {
-  const button = event.target.closest("button[data-reset-scope]");
-  if (!button) {
+async function handleLogout() {
+  const response = await fetch("/api/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: "{}"
+  });
+
+  if (!response.ok) {
+    showToast("Could not log out right now.");
     return;
   }
 
-  const scope = button.dataset.resetScope;
-  const messages = {
-    portfolios: "Reset every student portfolio back to the starting cash amount and clear all trades?",
-    market: "Reset the market board, session count, news feed, and all stock prices back to starting values?",
-    full: "Reset the entire game, remove all student accounts, and start fresh?"
-  };
-
-  if (!window.confirm(messages[scope] || "Are you sure?")) {
-    return;
-  }
-
-  await postJson("/api/admin/reset", { scope });
-}
-
-async function handleCompanyEditorSubmit(event) {
-  event.preventDefault();
-  const form = event.target.closest("form[data-company-editor]");
-  if (!form) {
-    return;
-  }
-
-  const payload = Object.fromEntries(new FormData(form).entries());
-  payload.startingPrice = Number(payload.startingPrice);
-  payload.price = Number(payload.price);
-  const ok = await postJson("/api/admin/company", payload);
-  if (ok) {
-    showToast(`${payload.ticker} updated.`);
-  }
+  await bootstrap();
 }
 
 async function postJson(url, payload) {
@@ -584,23 +330,20 @@ async function postJson(url, payload) {
 
     const data = await response.json();
     if (!response.ok) {
-      showToast(data.error || "Something went wrong.");
-      return false;
+      throw new Error(data.error || "That request could not be completed.");
     }
 
-    if (Object.prototype.hasOwnProperty.call(data, "user")) {
+    if (data && typeof data === "object" && "game" in data) {
       state.data = data;
+      syncScenarioDraft();
       render();
     } else {
-      await bootstrap();
+      await bootstrap(false);
     }
 
-    if (url !== "/api/logout") {
-      showToast(data.message || "Updated.");
-    }
     return true;
   } catch (error) {
-    showToast("Could not reach the server. Please try again.");
+    showToast(error.message || "That request could not be completed.");
     return false;
   }
 }
@@ -610,15 +353,14 @@ function render() {
     return;
   }
 
+  renderAuthSection();
   renderMarketStatus();
   renderSessionBar();
-  renderAuthSection();
   renderStudentView();
   renderTeacherView();
-  renderCompanies();
   renderLeaderboard();
-  renderEvents();
-  syncStudentEventModal();
+  renderRoundFeed();
+  updateAutomationHooks();
 }
 
 function renderAuthSection() {
@@ -631,52 +373,73 @@ function renderAuthSection() {
 }
 
 function renderMarketStatus() {
-  const { market, leaderboard } = state.data;
+  const { game, leaderboard, rules, currentRound } = state.data;
   refs.marketStatusPanel.innerHTML = `
-    <div class="market-box">
-      <div class="stats-row">
-        <span class="market-pill ${market.isOpen ? "open" : "closed"}">${market.isOpen ? "Market Open" : "Market Closed"}</span>
-        <span class="role-pill ${state.data.isAdmin ? "teacher" : state.data.user ? "student" : "guest"}">
-          ${state.data.isAdmin ? "Teacher Session" : state.data.user ? "Student Session" : "Guest View"}
-        </span>
+    <div class="status-stack">
+      <div class="status-top">
+        <span class="pill ${game.isOpen ? "pill-open" : "pill-closed"}">${game.isOpen ? "Class Session Live" : "Class Session Closed"}</span>
+        <span class="pill ${currentRound ? "pill-neutral" : "pill-muted"}">${currentRound ? `Event ${currentRound.roundNumber}` : "No Active Event"}</span>
       </div>
-      <div class="stats-row">
+      <div class="mini-grid">
         <div class="mini-stat">
-          <span>Class Sessions</span>
-          <strong>${market.sessionNumber}</strong>
+          <span>Revenue Goal</span>
+          <strong>${formatRevenue(rules.salesGoal)}</strong>
         </div>
         <div class="mini-stat">
-          <span>Students Playing</span>
+          <span>Students</span>
           <strong>${leaderboard.length}</strong>
         </div>
         <div class="mini-stat">
-          <span>Last Opened</span>
-          <strong>${market.lastOpenedAt ? formatDate(market.lastOpenedAt) : "Not yet"}</strong>
+          <span>Class Sessions</span>
+          <strong>${game.sessionNumber}</strong>
+        </div>
+        <div class="mini-stat">
+          <span>Completed Cases</span>
+          <strong>${currentRound ? `${currentRound.completedCount}/${currentRound.totalStudents}` : "Waiting"}</strong>
         </div>
       </div>
       <p class="note">
-        Students can always research the fake companies, but they can only buy or sell while the market is open.
+        ${game.isOpen
+          ? currentRound
+            ? "Students are working through a shared dealership event, but each case can branch differently."
+            : "Session is open. Launch a global dealership event when you want the next chain to begin."
+          : "Open the class session before students can make management decisions."}
       </p>
     </div>
   `;
 }
 
 function renderSessionBar() {
-  const { user, isAdmin, market } = state.data;
+  const { user, isAdmin, game, currentRound } = state.data;
   if (!user && !isAdmin) {
     refs.sessionBar.classList.add("hidden");
     refs.sessionBar.innerHTML = "";
     return;
   }
 
+  const message = isAdmin
+    ? game.isOpen
+      ? currentRound
+        ? `Students are working Event ${currentRound.roundNumber} right now.`
+        : "Session is open and waiting for the next global event."
+      : "Session is closed. Open it when class begins."
+    : game.isOpen
+      ? currentRound
+        ? currentRound.studentCase?.status === "resolved"
+          ? "You resolved the current event chain. Watch the leaderboard and wait for the next global event."
+          : "A global dealership event is live. Your choices will branch your dealership's case."
+        : "Your teacher has the session open. Wait for the next global event."
+      : "Your teacher has not opened the class session yet.";
+
   refs.sessionBar.classList.remove("hidden");
   refs.sessionBar.innerHTML = `
     <div>
       <strong>${isAdmin ? "Teacher controls unlocked" : `Welcome back, ${escapeHtml(user.displayName)}`}</strong>
-      <span> ${market.isOpen ? "Trading is live now." : "Market is closed until the next class session opens."}</span>
+      <span>${message}</span>
     </div>
     <button class="subtle" id="logout-button">Logout</button>
   `;
+
   document.getElementById("logout-button").addEventListener("click", handleLogout);
 }
 
@@ -688,940 +451,722 @@ function renderStudentView() {
   }
 
   refs.studentView.classList.remove("hidden");
-  refs.studentNameHeading.textContent = `${user.displayName}'s Portfolio`;
+  refs.studentNameHeading.textContent = `${user.displayName}'s Dealership`;
   const leaderboardEntry = state.data.leaderboard.find((entry) => entry.id === user.id) || null;
-  const companiesByTicker = new Map(state.data.companies.map((company) => [company.ticker, company]));
-  const startingCash = Number(state.data.rules?.startingCash || 10000);
-  const investedValue = roundMoney(user.totalValue - user.cash);
-  const gainLoss = roundMoney(user.totalValue - startingCash);
-  const gainLossClass = gainLoss > 0 ? "price-up" : gainLoss < 0 ? "price-down" : "";
-  const gainLossLabel = gainLoss === 0 ? "Even" : `${gainLoss > 0 ? "+" : ""}${formatMoney(gainLoss)}`;
-  const topPosition = user.positions[0] || null;
-  const lastTrade = user.transactions[0] || null;
-  const marketMessage = state.data.market.isOpen ? "Trading window is live" : "Research mode only";
-  const marketPillClass = state.data.market.isOpen ? "open" : "closed";
-  const positionsTotal = user.positions.reduce((sum, position) => sum + position.marketValue, 0);
 
-  const positions = user.positions.length
-    ? `<div class="positions-list">${user.positions
-        .map(
-          (position) => {
-            const ownershipShare = positionsTotal ? Math.max(6, Math.round((position.marketValue / positionsTotal) * 100)) : 0;
-            return `
-            <div class="position-row position-card">
-              <div>
-                <strong>${escapeHtml(position.name)}</strong>
-                <div class="event-tag">${position.ticker} • ${position.shares} shares</div>
-              </div>
-              <div>
-                <div>${formatMoney(position.marketValue)}</div>
-                <span>${formatMoney(position.price)} per share</span>
-              </div>
-              <div class="position-meter">
-                <div class="position-meter-fill" style="width: ${ownershipShare}%"></div>
-              </div>
-            </div>
-          `;
-          }
-        )
-        .join("")}</div>`
-    : `<div class="empty-state">No stocks owned yet. When the market opens, you can start building a portfolio.</div>`;
-
-  refs.portfolioSummary.innerHTML = `
-    <div class="student-snapshot-grid">
-      <article class="student-hero-stat">
-        <span class="eyebrow">Portfolio Value</span>
-        <strong class="money">${formatMoney(user.totalValue)}</strong>
-        <div class="student-hero-meta">
-          <span class="${gainLossClass}">${gainLossLabel} vs start</span>
-          <span class="market-pill ${marketPillClass}">${marketMessage}</span>
+  refs.studentSummary.innerHTML = `
+    <div class="summary-grid">
+      <article class="hero-stat">
+        <span class="eyebrow">Revenue</span>
+        <strong>${formatRevenue(user.sales)}</strong>
+        <div class="stat-subline">
+          <span>${leaderboardEntry ? `Rank #${leaderboardEntry.rank}` : "Not ranked yet"}</span>
+          <span>${user.sales >= state.data.rules.salesGoal ? "Goal reached" : `${formatRevenue(state.data.rules.salesGoal - user.sales)} to goal`}</span>
         </div>
       </article>
-      <div class="student-mini-grid">
-        <div class="mini-stat student-mini-stat">
-          <span>Leaderboard Rank</span>
-          <strong>${leaderboardEntry ? `#${leaderboardEntry.rank}` : "-"}</strong>
-        </div>
-        <div class="mini-stat student-mini-stat">
-          <span>Cash Ready</span>
-          <strong>${formatMoney(user.cash)}</strong>
-        </div>
-        <div class="mini-stat student-mini-stat">
-          <span>Money in Stocks</span>
-          <strong>${formatMoney(investedValue)}</strong>
-        </div>
-        <div class="mini-stat student-mini-stat">
-          <span>Watching</span>
-          <strong>${user.watchlist.length}/5</strong>
-        </div>
-        <div class="mini-stat student-mini-stat">
-          <span>Top Position</span>
-          <strong>${topPosition ? topPosition.ticker : "None"}</strong>
-        </div>
-        <div class="mini-stat student-mini-stat">
-          <span>Last Trade</span>
-          <strong>${lastTrade ? `${lastTrade.side.toUpperCase()} ${lastTrade.ticker}` : "Not yet"}</strong>
-        </div>
+      <div class="mini-grid summary-mini-grid">
+        <div class="mini-stat"><span>Customer Satisfaction</span><strong>${formatPercent(user.satisfaction)}</strong></div>
+        <div class="mini-stat"><span>Reputation</span><strong>${formatPercent(user.reputation)}</strong></div>
+        <div class="mini-stat"><span>Avg Morale</span><strong>${formatPercent(user.avgMorale)}</strong></div>
+        <div class="mini-stat"><span>Avg Trust</span><strong>${formatPercent(user.avgTrust)}</strong></div>
+        <div class="mini-stat"><span>Manager Style</span><strong>${escapeHtml(user.managerProfile.title)}</strong></div>
       </div>
     </div>
-    <div class="student-section-head">
-      <div>
-        <p class="eyebrow">Holdings</p>
-        <h3>Current Positions</h3>
-      </div>
-      <div class="student-section-note">
-        ${user.positions.length ? `${user.positions.length} active position${user.positions.length === 1 ? "" : "s"}` : "Ready to buy"}
-      </div>
-    </div>
-    ${positions}
+    <p class="note">${escapeHtml(user.managerProfile.summary)}</p>
+    ${
+      user.warnings.length
+        ? `<div class="warning-list">${user.warnings.map((warning) => `<div class="warning-chip">${escapeHtml(warning)}</div>`).join("")}</div>`
+        : `<p class="note">Balanced management keeps dealership revenue moving without creating hidden team penalties.</p>`
+    }
   `;
 
-  refs.watchlistPanel.innerHTML = user.watchlist.length
-    ? `<div class="watchlist-grid">${user.watchlist
-        .map((item) => {
-          const company = companiesByTicker.get(item.ticker);
-          const previousPrice = company?.history?.[1]?.price ?? item.startingPrice;
-          const delta = roundMoney(item.price - previousPrice);
-          return `
-            <div class="watchlist-row">
-              <button type="button" class="watchlist-focus" data-company-focus="${item.ticker}">
-                <div>
-                  <strong>${escapeHtml(item.name)}</strong>
-                  <div class="company-summary-subtitle">
-                    <span class="ticker">${item.ticker}</span>
-                    <span>${escapeHtml(item.industry)}</span>
-                  </div>
-                </div>
-                <div class="company-list-price">
-                  <div>${formatMoney(item.price)}</div>
-                  <span class="${delta > 0 ? "price-up" : delta < 0 ? "price-down" : ""}">
-                    ${delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${formatMoney(delta)}`}
-                  </span>
-                </div>
-              </button>
-              <button
-                type="button"
-                class="watch-toggle watching"
-                data-watch-toggle="${item.ticker}"
-                data-watching="true"
-                aria-label="Remove ${escapeAttribute(item.name)} from watchlist"
-                title="Remove from watchlist"
-              >&#9733;</button>
-            </div>
-          `;
-        })
-        .join("")}</div>`
-    : `<div class="empty-state">Star up to 5 companies to build a quick watchlist for class. Use the gold star on any company card to save it here.</div>`;
+  refs.studentRoundPanel.innerHTML = renderStudentRoundPanel();
+  refs.staffGrid.innerHTML = user.staff.map(renderStaffCard).join("");
+  refs.historyPanel.innerHTML = user.decisionHistory.length
+    ? `<div class="feed-list">${user.decisionHistory.map(renderHistoryRow).join("")}</div>`
+    : `<div class="empty-state">Your management decisions will start appearing here after the first completed global event.</div>`;
+}
 
-  refs.transactionsList.innerHTML = user.transactions.length
-    ? `<div class="student-section-head compact-panel-head">
-        <div>
-          <p class="eyebrow">Recent Activity</p>
-          <h3>Trade History</h3>
-        </div>
-        <div class="student-section-note">Last ${Math.min(user.transactions.length, 15)} trades</div>
+function renderStudentRoundPanel() {
+  const { game, currentRound, user } = state.data;
+
+  if (!game.isOpen) {
+    return `<div class="empty-state">The class session is closed right now. Once your teacher opens it, live staff situations will appear here.</div>`;
+  }
+
+  if (!currentRound) {
+    return `<div class="empty-state">Session is open, but there is no active global event yet. Stay ready for the next dealership crisis.</div>`;
+  }
+
+  const studentCase = currentRound.studentCase;
+  const response = currentRound.userResponse || user.currentResponse;
+  const stepLabel = studentCase ? `Step ${studentCase.stepIndex} of ${studentCase.totalSteps}` : "";
+  const eventOverview = renderCaseEventOverview(currentRound, studentCase);
+  const caseTimeline = renderCaseTimeline(studentCase);
+
+  if (studentCase?.status === "resolved" && response) {
+    return `
+      <div class="case-chain-layout">
+        ${eventOverview}
+        <article class="decision-card case-step-card">
+          <div class="section-head compact">
+            <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)} · Event Complete</p>
+            <h3>Final Outcome</h3>
+          </div>
+          <div class="choice-lockup">
+            <strong>Final move:</strong>
+            <span class="choice-pill">${escapeHtml(response.optionLabel)}</span>
+          </div>
+          <p>${escapeHtml(response.outcomeText)}</p>
+          ${renderImpactSummary(studentCase.cumulativeImpact, "Case result")}
+          <p class="note">${escapeHtml(response.noteText)}</p>
+        </article>
+        ${caseTimeline}
       </div>
-      <div class="transactions">${user.transactions
-        .map(
-          (transaction) => `
-            <div class="transaction-row">
-              <div>
-                <strong>${transaction.side.toUpperCase()} ${transaction.ticker}</strong>
-                <div class="event-tag">${formatDate(transaction.timestamp)}</div>
-              </div>
-              <div>
-                <div>${transaction.shares} shares at ${formatMoney(transaction.price)}</div>
-                <strong>${formatMoney(transaction.total)}</strong>
-              </div>
-            </div>
-          `
-        )
-        .join("")}</div>`
-    : `<div class="empty-state">Trades will appear here after the first market session.</div>`;
+    `;
+  }
+
+  if (!studentCase) {
+    return `<div class="empty-state">Your dealership case has not started yet. Refresh in a moment if the teacher just launched the event.</div>`;
+  }
+
+  if (studentCase.currentPhase === "consultant") {
+    const consultantHeading = studentCase.stepIndex > 1 ? "Who do you talk to next?" : "Who do you talk to first?";
+    return `
+      <div class="case-chain-layout">
+        ${eventOverview}
+        <article class="decision-card case-step-card">
+          <div class="section-head compact">
+            <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)} · ${stepLabel}</p>
+            <h3>${escapeHtml(consultantHeading)}</h3>
+          </div>
+          <p>${escapeHtml(studentCase.currentPromptTitle)} ${escapeHtml(studentCase.currentPromptBody)}</p>
+          <p class="note">The card above is the live global event. This step is just deciding whose perspective you want next.</p>
+          ${studentCase.cumulativeImpact?.actionCount ? renderImpactSummary(studentCase.cumulativeImpact, "Impact so far") : ""}
+          <div class="focus-row">
+            ${studentCase.availableConsultants.map((consultant) => renderStaffFocusChip(consultant.id)).join("")}
+          </div>
+          <div class="option-list">
+            ${studentCase.availableConsultants
+              .map(
+                (consultant) => `
+                  <button class="option-button" data-option-id="${consultant.id}">
+                    <span class="option-person">${renderStaffInlineIdentity(consultant.id, `Talk to ${consultant.name}`)}</span>
+                    <span class="option-meta">${escapeHtml(consultant.title)}</span>
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        </article>
+        ${caseTimeline}
+      </div>
+    `;
+  }
+
+  if (studentCase.currentPhase === "action") {
+    const selectedName = studentCase.selectedConsultant?.name || "this staff member";
+    return `
+      <div class="case-chain-layout">
+        ${eventOverview}
+        <article class="decision-card case-step-card">
+          <div class="section-head compact">
+            <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)} · ${stepLabel}</p>
+            <h3>What ${escapeHtml(selectedName)} tells you</h3>
+          </div>
+          <p>${escapeHtml(studentCase.currentPromptBody)}</p>
+          <p class="note">You are still handling the global event above. This branch is the advice and options coming from ${escapeHtml(selectedName)}.</p>
+          ${studentCase.cumulativeImpact?.actionCount ? renderImpactSummary(studentCase.cumulativeImpact, "Impact so far") : ""}
+          <div class="choice-lockup">
+            <strong>Consulting:</strong>
+            ${studentCase.selectedConsultant ? renderStaffInlineIdentity(studentCase.selectedConsultant.id, studentCase.selectedConsultant.name, "choice-pill choice-pill-person") : `<span class="choice-pill">Staff</span>`}
+          </div>
+          <div class="option-list">
+            ${studentCase.actionOptions
+              .map(
+                (option) => `
+                  <button class="option-button" data-option-id="${option.id}">
+                    <span class="option-label">${escapeHtml(option.label)}</span>
+                    <span class="option-meta">Choose this action</span>
+                  </button>
+                `
+              )
+              .join("")}
+          </div>
+        </article>
+        ${caseTimeline}
+      </div>
+    `;
+  }
+
+  return `
+    <article class="decision-card">
+      <div class="section-head compact">
+        <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)}</p>
+        <h3>${escapeHtml(currentRound.headline)}</h3>
+      </div>
+      <p>${escapeHtml(currentRound.body)}</p>
+    </article>
+  `;
+}
+
+function renderCaseEventOverview(currentRound, studentCase) {
+  return `
+    <article class="decision-card case-overview-card">
+      <div class="section-head compact">
+        <p class="eyebrow">Global Event</p>
+        <h3>${escapeHtml(currentRound.headline)}</h3>
+      </div>
+      <p>${escapeHtml(currentRound.body)}</p>
+      <div class="focus-row">
+        <span class="pill pill-neutral">Event ${currentRound.roundNumber}</span>
+        <span class="pill pill-neutral">${escapeHtml(currentRound.category)}</span>
+        <span class="pill pill-neutral">${escapeHtml(currentRound.pressure)} Pressure</span>
+        ${
+          studentCase
+            ? `<span class="pill ${studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
+            : ""
+        }
+      </div>
+      <p class="note">Everything below branches out from this event. The follow-up conversations and actions come from the selected event template.</p>
+    </article>
+  `;
+}
+
+function renderCaseTimeline(studentCase) {
+  if (!studentCase?.choiceLog?.length) {
+    return "";
+  }
+
+  return `
+    <article class="decision-card case-timeline-card">
+      <div class="section-head compact">
+        <p class="eyebrow">Case Timeline</p>
+        <h3>What has happened so far</h3>
+      </div>
+      <div class="case-timeline-list">
+        ${studentCase.choiceLog.map(renderCaseChoiceRow).join("")}
+      </div>
+    </article>
+  `;
 }
 
 function renderTeacherView() {
-  if (!state.data.isAdmin || !state.data.admin) {
+  if (!state.data.isAdmin) {
     refs.teacherView.classList.add("hidden");
     return;
   }
 
   refs.teacherView.classList.remove("hidden");
-
-  const { admin, market } = state.data;
-  const topStudent = admin.metrics.topStudent;
-
-  refs.teacherSummary.innerHTML = `
-    <div class="stats-row">
-      <div class="mini-stat">
-        <span>Students</span>
-        <strong>${admin.metrics.studentCount}</strong>
-      </div>
-      <div class="mini-stat">
-        <span>Total Class Value</span>
-        <strong>${formatMoney(admin.metrics.totalClassValue)}</strong>
-      </div>
-      <div class="mini-stat">
-        <span>Total Trades</span>
-        <strong>${admin.metrics.totalTrades}</strong>
-      </div>
-      <div class="mini-stat">
-        <span>News Events</span>
-        <strong>${admin.metrics.eventCount}</strong>
-      </div>
-    </div>
-    <div class="empty-state">
-      ${topStudent ? `<strong>Current Leader:</strong> ${escapeHtml(topStudent.displayName)} with ${formatMoney(topStudent.totalValue)}.` : "No students have joined yet."}
-      ${market.isOpen ? " The market is currently live." : " The market is currently closed."}
-    </div>
-  `;
+  const { admin, game, currentRound } = state.data;
 
   refs.teacherSettingsForm.elements.teacherUsername.value = admin.settings.teacherUsername;
-  refs.teacherSettingsForm.elements.startingCash.value = admin.settings.startingCash;
+  refs.teacherSettingsForm.elements.salesGoal.value = admin.settings.salesGoal;
+
+  refs.teacherSummary.innerHTML = `
+    <div class="summary-grid admin-summary-grid">
+      <article class="hero-stat">
+        <span class="eyebrow">Top Revenue</span>
+        <strong>${admin.metrics.topStudent ? formatRevenue(admin.metrics.topStudent.sales) : "No players yet"}</strong>
+        <div class="stat-subline">
+          <span>${admin.metrics.topStudent ? escapeHtml(admin.metrics.topStudent.displayName) : "Waiting for students"}</span>
+          <span>${admin.metrics.studentCount} students active</span>
+        </div>
+      </article>
+      <div class="mini-grid summary-mini-grid">
+        <div class="mini-stat"><span>Average Revenue</span><strong>${formatRevenue(admin.metrics.averageSales)}</strong></div>
+        <div class="mini-stat"><span>Average Morale</span><strong>${formatPercent(admin.metrics.averageMorale)}</strong></div>
+        <div class="mini-stat"><span>Completed Cases</span><strong>${currentRound ? `${admin.metrics.activeResponses}/${admin.metrics.studentCount}` : "Waiting"}</strong></div>
+        <div class="mini-stat"><span>Session State</span><strong>${game.isOpen ? "Open" : "Closed"}</strong></div>
+      </div>
+    </div>
+  `;
 
   refs.teacherControls.innerHTML = `
-    <div class="teacher-session-card">
-      <div class="teacher-session-top">
+    <div class="teacher-control-card">
+      <div class="control-row">
         <div>
-          <p class="eyebrow">Session ${market.sessionNumber || 0}</p>
-          <h3>${market.isOpen ? "Market is live right now" : "Market is waiting for class"}</h3>
+          <p class="eyebrow">Session</p>
+          <h3>${game.isOpen ? "Class is live" : "Class is paused"}</h3>
+          <p class="note">
+            ${
+              currentRound
+                ? `Event ${currentRound.roundNumber} is active with ${currentRound.completedCount}/${currentRound.totalStudents} completed dealership cases.`
+                : game.isOpen
+                  ? "No global event is active yet. Launch one when you are ready."
+                  : "Open the session before pushing the next event chain."
+            }
+          </p>
         </div>
-        <span class="market-pill ${market.isOpen ? "open" : "closed"}">${market.isOpen ? "Open Now" : "Closed Now"}</span>
+        <span class="pill ${game.isOpen ? "pill-open" : "pill-closed"}">${game.isOpen ? "Live" : "Closed"}</span>
       </div>
-      <div class="teacher-session-grid">
-        <div class="mini-stat">
-          <span>Next Move</span>
-          <strong>${market.isOpen ? "Monitor trades + publish news" : "Open market for class"}</strong>
-        </div>
-        <div class="mini-stat">
-          <span>Last Opened</span>
-          <strong>${market.lastOpenedAt ? formatDate(market.lastOpenedAt) : "Not yet"}</strong>
-        </div>
-        <div class="mini-stat">
-          <span>Last Closed</span>
-          <strong>${market.lastClosedAt ? formatDate(market.lastClosedAt) : "Not yet"}</strong>
-        </div>
+      ${currentRound?.teacherSnapshot ? renderTeacherSnapshot(currentRound.teacherSnapshot) : ""}
+      <div class="action-row">
+        <button data-action="open-session" ${game.isOpen ? "disabled" : ""}>Open Session</button>
+        <button class="secondary" data-action="close-session" ${game.isOpen ? "" : "disabled"}>Close Session</button>
+        <button class="subtle" data-action="close-round" ${currentRound ? "" : "disabled"}>Close Current Event</button>
       </div>
-      <div class="teacher-run-sheet">
-        <div class="run-step ${market.isOpen ? "done" : "active"}">
-          <strong>1. Open market</strong>
-          <span>Start the class trading window.</span>
-        </div>
-        <div class="run-step ${market.isOpen ? "active" : ""}">
-          <strong>2. Let students trade</strong>
-          <span>Watch the feed, leaderboard, and publish news if you want to shake things up.</span>
-        </div>
-        <div class="run-step ${market.isOpen ? "" : "pending"}">
-          <strong>3. Close market</strong>
-          <span>Freeze the board until the next class session.</span>
-        </div>
-      </div>
-      <div class="teacher-actions">
-        <button ${market.isOpen ? "disabled" : ""} id="open-market-button">Open Market</button>
-        <button class="secondary" ${market.isOpen ? "" : "disabled"} id="close-market-button">Close Market</button>
+      <div class="action-row">
+        <button class="subtle" data-action="reset-results">Reset Standings</button>
+        <button class="subtle danger-button" data-action="reset-full">Reset Everything</button>
       </div>
     </div>
   `;
 
-  refs.resetTools.innerHTML = `
-    <div class="section-head compact">
-      <p class="eyebrow">Reset Tools</p>
-      <h3>Classroom Cleanup</h3>
-    </div>
-    <div class="reset-grid">
-      <button class="subtle" data-reset-scope="portfolios">Reset All Portfolios</button>
-      <button class="subtle" data-reset-scope="market">Reset Market Board</button>
-      <button data-reset-scope="full">Full Game Reset</button>
-    </div>
-    <p class="note">Use the smaller resets during the school year, and the full reset when you want to start with a brand new class.</p>
-  `;
-
-  refs.eventEffects.innerHTML = state.data.companies
-    .map(
-      (company) => `
-        <div class="effect-row">
-          <div class="effect-company">
-            <strong>${escapeHtml(company.name)}</strong>
-            <div class="event-tag">${company.industry}</div>
-          </div>
-          <label class="effect-input-group">
-            <span>Change %</span>
-            <input
-              type="number"
-              name="effect_${company.ticker}"
-              min="-90"
-              max="200"
-              step="1"
-              value="${Number(state.ui.eventDraft.effects?.[company.ticker] || 0)}"
-            />
-          </label>
-        </div>
-      `
-    )
-    .join("");
-
-  refs.eventForm.elements.headline.value = state.ui.eventDraft.headline || "";
-  refs.eventForm.elements.body.value = state.ui.eventDraft.body || "";
-
-  renderTeacherEventSummary();
+  renderPresetOptions();
+  renderScenarioPreview();
 
   refs.studentRoster.innerHTML = admin.students.length
-    ? `<div class="admin-list">${admin.students
-        .map(
-          (student) => `
-            <details class="admin-accordion">
-              <summary class="admin-summary">
-                <div class="admin-summary-main">
-                  <strong>${escapeHtml(student.displayName)}</strong>
-                  <span class="company-summary-toggle">Show Details</span>
-                </div>
-              </summary>
-              <div class="admin-body">
-                <div class="admin-meta">
-                  <div class="event-tag">@${escapeHtml(student.username)} • Joined ${formatDate(student.createdAt)}</div>
-                  <div class="admin-subtext">${escapeHtml(student.positionsLabel)}</div>
-                </div>
-                <div class="admin-actions">
-                  <div class="admin-metric">${formatMoney(student.totalValue)}</div>
-                  <div class="admin-subtext">Cash: ${formatMoney(student.cash)}</div>
-                  <form class="reward-form" data-reward-form>
-                    <input type="hidden" name="userId" value="${student.id}" />
-                    <input name="amount" type="number" min="1" step="1" placeholder="Reward amount" required />
-                    <button class="subtle" type="submit">Add Cash</button>
-                  </form>
-                  <form class="password-form" data-password-form>
-                    <input type="hidden" name="userId" value="${student.id}" />
-                    <input name="password" type="text" minlength="4" placeholder="New password" required />
-                    <button class="subtle" type="submit">Reset Password</button>
-                  </form>
-                  <button class="subtle" data-action="reset" data-user-id="${student.id}">Reset Portfolio</button>
-                  <button data-action="delete" data-user-id="${student.id}">Delete</button>
-                </div>
-              </div>
-            </details>
-          `
-        )
-        .join("")}</div>`
-    : `<div class="empty-state">No student accounts yet. Once students register, you can reset or remove them from here.</div>`;
+    ? `<div class="feed-list">${admin.students.map(renderStudentRosterRow).join("")}</div>`
+    : `<div class="empty-state">No student accounts exist yet.</div>`;
 
-  refs.teacherTrades.innerHTML = admin.recentTrades.length
-    ? `<div class="transactions">${admin.recentTrades
-        .map(
-          (trade) => `
-            <div class="transaction-row">
-              <div>
-                <strong>${escapeHtml(trade.studentName)} • ${trade.side.toUpperCase()} ${trade.ticker}</strong>
-                <div class="event-tag">@${escapeHtml(trade.username)} • ${formatDate(trade.timestamp)}</div>
-              </div>
-              <div>
-                <div>${trade.shares} shares at ${formatMoney(trade.price)}</div>
-                <strong>${formatMoney(trade.total)}</strong>
-              </div>
-            </div>
-          `
-        )
-        .join("")}</div>`
-    : `<div class="empty-state">Student trades will appear here as the class starts using the market.</div>`;
-
-  refs.companyEditor.innerHTML = state.data.companies
-    .map(
-      (company) => `
-        <form class="company-edit-card" data-company-editor data-ticker="${company.ticker}">
-          <div class="company-top">
-            <div>
-              <h3>${escapeHtml(company.name)}</h3>
-              <span class="ticker">${company.ticker}</span>
-            </div>
-            <button type="submit" class="secondary">Save Company</button>
-          </div>
-          <input type="hidden" name="ticker" value="${company.ticker}" />
-          <div class="editor-grid">
-            <label>
-              Company Name
-              <input name="name" type="text" value="${escapeAttribute(company.name)}" required />
-            </label>
-            <label>
-              Industry
-              <input name="industry" type="text" value="${escapeAttribute(company.industry)}" required />
-            </label>
-            <label>
-              Starting Price
-              <input name="startingPrice" type="number" min="1" step="0.01" value="${company.startingPrice}" required />
-            </label>
-            <label>
-              Current Price
-              <input name="price" type="number" min="1" step="0.01" value="${company.price}" required />
-            </label>
-            <label>
-              Volatility
-              <select name="volatility">
-                ${["Low", "Medium", "High", "Extreme"]
-                  .map((level) => `<option value="${level}" ${company.volatility === level ? "selected" : ""}>${level}</option>`)
-                  .join("")}
-              </select>
-            </label>
-          </div>
-          <label>
-            Bio
-            <textarea name="bio" rows="3" required>${escapeHtml(company.bio)}</textarea>
-          </label>
-          <div class="editor-grid">
-            <label>
-              Pros
-              <textarea name="pros" rows="4" placeholder="One per line">${escapeHtml(company.pros.join("\n"))}</textarea>
-            </label>
-            <label>
-              Cons
-              <textarea name="cons" rows="4" placeholder="One per line">${escapeHtml(company.cons.join("\n"))}</textarea>
-            </label>
-          </div>
-        </form>
-      `
-    )
-    .join("");
-
-  document.getElementById("open-market-button")?.addEventListener("click", () => toggleMarket(true));
-  document.getElementById("close-market-button")?.addEventListener("click", () => toggleMarket(false));
+  refs.teacherFeed.innerHTML = admin.recentResponses.length
+    ? `<div class="feed-list">${admin.recentResponses.map(renderTeacherFeedRow).join("")}</div>`
+    : `<div class="empty-state">Student decisions will appear here once the class starts responding.</div>`;
 }
 
-function renderTeacherEventSummary() {
-  if (!state.data?.isAdmin || !refs.eventSummary) {
+function renderPresetOptions() {
+  if (!state.data?.presets?.length) {
+    refs.presetSelect.innerHTML = "";
     return;
   }
 
-  const effects = (state.data.companies || [])
-    .map((company) => {
-      const input = refs.eventForm.elements[`effect_${company.ticker}`];
-      const percentChange = Number(input?.value || 0);
-      return Number.isFinite(percentChange) && percentChange !== 0
-        ? { ticker: company.ticker, percentChange }
-        : null;
-    })
-    .filter(Boolean);
-
-  const headline = String(refs.eventForm.elements.headline?.value || "").trim();
-  const publishButton = document.getElementById("publish-event-button");
-
-  if (publishButton) {
-    publishButton.textContent = effects.length
-      ? `Publish Event for ${effects.length} Stock${effects.length === 1 ? "" : "s"}`
-      : "Publish Event";
-  }
-
-  const bodyText = String(refs.eventForm.elements.body?.value || "").trim();
-
-  refs.eventSummary.innerHTML = effects.length
-    ? `
-      <div class="teacher-event-preview">
-        <div class="teacher-event-preview-head">
-          <div>
-            <p class="eyebrow">Event Preview</p>
-            <h3>${headline ? escapeHtml(headline) : "Headline still needed"}</h3>
-          </div>
-          <div class="student-section-note">${effects.length} company impact${effects.length === 1 ? "" : "s"}</div>
-        </div>
-        <div class="event-effect-list">
-          ${effects
-            .map(
-              (effect) => `
-                <span class="event-tag ${effect.percentChange > 0 ? "preview-up" : "preview-down"}">
-                  ${effect.ticker} ${effect.percentChange > 0 ? "+" : ""}${effect.percentChange}%
-                </span>
-              `
-            )
-            .join("")}
-        </div>
-      </div>
-    `
-    : headline || bodyText
-      ? `
-        <div class="teacher-event-preview">
-          <div class="teacher-event-preview-head">
-            <div>
-              <p class="eyebrow">News-Only Event</p>
-              <h3>${headline ? escapeHtml(headline) : "Headline still needed"}</h3>
-            </div>
-            <div class="student-section-note">No price changes</div>
-          </div>
-          <p class="admin-subtext">This update will appear in the student news feed without changing any stock prices.</p>
-        </div>
+  refs.presetSelect.innerHTML = state.data.presets
+    .map(
+      (preset) => `
+        <option value="${preset.id}" ${preset.id === state.ui.scenarioDraft.presetId ? "selected" : ""}>
+          ${preset.category}: ${preset.headline}
+        </option>
       `
-      : "";
+    )
+    .join("");
 }
 
-function getFilteredCompanies() {
-  return state.data.companies.filter((company) => {
-    const search = state.ui.companySearch.trim().toLowerCase();
-    const matchesSearch =
-      !search ||
-      company.name.toLowerCase().includes(search) ||
-      company.ticker.toLowerCase().includes(search) ||
-      company.industry.toLowerCase().includes(search);
-    const matchesVolatility =
-      state.ui.volatilityFilter === "all" || company.volatility === state.ui.volatilityFilter;
-    const matchesIndustry =
-      state.ui.industryFilter === "all" || company.industry === state.ui.industryFilter;
-    return matchesSearch && matchesVolatility && matchesIndustry;
-  });
-}
-
-function buildCompanyDetailCard(selectedCompany, isWatchingSelected) {
-  const previousPrice = selectedCompany.history[1]?.price ?? selectedCompany.startingPrice;
-  const delta = roundMoney(selectedCompany.price - previousPrice);
-  const deltaClass = delta > 0 ? "price-up" : delta < 0 ? "price-down" : "";
-  const deltaLabel = delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${formatMoney(delta)}`;
-
-  let footer = `<div class="empty-state">Log in as a student to trade this stock during the market window.</div>`;
-  if (state.data.user) {
-    footer = `
-      <div class="trade-controls">
-        <input name="shares" type="number" min="1" step="1" placeholder="Shares" ${state.data.market.isOpen ? "" : "disabled"} />
-        <button data-side="buy" ${state.data.market.isOpen ? "" : "disabled"}>Buy</button>
-        <button class="secondary" data-side="sell" ${state.data.market.isOpen ? "" : "disabled"}>Sell</button>
-      </div>
-    `;
-  } else if (state.data.isAdmin) {
-    footer = `<div class="empty-state">Teacher mode: edit this company in the Company Editor above.</div>`;
+function renderScenarioPreview() {
+  const presets = state.data?.presets || [];
+  const preset = presets.find((entry) => entry.id === state.ui.scenarioDraft.presetId) || presets[0];
+  if (!preset) {
+    refs.scenarioPreview.innerHTML = `<div class="empty-state">No preset library loaded.</div>`;
+    return;
   }
 
-  return `
-    <article class="company-card company-detail-card" data-ticker="${selectedCompany.ticker}">
-      <div class="company-top">
-        <div>
-          <h3>${escapeHtml(selectedCompany.name)}</h3>
-          <div class="company-summary-subtitle">
-            <span class="ticker">${selectedCompany.ticker}</span>
-            <span>${escapeHtml(selectedCompany.industry)}</span>
-            <span class="vol-pill">${selectedCompany.volatility} Volatility</span>
-          </div>
-        </div>
-        <div class="company-summary-price">
-          ${
-            state.data.user
-              ? `
-                <button
-                  type="button"
-                  class="watch-toggle detail-watch-toggle ${isWatchingSelected ? "watching" : ""}"
-                  data-watch-toggle="${selectedCompany.ticker}"
-                  data-watching="${isWatchingSelected ? "true" : "false"}"
-                  aria-label="${isWatchingSelected ? "Remove" : "Add"} ${escapeAttribute(selectedCompany.name)} ${isWatchingSelected ? "from" : "to"} watchlist"
-                  title="${isWatchingSelected ? "Remove from watchlist" : "Add to watchlist"}"
-                >${isWatchingSelected ? "&#9733; Watching" : "&#9734; Watchlist"}</button>
-              `
-              : ""
-          }
-          <div class="money">${formatMoney(selectedCompany.price)}</div>
-          <div class="${deltaClass}">${deltaLabel}</div>
-        </div>
+  const headline = state.ui.scenarioDraft.headline.trim() || preset.headline;
+  const body = state.ui.scenarioDraft.body.trim() || preset.body;
+  refs.launchScenarioButton.disabled = false;
+  refs.launchScenarioButton.textContent = "Launch Global Event";
+
+  refs.scenarioPreview.innerHTML = `
+    <article class="preview-card">
+      <div class="section-head compact">
+        <p class="eyebrow">${escapeHtml(preset.category)} · ${escapeHtml(preset.pressure)}</p>
+        <h3>${escapeHtml(headline)}</h3>
       </div>
-      <div class="company-meta">
-        <span>${escapeHtml(selectedCompany.industry)}</span>
-        <span class="vol-pill">${selectedCompany.volatility} Volatility</span>
-        <span>Start: ${formatMoney(selectedCompany.startingPrice)}</span>
+      <p>${escapeHtml(body)}</p>
+      <div class="focus-row">
+        ${(preset.openingConsultants || Object.keys(STAFF_DIRECTORY)).map((staffId) => renderStaffFocusChip(staffId)).join("")}
       </div>
-      <p>${escapeHtml(selectedCompany.bio)}</p>
-      <div class="pros-cons">
-        <div>
-          <strong>Pros</strong>
-          <span>${selectedCompany.pros.map(escapeHtml).join(", ")}</span>
-        </div>
-        <div>
-          <strong>Cons</strong>
-          <span>${selectedCompany.cons.map(escapeHtml).join(", ")}</span>
-        </div>
-      </div>
-      ${footer}
+      <p class="note">Your custom headline and prompt become the live global event. The follow-up branches still come from this selected event template.</p>
     </article>
   `;
 }
 
-function refreshCompanySelectionView() {
-  const filteredCompanies = getFilteredCompanies();
-  if (!filteredCompanies.length) {
-    renderCompanies();
-    return;
-  }
-
-  const selectedCompany =
-    filteredCompanies.find((company) => company.ticker === state.ui.selectedCompanyTicker) || filteredCompanies[0];
-  const watchlistTickers = new Set((state.data.user?.watchlist || []).map((item) => item.ticker));
-  const isWatchingSelected = watchlistTickers.has(selectedCompany.ticker);
-
-  refs.companiesGrid.querySelectorAll("button[data-company-select]").forEach((entryButton) => {
-    entryButton.classList.toggle("selected", entryButton.dataset.companySelect === selectedCompany.ticker);
-  });
-
-  const detailCard = refs.companiesGrid.querySelector(".company-detail-card");
-  if (!detailCard) {
-    renderCompanies();
-    return;
-  }
-
-  detailCard.outerHTML = buildCompanyDetailCard(selectedCompany, isWatchingSelected);
-  refs.companiesGrid.querySelectorAll("button[data-side]").forEach((tradeButton) => {
-    tradeButton.addEventListener("click", () => handleTrade(tradeButton));
-  });
-}
-
-function renderCompanies() {
-  const industries = [...new Set(state.data.companies.map((company) => company.industry))].sort((a, b) =>
-    a.localeCompare(b)
-  );
-  const filteredCompanies = getFilteredCompanies();
-
-  if (!filteredCompanies.some((company) => company.ticker === state.ui.selectedCompanyTicker)) {
-    state.ui.selectedCompanyTicker = filteredCompanies[0]?.ticker || null;
-  }
-
-  const movers = state.data.companies
-    .map((company) => {
-      const previousPrice = company.history[1]?.price ?? company.startingPrice;
-      const delta = roundMoney(company.price - previousPrice);
-      const percent = previousPrice ? Math.round((delta / previousPrice) * 100) : 0;
-      return { company, delta, percent };
-    })
-    .sort((a, b) => Math.abs(b.percent) - Math.abs(a.percent))
-    .slice(0, 3);
-
-  refs.companiesToolbar.innerHTML = `
-    <div class="companies-toolbar">
-      <label>
-        Search
-        <input
-          type="text"
-          name="companySearch"
-          placeholder="Search by name, ticker, or industry"
-          value="${escapeAttribute(state.ui.companySearch)}"
-        />
-      </label>
-      <label>
-        Risk
-        <select name="volatilityFilter">
-          ${["all", "Low", "Medium", "High", "Extreme"]
-            .map(
-              (value) =>
-                `<option value="${value}" ${state.ui.volatilityFilter === value ? "selected" : ""}>${
-                  value === "all" ? "All Risk Levels" : value
-                }</option>`
-            )
-            .join("")}
-        </select>
-      </label>
-      <label>
-        Industry
-        <select name="industryFilter">
-          <option value="all">All Industries</option>
-          ${industries
-            .map(
-              (industry) =>
-                `<option value="${escapeAttribute(industry)}" ${
-                  state.ui.industryFilter === industry ? "selected" : ""
-                }>${escapeHtml(industry)}</option>`
-            )
-            .join("")}
-        </select>
-      </label>
-    </div>
-  `;
-
-  refs.marketMovers.innerHTML = movers.length
-    ? `
-      <div class="section-head compact">
-        <p class="eyebrow">Market Movers</p>
-        <h3>Recent Action</h3>
-      </div>
-      <div class="movers-grid">
-        ${movers
-          .map(
-            ({ company, delta, percent }) => `
-              <div class="mover-card">
-                <div>
-                  <strong>${escapeHtml(company.name)}</strong>
-                  <div class="event-tag">${company.ticker} • ${company.industry}</div>
-                </div>
-                <div class="${delta > 0 ? "price-up" : delta < 0 ? "price-down" : ""}">
-                  ${delta > 0 ? "+" : ""}${percent}% 
-                </div>
-              </div>
-            `
-          )
-          .join("")}
-      </div>
-    `
-    : "";
-
-  if (!filteredCompanies.length) {
-    refs.companiesGrid.innerHTML = `<div class="empty-state">No companies match that search right now. Try a different ticker, industry, or risk level.</div>`;
-    return;
-  }
-
-  const selectedCompany =
-    filteredCompanies.find((company) => company.ticker === state.ui.selectedCompanyTicker) || filteredCompanies[0];
-  const watchlistTickers = new Set((state.data.user?.watchlist || []).map((item) => item.ticker));
-  const isWatchingSelected = watchlistTickers.has(selectedCompany.ticker);
-
-  refs.companiesGrid.innerHTML = `
-    <div class="company-layout">
-      <div class="company-list-shell">
-        <div class="company-list">
-          ${filteredCompanies
-            .map((company) => {
-              const isSelected = company.ticker === selectedCompany.ticker;
-              const isWatching = watchlistTickers.has(company.ticker);
-              const prior = company.history[1]?.price ?? company.startingPrice;
-              const change = roundMoney(company.price - prior);
-              return `
-                <div class="company-list-entry">
-                  <button type="button" class="company-list-item ${isSelected ? "selected" : ""}" data-company-select="${company.ticker}">
-                    <div>
-                      <strong>${escapeHtml(company.name)}</strong>
-                      <div class="company-summary-subtitle">
-                        <span class="ticker">${company.ticker}</span>
-                        <span>${escapeHtml(company.industry)}</span>
-                      </div>
-                    </div>
-                    <div class="company-list-price">
-                      <div>${formatMoney(company.price)}</div>
-                      <span class="${change > 0 ? "price-up" : change < 0 ? "price-down" : ""}">
-                        ${change === 0 ? "0%" : `${change > 0 ? "+" : ""}${Math.round((change / prior) * 100)}%`}
-                      </span>
-                    </div>
-                  </button>
-                  ${
-                    state.data.user
-                      ? `
-                        <button
-                          type="button"
-                          class="watch-toggle ${isWatching ? "watching" : ""}"
-                          data-watch-toggle="${company.ticker}"
-                          data-watching="${isWatching ? "true" : "false"}"
-                          aria-label="${isWatching ? "Remove" : "Add"} ${escapeAttribute(company.name)} ${isWatching ? "from" : "to"} watchlist"
-                          title="${isWatching ? "Remove from watchlist" : "Add to watchlist"}"
-                        >&#9733;</button>
-                      `
-                      : ""
-                  }
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-        <div class="company-scroll-indicator" aria-hidden="true">
-          <div class="company-scroll-thumb"></div>
-        </div>
-      </div>
-      ${buildCompanyDetailCard(selectedCompany, isWatchingSelected)}
-    </div>
-  `;
-
-  refs.companiesGrid.querySelectorAll("button[data-side]").forEach((button) => {
-    button.addEventListener("click", () => handleTrade(button));
-  });
-
-  const companyList = refs.companiesGrid.querySelector(".company-list");
-  if (companyList) {
-    companyList.scrollTop = state.ui.companyListScrollTop;
-  }
-  companyList?.addEventListener("scroll", updateCompanyScrollIndicator, { passive: true });
-  window.requestAnimationFrame(updateCompanyScrollIndicator);
-}
-
 function renderLeaderboard() {
   refs.leaderboard.innerHTML = state.data.leaderboard.length
-    ? `<div class="leaderboard-list">${state.data.leaderboard
+    ? `<div class="feed-list">${state.data.leaderboard
         .map(
           (entry) => `
-            <div class="leaderboard-row">
-              <div class="leaderboard-main">
-                <span class="leaderboard-rank">${entry.rank}</span>
+            <article class="feed-row leaderboard-row">
+              <div class="feed-main">
+                <span class="rank-pill">#${entry.rank}</span>
                 <div>
                   <strong>${escapeHtml(entry.displayName)}</strong>
-                  <div class="event-tag">@${escapeHtml(entry.username)}</div>
+                  <div class="subtext">@${escapeHtml(entry.username)}</div>
                 </div>
               </div>
-              <div>
-                <strong class="money">${formatMoney(entry.totalValue)}</strong>
-                <div>${entry.positionsCount} active positions</div>
+              <div class="feed-metrics">
+                <div><strong>${formatRevenue(entry.sales)}</strong><span>Revenue</span></div>
+                <div><strong>${formatPercent(entry.teamHealth)}</strong><span>Team health</span></div>
               </div>
-            </div>
-          `
-        )
-        .join("")}</div>`
-    : `<div class="empty-state">No students have registered yet. Once they do, the leaderboard will update automatically.</div>`;
-}
-
-function renderEvents() {
-  refs.eventsFeed.innerHTML = state.data.events.length
-    ? `<div class="events-list">${state.data.events
-        .map(
-          (event) => `
-            <article class="event-row">
-              <div class="company-top">
-                <div>
-                  <strong>${escapeHtml(event.headline)}</strong>
-                  <div class="event-tag">${formatDate(event.createdAt)}</div>
-                </div>
-              </div>
-              ${event.body ? `<p>${escapeHtml(event.body)}</p>` : ""}
-              ${
-                event.effects?.length
-                  ? `<div class="event-effect-list">${event.effects
-                      .map(
-                        (effect) => `
-                          <span class="event-tag">
-                            ${effect.ticker} ${effect.percentChange > 0 ? "+" : ""}${effect.percentChange}% →
-                            ${formatMoney(effect.newPrice)}
-                          </span>
-                        `
-                      )
-                      .join("")}</div>`
-                  : ""
-              }
             </article>
           `
         )
         .join("")}</div>`
-    : `<div class="empty-state">Teacher-published market events will appear here.</div>`;
+    : `<div class="empty-state">No students have joined yet. Once they do, live dealership standings will appear here.</div>`;
 }
 
-function getSeenEventsStorageKey() {
-  const username = state.data?.user?.username;
-  return username ? `stock-arena:seen-events:${username}` : null;
+function renderRoundFeed() {
+  refs.roundFeed.innerHTML = state.data.rounds.length
+    ? `<div class="feed-list">${state.data.rounds.map(renderRoundRow).join("")}</div>`
+    : `<div class="empty-state">Published global events will appear here once the teacher starts the first session.</div>`;
 }
 
-function loadSeenEventIds() {
-  const key = getSeenEventsStorageKey();
-  if (!key) {
-    return new Set();
-  }
-
-  try {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
-  }
+function renderStaffCard(staff) {
+  const meta = getStaffMeta(staff.id);
+  return `
+    <article class="staff-card staff-card-${meta.accent}">
+      <div class="staff-top">
+        <div class="staff-identity">
+          <img class="staff-avatar staff-avatar-large" src="${meta.avatar}" alt="${escapeHtml(staff.name)} portrait" />
+          <div>
+            <h3>${escapeHtml(staff.name)}</h3>
+            <div class="subtext">${escapeHtml(staff.title)}</div>
+            <div class="role-badge role-badge-${meta.accent}">${escapeHtml(meta.badge)}</div>
+          </div>
+        </div>
+        <span class="tag">${staff.morale < 40 || staff.trust < 40 ? "At risk" : "Stable"}</span>
+      </div>
+      <p>${escapeHtml(staff.summary)}</p>
+      <p class="note">${escapeHtml(staff.tension)}</p>
+      <div class="meter-block">
+        <div class="meter-label"><span>Morale</span><strong>${formatPercent(staff.morale)}</strong></div>
+        <div class="meter"><div class="meter-fill ${staff.morale < 40 ? "low" : ""}" style="width: ${staff.morale}%"></div></div>
+      </div>
+      <div class="meter-block">
+        <div class="meter-label"><span>Trust</span><strong>${formatPercent(staff.trust)}</strong></div>
+        <div class="meter"><div class="meter-fill trust ${staff.trust < 40 ? "low" : ""}" style="width: ${staff.trust}%"></div></div>
+      </div>
+    </article>
+  `;
 }
 
-function saveSeenEventIds(seenIds) {
-  const key = getSeenEventsStorageKey();
-  if (!key) {
-    return;
-  }
-
-  window.localStorage.setItem(key, JSON.stringify([...seenIds]));
+function renderStaffFocusChip(staffId) {
+  const meta = getStaffMeta(staffId);
+  return `
+    <span class="staff-chip staff-chip-${meta.accent}">
+      <img class="staff-avatar" src="${meta.avatar}" alt="${escapeHtml(meta.name)} portrait" />
+      <span>${escapeHtml(meta.name)}</span>
+    </span>
+  `;
 }
 
-function syncStudentEventModal() {
-  if (!state.data?.user || state.data.isAdmin) {
-    closeEventModal(false);
-    return;
-  }
-
-  const seenIds = loadSeenEventIds();
-  const nextEvent = (state.data.events || []).find(
-    (event) => event.effects?.length && !seenIds.has(event.id)
-  );
-
-  if (!nextEvent) {
-    closeEventModal(false);
-    return;
-  }
-
-  if (state.ui.activeEventModalId === nextEvent.id && !refs.eventModal.classList.contains("hidden")) {
-    return;
-  }
-
-  openEventModal(nextEvent);
+function renderStaffInlineIdentity(staffId, label, className = "staff-inline staff-inline-pill") {
+  const meta = getStaffMeta(staffId);
+  return `
+    <span class="${className} staff-inline-${meta.accent}">
+      <img class="staff-avatar staff-avatar-inline" src="${meta.avatar}" alt="${escapeHtml(meta.name)} portrait" />
+      <span>${escapeHtml(label || meta.name)}</span>
+    </span>
+  `;
 }
 
-function openEventModal(event) {
-  state.ui.activeEventModalId = event.id;
-  refs.eventModalTitle.textContent = event.headline;
-  refs.eventModalBody.innerHTML = `
-    ${event.body ? `<p class="hero-copy">${escapeHtml(event.body)}</p>` : ""}
-    <div class="event-effect-list">
-      ${event.effects
-        .map(
-          (effect) => `
-            <span class="event-tag ${effect.percentChange > 0 ? "preview-up" : "preview-down"}">
-              ${effect.ticker} ${effect.percentChange > 0 ? "+" : ""}${effect.percentChange}% to ${formatMoney(effect.newPrice)}
-            </span>
-          `
-        )
-        .join("")}
-    </div>
-    <div class="event-modal-note">
-      <strong>What this means:</strong> Prices changed immediately. Check your portfolio, watchlist, and trade board before making your next move.
+function renderHistoryRow(entry) {
+  return `
+    <article class="feed-row">
+      <div class="feed-main">
+        <div>
+          <strong>Event ${entry.roundNumber}: ${escapeHtml(entry.headline)}</strong>
+          <div class="subtext">${escapeHtml(entry.optionLabel)} · ${formatDate(entry.submittedAt)}</div>
+        </div>
+      </div>
+      <div class="history-impact">
+        <span class="impact-chip ${entry.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(entry.salesDelta)}</span>
+        <span class="impact-chip ${entry.satisfactionDelta >= 0 ? "positive" : "negative"}">Sat ${formatSigned(entry.satisfactionDelta)}</span>
+        <span class="impact-chip ${entry.reputationDelta >= 0 ? "positive" : "negative"}">Rep ${formatSigned(entry.reputationDelta)}</span>
+      </div>
+      <p>${escapeHtml(entry.outcomeText)}</p>
+      <p class="note">${escapeHtml(entry.noteText)}</p>
+    </article>
+  `;
+}
+
+function renderStudentRosterRow(student) {
+  return `
+    <article class="feed-row">
+      <div class="feed-main">
+        <div>
+          <strong>${escapeHtml(student.displayName)}</strong>
+          <div class="subtext">@${escapeHtml(student.username)} · Joined ${formatDate(student.joinedAt)}</div>
+        </div>
+        <span class="pill ${student.respondedToCurrentRound ? "pill-open" : "pill-muted"}">
+          ${student.respondedToCurrentRound ? "Completed" : escapeHtml(student.progressLabel || "Waiting")}
+        </span>
+      </div>
+      <div class="feed-metrics">
+        <div><strong>${formatRevenue(student.sales)}</strong><span>Revenue</span></div>
+        <div><strong>${formatPercent(student.avgMorale)}</strong><span>Morale</span></div>
+        <div><strong>${formatPercent(student.teamHealth)}</strong><span>Health</span></div>
+      </div>
+      <div class="roster-actions">
+        <form data-password-form class="inline-form">
+          <input type="hidden" name="userId" value="${student.id}" />
+          <input name="password" type="text" minlength="4" placeholder="New password" required />
+          <button class="subtle" type="submit">Reset Password</button>
+        </form>
+        <button
+          class="subtle danger-button"
+          type="button"
+          data-delete-user="${student.id}"
+          data-student-name="${escapeHtml(student.displayName)}"
+        >
+          Delete Student
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function renderTeacherFeedRow(entry) {
+  return `
+    <article class="feed-row">
+      <div class="feed-main">
+        <div>
+          <strong>${escapeHtml(entry.studentName)}</strong>
+          <div class="subtext">Event ${entry.roundNumber} · ${escapeHtml(entry.headline)}</div>
+        </div>
+        <span class="tag">${escapeHtml(entry.optionLabel)}</span>
+      </div>
+      <div class="history-impact">
+        <span class="impact-chip ${entry.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(entry.salesDelta)}</span>
+        <span class="impact-chip ${entry.satisfactionDelta >= 0 ? "positive" : "negative"}">Sat ${formatSigned(entry.satisfactionDelta)}</span>
+        <span class="impact-chip ${entry.reputationDelta >= 0 ? "positive" : "negative"}">Rep ${formatSigned(entry.reputationDelta)}</span>
+      </div>
+      <div class="subtext">${formatDate(entry.submittedAt)}</div>
+    </article>
+  `;
+}
+
+function renderRoundRow(round) {
+  return `
+    <article class="feed-row">
+      <div class="feed-main">
+        <div>
+          <strong>Event ${round.roundNumber}: ${escapeHtml(round.headline)}</strong>
+          <div class="subtext">${escapeHtml(round.category)} · ${escapeHtml(round.pressure)} · ${formatDate(round.createdAt)}</div>
+        </div>
+        <span class="pill ${round.status === "active" ? "pill-open" : "pill-muted"}">${round.status === "active" ? "Active" : "Closed"}</span>
+      </div>
+      <p>${escapeHtml(round.body)}</p>
+      <div class="feed-metrics">
+        <div><strong>${round.completedCount}/${round.totalStudents}</strong><span>Completed</span></div>
+        <div><strong>${round.inProgressCount}</strong><span>In progress</span></div>
+      </div>
+      ${
+        round.userResponse
+          ? `<div class="focus-row">
+              <span class="pill pill-open">Your final move: ${escapeHtml(round.userResponse.optionLabel)}</span>
+              <span class="pill pill-neutral">Net result ${formatSignedRevenue(round.userResponse.salesDelta)}</span>
+            </div>`
+          : ""
+      }
+    </article>
+  `;
+}
+
+function renderCaseChoiceRow(entry) {
+  const label = entry.phase === "consultant"
+    ? `Step ${entry.stepIndex}: Consultation`
+    : `Step ${entry.stepIndex}: Action Taken`;
+  return `
+    <article class="feed-row compact-feed-row">
+      <div class="feed-main">
+        <div>
+          <strong>${escapeHtml(label)}</strong>
+          <div class="subtext">
+            ${
+              entry.phase === "consultant"
+                ? `${renderStaffInlineIdentity(entry.consultantId, getStaffName(entry.consultantId), "staff-inline")}<span>${escapeHtml(entry.summary)}</span>`
+                : `${renderStaffInlineIdentity(entry.consultantId, getStaffName(entry.consultantId), "staff-inline")}<span>${escapeHtml(entry.label)}</span>`
+            }
+          </div>
+          ${
+            entry.phase === "action"
+              ? `<div class="note">${escapeHtml(entry.summary)}</div>`
+              : ""
+          }
+        </div>
+      </div>
+      ${
+        entry.phase === "action"
+          ? `<div class="history-impact">
+              <span class="impact-chip ${entry.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(entry.salesDelta)}</span>
+              <span class="impact-chip ${entry.satisfactionDelta >= 0 ? "positive" : "negative"}">Sat ${formatSigned(entry.satisfactionDelta)}</span>
+              <span class="impact-chip ${entry.reputationDelta >= 0 ? "positive" : "negative"}">Rep ${formatSigned(entry.reputationDelta)}</span>
+            </div>`
+          : ""
+      }
+    </article>
+  `;
+}
+
+function renderImpactSummary(impact, label) {
+  if (!impact) {
+    return "";
+  }
+
+  return `
+    <div class="impact-summary">
+      <strong>${escapeHtml(label)}</strong>
+      <div class="impact-grid">
+        <div class="impact-chip ${impact.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(impact.salesDelta)}</div>
+        <div class="impact-chip ${impact.satisfactionDelta >= 0 ? "positive" : "negative"}">Satisfaction ${formatSigned(impact.satisfactionDelta)}</div>
+        <div class="impact-chip ${impact.reputationDelta >= 0 ? "positive" : "negative"}">Reputation ${formatSigned(impact.reputationDelta)}</div>
+      </div>
     </div>
   `;
-  refs.eventModal.classList.remove("hidden");
-  refs.eventModal.setAttribute("aria-hidden", "false");
 }
 
-function dismissActiveEventModal() {
-  if (!state.ui.activeEventModalId) {
-    closeEventModal(false);
-    return;
+function renderTeacherSnapshot(snapshot) {
+  const openingConsultants = snapshot.openingConsultants || [];
+  const activeNodes = snapshot.activeNodes || [];
+
+  return `
+    <div class="snapshot-block">
+      <div class="section-head compact">
+        <p class="eyebrow">Live Branch Map</p>
+        <h3>Where students are branching</h3>
+      </div>
+      <div class="snapshot-grid">
+        ${openingConsultants
+          .map(
+            (entry) => `
+              <article class="preview-option">
+                <div class="feed-main">
+                  ${renderStaffFocusChip(entry.staffId)}
+                  <span class="tag subtle">${entry.count} opened here</span>
+                </div>
+              </article>
+            `
+          )
+          .join("")}
+      </div>
+      ${
+        activeNodes.length
+          ? `<div class="feed-list">
+              ${activeNodes
+                .map(
+                  (node) => `
+                    <article class="feed-row compact-feed-row">
+                      <div class="feed-main">
+                        <div>
+                          <strong>${escapeHtml(node.title)}</strong>
+                          <div class="subtext">${node.count} active dealership case${node.count === 1 ? "" : "s"} at this branch</div>
+                        </div>
+                      </div>
+                    </article>
+                  `
+                )
+                .join("")}
+            </div>`
+          : `<p class="note">No follow-up branches are active right now. Students are either still choosing their first staff member or have already resolved the event.</p>`
+      }
+    </div>
+  `;
+}
+
+function getStaffName(staffId) {
+  return getStaffMeta(staffId).name;
+}
+
+function getStaffMeta(staffId) {
+  const user = state.data?.user;
+  if (user) {
+    const match = user.staff.find((staff) => staff.id === staffId);
+    if (match) {
+      return {
+        name: match.name,
+        title: match.title,
+        avatar: STAFF_DIRECTORY[staffId]?.avatar || "/assets/staff/jake.svg",
+        accent: STAFF_DIRECTORY[staffId]?.accent || "sales",
+        badge: STAFF_DIRECTORY[staffId]?.badge || "Team"
+      };
+    }
   }
 
-  const seenIds = loadSeenEventIds();
-  seenIds.add(state.ui.activeEventModalId);
-  saveSeenEventIds(seenIds);
-  closeEventModal(false);
-  syncStudentEventModal();
-}
-
-function closeEventModal(resetActiveId = true) {
-  refs.eventModal.classList.add("hidden");
-  refs.eventModal.setAttribute("aria-hidden", "true");
-  refs.eventModalBody.innerHTML = "";
-  if (resetActiveId) {
-    state.ui.activeEventModalId = null;
-  } else {
-    state.ui.activeEventModalId = null;
-  }
-}
-
-function formatMoney(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD"
-  }).format(value);
-}
-
-function formatDate(value) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  }).format(new Date(value));
-}
-
-function roundMoney(value) {
-  return Math.round(value * 100) / 100;
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function escapeAttribute(value) {
-  return escapeHtml(value).replaceAll("`", "&#96;");
+  return STAFF_DIRECTORY[staffId] || {
+    name: staffId,
+    title: "",
+    avatar: "/assets/staff/jake.svg",
+    accent: "sales",
+    badge: "Team"
+  };
 }
 
 function showToast(message) {
   refs.toast.textContent = message;
   refs.toast.classList.remove("hidden");
-  window.clearTimeout(showToast.timeoutId);
-  showToast.timeoutId = window.setTimeout(() => {
+  clearTimeout(showToast.timeout);
+  showToast.timeout = setTimeout(() => {
     refs.toast.classList.add("hidden");
-  }, 2400);
+  }, 3200);
+}
+
+function formatRevenue(value) {
+  return `$${Math.round(Number(value || 0)).toLocaleString()}k`;
+}
+
+function formatSignedRevenue(value) {
+  const number = Math.round(Number(value || 0));
+  const absolute = Math.abs(number).toLocaleString();
+  return `${number >= 0 ? "+" : "-"}$${absolute}k`;
+}
+
+function formatPercent(value) {
+  return `${Math.round(Number(value || 0))}%`;
+}
+
+function formatSigned(value) {
+  const number = Math.round(Number(value || 0));
+  return `${number > 0 ? "+" : ""}${number}`;
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "Not yet";
+  }
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function updateAutomationHooks() {
+  window.render_game_to_text = () => {
+    const payload = {
+      role: state.data?.isAdmin ? "teacher" : state.data?.user ? "student" : "guest",
+      sessionOpen: Boolean(state.data?.game?.isOpen),
+      currentRound: state.data?.currentRound
+        ? {
+            eventNumber: state.data.currentRound.roundNumber,
+            headline: state.data.currentRound.headline,
+            completedCases: state.data.currentRound.completedCount,
+            totalStudents: state.data.currentRound.totalStudents,
+            userResponded: Boolean(state.data.currentRound.userResponse),
+            casePhase: state.data.currentRound.studentCase?.currentPhase || null,
+            currentRevenueDelta: state.data.currentRound.studentCase?.cumulativeImpact?.salesDelta || 0
+          }
+        : null,
+      user: state.data?.user
+        ? {
+            revenue: state.data.user.sales,
+            satisfaction: state.data.user.satisfaction,
+            reputation: state.data.user.reputation,
+            avgMorale: state.data.user.avgMorale,
+            avgTrust: state.data.user.avgTrust,
+            managerStyle: state.data.user.managerProfile?.title || null
+          }
+        : null,
+      leaderboard: (state.data?.leaderboard || []).slice(0, 3).map((entry) => ({
+        rank: entry.rank,
+        name: entry.displayName,
+        revenue: entry.sales,
+        teamHealth: entry.teamHealth
+      }))
+    };
+    return JSON.stringify(payload);
+  };
+
+  window.advanceTime = () => {
+    render();
+  };
 }
