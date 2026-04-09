@@ -794,6 +794,7 @@ button:disabled {
 .editor-grid,
 .admin-list,
 .password-form,
+.reward-form,
 .preset-groups,
 .preset-grid {
   display: grid;
@@ -903,7 +904,8 @@ button:disabled {
   text-align: center;
 }
 
-.password-form {
+.password-form,
+.reward-form {
   grid-template-columns: 1fr auto;
   min-width: min(360px, 100%);
 }

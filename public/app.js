@@ -218,7 +218,7 @@ refs.eventForm.addEventListener("input", handleEventFormChange);
 refs.eventForm.addEventListener("change", handleEventFormChange);
 refs.eventPresets.addEventListener("click", handleEventPresetClick);
 refs.studentRoster.addEventListener("click", handleStudentRosterClick);
-refs.studentRoster.addEventListener("submit", handleStudentPasswordSubmit);
+refs.studentRoster.addEventListener("submit", handleStudentRosterSubmit);
 refs.resetTools.addEventListener("click", handleResetClick);
 refs.companyEditor.addEventListener("submit", handleCompanyEditorSubmit);
 refs.companiesToolbar.addEventListener("input", handleCompanyToolbarChange);
@@ -545,7 +545,20 @@ async function handleStudentRosterClick(event) {
   }
 }
 
-async function handleStudentPasswordSubmit(event) {
+async function handleStudentRosterSubmit(event) {
+  const rewardForm = event.target.closest("form[data-reward-form]");
+  if (rewardForm) {
+    event.preventDefault();
+    const payload = Object.fromEntries(new FormData(rewardForm).entries());
+    payload.amount = Number(payload.amount);
+    const ok = await postJson("/api/admin/student/reward", payload);
+    if (ok) {
+      rewardForm.reset();
+      showToast("Student reward added.");
+    }
+    return;
+  }
+
   const form = event.target.closest("form[data-password-form]");
   if (!form) {
     return;
@@ -1042,6 +1055,12 @@ function renderTeacherView() {
               </div>
               <div class="admin-actions">
                 <div class="admin-metric">${formatMoney(student.totalValue)}</div>
+                <div class="admin-subtext">Cash: ${formatMoney(student.cash)}</div>
+                <form class="reward-form" data-reward-form>
+                  <input type="hidden" name="userId" value="${student.id}" />
+                  <input name="amount" type="number" min="1" step="1" placeholder="Reward amount" required />
+                  <button class="subtle" type="submit">Add Cash</button>
+                </form>
                 <form class="password-form" data-password-form>
                   <input type="hidden" name="userId" value="${student.id}" />
                   <input name="password" type="text" minlength="4" placeholder="New password" required />
@@ -1160,6 +1179,8 @@ function renderTeacherEventSummary() {
       : "Publish Event";
   }
 
+  const bodyText = String(refs.eventForm.elements.body?.value || "").trim();
+
   refs.eventSummary.innerHTML = effects.length
     ? `
       <div class="teacher-event-preview">
@@ -1183,7 +1204,20 @@ function renderTeacherEventSummary() {
         </div>
       </div>
     `
-    : `<div class="empty-state">Choose one or more stock changes above to preview the event impact before you publish it.</div>`;
+    : headline || bodyText
+      ? `
+        <div class="teacher-event-preview">
+          <div class="teacher-event-preview-head">
+            <div>
+              <p class="eyebrow">News-Only Event</p>
+              <h3>${headline ? escapeHtml(headline) : "Headline still needed"}</h3>
+            </div>
+            <div class="student-section-note">No price changes</div>
+          </div>
+          <p class="admin-subtext">This update will appear in the student news feed without changing any stock prices.</p>
+        </div>
+      `
+      : `<div class="empty-state">Add a headline to post classroom news, and include stock changes only when you want prices to move.</div>`;
 }
 
 function getFilteredCompanies() {

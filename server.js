@@ -374,8 +374,8 @@ async function handleApi(req, res, pathname) {
           .filter((effect) => effect.ticker && Number.isFinite(effect.percentChange) && effect.percentChange !== 0)
       : [];
 
-    if (!headline || effects.length === 0) {
-      sendJson(res, 400, { error: "Events need a headline and at least one non-zero company effect." });
+    if (!headline) {
+      sendJson(res, 400, { error: "Events need a headline." });
       return;
     }
 
@@ -562,6 +562,36 @@ async function handleApi(req, res, pathname) {
 
     db.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`).run(hashPassword(nextPassword), userId);
     clearStudentSessions(userId);
+    sendJson(res, 200, buildBootstrapPayload(session));
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/student/reward") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+    const userId = String(body.userId || "");
+    const amount = roundMoney(Number(body.amount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      sendJson(res, 400, { error: "Reward amount must be a positive dollar value." });
+      return;
+    }
+
+    if (amount > 1000000) {
+      sendJson(res, 400, { error: "Reward amounts must be under $1,000,000." });
+      return;
+    }
+
+    const user = getUserById(userId);
+    if (!user) {
+      sendJson(res, 404, { error: "Student account not found." });
+      return;
+    }
+
+    db.prepare(`UPDATE users SET cash = ? WHERE id = ?`).run(roundMoney(user.cash + amount), userId);
     sendJson(res, 200, buildBootstrapPayload(session));
     return;
   }
@@ -1332,10 +1362,6 @@ function publishEvent(headline, bodyText, effects) {
       newPrice
     });
   });
-
-  if (appliedEffects.length === 0) {
-    throw new Error("None of the selected companies could be updated.");
-  }
 
   db.prepare(`INSERT INTO events (id, headline, body, created_at) VALUES (?, ?, ?, ?)`).run(
     eventId,
