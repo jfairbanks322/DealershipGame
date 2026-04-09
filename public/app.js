@@ -188,7 +188,6 @@ const refs = {
   teacherControls: document.getElementById("teacher-controls"),
   teacherSettingsForm: document.getElementById("teacher-settings-form"),
   resetTools: document.getElementById("reset-tools"),
-  eventPresets: document.getElementById("event-presets"),
   studentRoster: document.getElementById("student-roster"),
   teacherTrades: document.getElementById("teacher-trades"),
   companyEditor: document.getElementById("company-editor"),
@@ -216,7 +215,6 @@ refs.teacherSettingsForm.addEventListener("submit", handleTeacherSettingsSubmit)
 refs.eventForm.addEventListener("submit", handleEventSubmit);
 refs.eventForm.addEventListener("input", handleEventFormChange);
 refs.eventForm.addEventListener("change", handleEventFormChange);
-refs.eventPresets.addEventListener("click", handleEventPresetClick);
 refs.studentRoster.addEventListener("click", handleStudentRosterClick);
 refs.studentRoster.addEventListener("submit", handleStudentRosterSubmit);
 refs.resetTools.addEventListener("click", handleResetClick);
@@ -348,41 +346,6 @@ async function handleEventSubmit(event) {
       effects: {}
     };
   }
-}
-
-function handleEventPresetClick(event) {
-  const button = event.target.closest("button[data-preset-id]");
-  if (!button) {
-    return;
-  }
-
-  const preset = EVENT_PRESETS.find((entry) => entry.id === button.dataset.presetId);
-  if (!preset) {
-    return;
-  }
-
-  const companyTickers = new Set((state.data?.companies || []).map((company) => company.ticker));
-  const effectsByTicker = new Map(
-    preset.effects.filter((effect) => companyTickers.has(effect.ticker)).map((effect) => [effect.ticker, effect.percentChange])
-  );
-
-  state.ui.eventDraft = {
-    headline: preset.headline,
-    body: preset.body,
-    effects: Object.fromEntries((state.data?.companies || []).map((company) => [company.ticker, effectsByTicker.get(company.ticker) ?? 0]))
-  };
-
-  refs.eventForm.elements.headline.value = preset.headline;
-  refs.eventForm.elements.body.value = preset.body;
-  (state.data?.companies || []).forEach((company) => {
-    const input = refs.eventForm.elements[`effect_${company.ticker}`];
-    if (input) {
-      input.value = effectsByTicker.get(company.ticker) ?? 0;
-    }
-  });
-
-  showToast(`Loaded preset: ${preset.label}`);
-  renderTeacherEventSummary();
 }
 
 function handleCompanyToolbarChange(event) {
@@ -973,57 +936,16 @@ function renderTeacherView() {
     <p class="note">Use the smaller resets during the school year, and the full reset when you want to start with a brand new class.</p>
   `;
 
-  const presetsByCategory = EVENT_PRESETS.reduce((groups, preset) => {
-    if (!groups.has(preset.category)) {
-      groups.set(preset.category, []);
-    }
-    groups.get(preset.category).push(preset);
-    return groups;
-  }, new Map());
-
-  refs.eventPresets.innerHTML = `
-    <div class="section-head compact">
-      <p class="eyebrow">Preset Events</p>
-      <h3>Load a Classroom Scenario</h3>
-    </div>
-    <div class="preset-groups">
-      ${Array.from(presetsByCategory.entries())
-        .map(
-          ([category, presets]) => `
-            <section class="preset-group">
-              <div class="preset-group-head">
-                <p class="eyebrow">${escapeHtml(category)}</p>
-                <span class="student-section-note">${presets.length} quick picks</span>
-              </div>
-              <div class="preset-grid">
-                ${presets
-                  .map(
-                    (preset) => `
-                      <button type="button" class="subtle preset-button" data-preset-id="${preset.id}">
-                        <span>${escapeHtml(preset.label)}</span>
-                      </button>
-                    `
-                  )
-                  .join("")}
-              </div>
-            </section>
-          `
-        )
-        .join("")}
-    </div>
-    <p class="note">Pick a category, load a preset, and then tweak the headline or percentage changes before publishing if you want a custom twist.</p>
-  `;
-
   refs.eventEffects.innerHTML = state.data.companies
     .map(
       (company) => `
         <div class="effect-row">
-          <div>
+          <div class="effect-company">
             <strong>${escapeHtml(company.name)}</strong>
-            <div class="event-tag">${company.ticker} • ${company.industry}</div>
+            <div class="event-tag">${company.industry}</div>
           </div>
-          <label>
-            Price change %
+          <label class="effect-input-group">
+            <span>Change %</span>
             <input
               type="number"
               name="effect_${company.ticker}"
@@ -1047,29 +969,36 @@ function renderTeacherView() {
     ? `<div class="admin-list">${admin.students
         .map(
           (student) => `
-            <div class="admin-row">
-              <div>
-                <strong>${escapeHtml(student.displayName)}</strong>
-                <div class="event-tag">@${escapeHtml(student.username)} • Joined ${formatDate(student.createdAt)}</div>
-                <div class="admin-subtext">${escapeHtml(student.positionsLabel)}</div>
+            <details class="admin-accordion">
+              <summary class="admin-summary">
+                <div class="admin-summary-main">
+                  <strong>${escapeHtml(student.displayName)}</strong>
+                  <span class="company-summary-toggle">Show Details</span>
+                </div>
+              </summary>
+              <div class="admin-body">
+                <div class="admin-meta">
+                  <div class="event-tag">@${escapeHtml(student.username)} • Joined ${formatDate(student.createdAt)}</div>
+                  <div class="admin-subtext">${escapeHtml(student.positionsLabel)}</div>
+                </div>
+                <div class="admin-actions">
+                  <div class="admin-metric">${formatMoney(student.totalValue)}</div>
+                  <div class="admin-subtext">Cash: ${formatMoney(student.cash)}</div>
+                  <form class="reward-form" data-reward-form>
+                    <input type="hidden" name="userId" value="${student.id}" />
+                    <input name="amount" type="number" min="1" step="1" placeholder="Reward amount" required />
+                    <button class="subtle" type="submit">Add Cash</button>
+                  </form>
+                  <form class="password-form" data-password-form>
+                    <input type="hidden" name="userId" value="${student.id}" />
+                    <input name="password" type="text" minlength="4" placeholder="New password" required />
+                    <button class="subtle" type="submit">Reset Password</button>
+                  </form>
+                  <button class="subtle" data-action="reset" data-user-id="${student.id}">Reset Portfolio</button>
+                  <button data-action="delete" data-user-id="${student.id}">Delete</button>
+                </div>
               </div>
-              <div class="admin-actions">
-                <div class="admin-metric">${formatMoney(student.totalValue)}</div>
-                <div class="admin-subtext">Cash: ${formatMoney(student.cash)}</div>
-                <form class="reward-form" data-reward-form>
-                  <input type="hidden" name="userId" value="${student.id}" />
-                  <input name="amount" type="number" min="1" step="1" placeholder="Reward amount" required />
-                  <button class="subtle" type="submit">Add Cash</button>
-                </form>
-                <form class="password-form" data-password-form>
-                  <input type="hidden" name="userId" value="${student.id}" />
-                  <input name="password" type="text" minlength="4" placeholder="New password" required />
-                  <button class="subtle" type="submit">Reset Password</button>
-                </form>
-                <button class="subtle" data-action="reset" data-user-id="${student.id}">Reset Portfolio</button>
-                <button data-action="delete" data-user-id="${student.id}">Delete</button>
-              </div>
-            </div>
+            </details>
           `
         )
         .join("")}</div>`
@@ -1217,7 +1146,7 @@ function renderTeacherEventSummary() {
           <p class="admin-subtext">This update will appear in the student news feed without changing any stock prices.</p>
         </div>
       `
-      : `<div class="empty-state">Add a headline to post classroom news, and include stock changes only when you want prices to move.</div>`;
+      : "";
 }
 
 function getFilteredCompanies() {

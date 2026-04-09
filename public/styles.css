@@ -680,6 +680,38 @@ button:disabled {
   justify-content: space-between;
 }
 
+.transaction-row,
+.admin-row,
+.admin-actions {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.transaction-row > div,
+.admin-row > div,
+.admin-actions > div,
+.admin-actions > form,
+.transaction-row strong,
+.transaction-row span {
+  min-width: 0;
+}
+
+.admin-row > div:first-child,
+.transaction-row > div:first-child {
+  flex: 1 1 260px;
+}
+
+.admin-actions {
+  flex: 1 1 320px;
+  justify-content: flex-end;
+}
+
+.admin-actions form,
+.admin-actions button,
+.transaction-row > div:last-child {
+  max-width: 100%;
+}
+
 .company-meta {
   flex-wrap: wrap;
 }
@@ -782,11 +814,15 @@ button:disabled {
   color: #ebd6ff;
   border-radius: 999px;
   padding: 6px 10px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .effects-grid {
   display: grid;
   gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .reset-grid,
@@ -794,34 +830,13 @@ button:disabled {
 .editor-grid,
 .admin-list,
 .password-form,
-.reward-form,
-.preset-groups,
-.preset-grid {
+.reward-form {
   display: grid;
   gap: 12px;
 }
 
 .reset-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.preset-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.preset-group {
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.preset-group-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
 }
 
 .teacher-session-card,
@@ -898,12 +913,6 @@ button:disabled {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.preset-button {
-  justify-content: center;
-  min-height: 54px;
-  text-align: center;
-}
-
 .password-form,
 .reward-form {
   grid-template-columns: 1fr auto;
@@ -917,6 +926,52 @@ button:disabled {
   background: linear-gradient(180deg, rgba(28, 18, 45, 0.82), rgba(15, 10, 24, 0.78));
   display: grid;
   gap: 14px;
+}
+
+.admin-accordion {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.admin-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px;
+}
+
+.admin-summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-summary-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-meta {
+  min-width: 0;
+}
+
+.admin-accordion[open] .company-summary-toggle {
+  background: rgba(47, 124, 130, 0.12);
+  color: var(--teal);
+  font-size: 0;
+}
+
+.admin-accordion[open] .company-summary-toggle::after {
+  content: "Hide Details";
+  font-size: 0.82rem;
 }
 
 .admin-row {
@@ -940,14 +995,40 @@ button:disabled {
 }
 
 .effect-row {
-  padding: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
 }
 
-.effect-row label {
-  width: 100%;
+.effect-company {
+  min-width: 0;
+}
+
+.effect-company strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.effect-input-group {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.effect-input-group input {
+  width: 86px;
+  min-width: 86px;
+  text-align: center;
+  padding-inline: 10px;
 }
 
 .hidden {
@@ -1056,7 +1137,6 @@ button:disabled {
   .pros-cons,
   .trade-controls,
   .reset-grid,
-  .preset-grid,
   .company-editor-grid,
   .editor-grid,
   .password-form {

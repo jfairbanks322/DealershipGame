@@ -152,17 +152,15 @@
           <div class="card lift">
             <div class="section-head">
               <p class="eyebrow">Market Operations</p>
-              <h2>Open, Close, and Reset</h2>
+              <h2>Open and Close</h2>
             </div>
             <div id="teacher-controls" class="stack"></div>
-            <div id="reset-tools" class="stack"></div>
           </div>
           <div class="card lift">
             <div class="section-head">
               <p class="eyebrow">Classroom Events</p>
               <h2>Publish News</h2>
             </div>
-            <div id="event-presets" class="stack"></div>
             <form id="event-form" class="stack">
               <label>
                 Headline
@@ -196,40 +194,70 @@
           </div>
         </div>
 
+        <section class="card lift stack-block">
+          <div class="section-head">
+            <p class="eyebrow">Standings</p>
+            <h2>Leaderboard</h2>
+          </div>
+          <div id="leaderboard"></div>
+        </section>
+
+        <section class="card lift stack-block">
+          <div class="section-head">
+            <p class="eyebrow">News Wire</p>
+            <h2>Recent Events</h2>
+          </div>
+          <div id="events-feed"></div>
+        </section>
+
+        <details class="card lift company-accordion">
+          <summary class="company-summary">
+            <div class="company-summary-main">
+              <div>
+                <p class="eyebrow">Company Editor</p>
+                <h2>Adjust Profiles and Prices</h2>
+                <div class="company-summary-subtitle">
+                  <span>Collapsed by default</span>
+                  <span>Open when you need to edit prices or company profiles</span>
+                </div>
+              </div>
+              <span class="company-summary-toggle">Show Details</span>
+            </div>
+          </summary>
+          <div class="company-body">
+            <div id="company-editor" class="company-editor-grid"></div>
+          </div>
+        </details>
+
         <div class="card lift">
           <div class="section-head">
-            <p class="eyebrow">Company Editor</p>
-            <h2>Adjust Profiles and Prices</h2>
+            <p class="eyebrow">Reset Tools</p>
+            <h2>Classroom Cleanup</h2>
           </div>
-          <div id="company-editor" class="company-editor-grid"></div>
+          <div id="reset-tools" class="stack"></div>
         </div>
       </section>
 
-      <section class="card lift stack-block">
-        <div class="section-head">
-          <p class="eyebrow">Companies</p>
-          <h2>Trade Board</h2>
+      <details class="card lift company-accordion">
+        <summary class="company-summary">
+          <div class="company-summary-main">
+            <div>
+              <p class="eyebrow">Companies</p>
+              <h2>Trade Board</h2>
+              <div class="company-summary-subtitle">
+                <span>Collapsed by default</span>
+                <span>Open to browse companies, research, and trade</span>
+              </div>
+            </div>
+            <span class="company-summary-toggle">Show Details</span>
+          </div>
+        </summary>
+        <div class="company-body stack-block">
+          <div id="companies-toolbar"></div>
+          <div id="market-movers"></div>
+          <div id="companies-grid" class="companies-grid"></div>
         </div>
-        <div id="companies-toolbar"></div>
-        <div id="market-movers"></div>
-        <div id="companies-grid" class="companies-grid"></div>
-      </section>
-
-      <section class="card lift stack-block">
-        <div class="section-head">
-          <p class="eyebrow">Standings</p>
-          <h2>Leaderboard</h2>
-        </div>
-        <div id="leaderboard"></div>
-      </section>
-
-      <section class="card lift stack-block">
-        <div class="section-head">
-          <p class="eyebrow">News Wire</p>
-          <h2>Recent Events</h2>
-        </div>
-        <div id="events-feed"></div>
-      </section>
+      </details>
     </main>
 
     <div id="toast" class="toast hidden"></div>
