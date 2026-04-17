@@ -1048,9 +1048,12 @@ function renderAwardsBoard(awards) {
 
   return `
     <section class="award-board">
-      <div class="section-head compact">
-        <p class="eyebrow">End Of Game Awards</p>
-        <h3>Personalized awards for today</h3>
+      <div class="section-head compact award-board-head">
+        <div>
+          <p class="eyebrow">End Of Game Awards</p>
+          <h3>Personalized awards for today</h3>
+        </div>
+        <a class="button-link subtle" href="/awards-report.html" target="_blank" rel="noopener noreferrer">Open PDF Report</a>
       </div>
       <div class="award-grid">
         ${awards

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ram Autos Awards Report</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/awards-report.css" />
+    <script src="/awards-report.js" defer></script>
+  </head>
+  <body class="awards-report-page">
+    <main class="report-shell">
+      <section class="report-header">
+        <div class="report-brand">
+          <p class="eyebrow">Ram Autos</p>
+          <img class="report-logo" src="/assets/ram-autos-logo.png" alt="Ram Autos" />
+          <h1>End-of-Game Awards</h1>
+          <p class="report-copy">A print-friendly class awards sheet ready to save as a PDF and post in Google Classroom.</p>
+        </div>
+        <div class="report-actions">
+          <a class="button-link secondary" href="/">Back To Game</a>
+          <button id="print-report-button" type="button">Print / Save as PDF</button>
+        </div>
+      </section>
+
+      <section id="report-status" class="report-status card">
+        <p class="note">Loading awards report...</p>
+      </section>
+
+      <section id="report-summary" class="report-summary hidden"></section>
+      <section id="report-awards" class="report-awards hidden"></section>
+    </main>
+  </body>
+</html>
