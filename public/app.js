@@ -14,37 +14,80 @@ const STAFF_DIRECTORY = {
   jake: {
     name: "Jake",
     title: "Floor Sales",
-    avatar: "/assets/staff/jake.svg",
+    avatar: "/assets/staff/jake.png",
     accent: "sales",
     badge: "Closer"
   },
   nina: {
     name: "Nina",
     title: "Online Sales",
-    avatar: "/assets/staff/nina.svg",
+    avatar: "/assets/staff/nina.png",
     accent: "online",
     badge: "CRM"
   },
   marcus: {
     name: "Marcus",
     title: "Accounting",
-    avatar: "/assets/staff/marcus.svg",
+    avatar: "/assets/staff/marcus.png",
     accent: "accounting",
     badge: "Numbers"
   },
   tasha: {
     name: "Tasha",
     title: "Service Bay",
-    avatar: "/assets/staff/tasha.svg",
+    avatar: "/assets/staff/tasha.png",
     accent: "service",
     badge: "Shop"
   },
   elena: {
     name: "Elena",
     title: "Marketing",
-    avatar: "/assets/staff/elena.svg",
+    avatar: "/assets/staff/elena.png",
     accent: "marketing",
     badge: "Brand"
+  }
+};
+
+const EVENT_ART_DIRECTORY = {
+  "rotting-return": {
+    image: "/assets/trunk.png",
+    alt: "A blue car with a foul-smelling trunk open"
+  },
+  "minivan-bet-meltdown": {
+    image: "/assets/minivan.png",
+    alt: "A minivan overflowing with cash"
+  },
+  "ex-husband-drama": {
+    image: "/assets/exhusband.png",
+    alt: "A smug man in sunglasses holding up a peace sign"
+  },
+  "tiktok-sunroof": {
+    image: "/assets/sunroof.png",
+    alt: "A blue car with someone's legs sticking out of a shattered sunroof"
+  },
+  "sleep-detox-breakdown": {
+    image: "/assets/marcusdetox.png",
+    alt: "An exhausted accountant holding a coffee cup"
+  },
+  "church-flyer-disaster": {
+    image: "/assets/churchlady.png",
+    alt: "A shocked church lady holding an offensive ad flyer"
+  },
+  "gym-ego-spiral": {
+    image: "/assets/gym.png",
+    alt: "Jake flexing with oversized confidence after getting obsessed with the gym"
+  },
+  "airpods-ultimatum": {
+    image: "/assets/airpods.png",
+    alt: "An angry Tasha pulling at her hair after losing her AirPods"
+  },
+  "closet-side-hustle": {
+    image: "/assets/clothes.png",
+    alt: "A dealership website listing both cars and expensive used clothes"
+  },
+  "daycare-breakdown": {
+    image: "/assets/marcuskids.png",
+    alt: "Marcus's sister's kids running wildly through the dealership"
   }
 };
 
@@ -423,13 +466,15 @@ function renderSessionBar() {
         ? `Students are working Event ${currentRound.roundNumber} right now.`
         : "Session is open and waiting for the next global event."
       : "Session is closed. Open it when class begins."
-    : game.isOpen
-      ? currentRound
-        ? currentRound.studentCase?.status === "resolved"
-          ? "You resolved the current event chain. Watch the leaderboard and wait for the next global event."
-          : "A global dealership event is live. Your choices will branch your dealership's case."
-        : "Your teacher has the session open. Wait for the next global event."
-      : "Your teacher has not opened the class session yet.";
+    : user.isEliminated
+      ? `${user.lossState?.name || "A staff member"} quit. Your dealership is out until the teacher resets standings.`
+      : game.isOpen
+        ? currentRound
+          ? currentRound.studentCase?.status === "resolved"
+            ? "You resolved the current event chain. Watch the leaderboard and wait for the next global event."
+            : "A global dealership event is live. Your choices will branch your dealership's case."
+          : "Your teacher has the session open. Wait for the next global event."
+        : "Your teacher has not opened the class session yet.";
 
   refs.sessionBar.classList.remove("hidden");
   refs.sessionBar.innerHTML = `
@@ -457,14 +502,15 @@ function renderStudentView() {
   refs.studentSummary.innerHTML = `
     <div class="summary-grid">
       <article class="hero-stat">
-        <span class="eyebrow">Revenue</span>
-        <strong>${formatRevenue(user.sales)}</strong>
+        <span class="eyebrow">${user.isEliminated ? "Final Score" : "Dealership Score"}</span>
+        <strong>${formatScore(user.aggregateScore)}</strong>
         <div class="stat-subline">
-          <span>${leaderboardEntry ? `Rank #${leaderboardEntry.rank}` : "Not ranked yet"}</span>
-          <span>${user.sales >= state.data.rules.salesGoal ? "Goal reached" : `${formatRevenue(state.data.rules.salesGoal - user.sales)} to goal`}</span>
+          <span>${user.isEliminated ? "Eliminated" : leaderboardEntry ? `Rank #${leaderboardEntry.rank}` : "Not ranked yet"}</span>
+          <span>${user.isEliminated ? `${user.lossState?.name || "Employee"} quit` : user.sales >= state.data.rules.salesGoal ? "Goal reached" : `${formatRevenue(state.data.rules.salesGoal - user.sales)} to goal`}</span>
         </div>
       </article>
       <div class="mini-grid summary-mini-grid">
+        <div class="mini-stat"><span>Revenue</span><strong>${formatRevenue(user.sales)}</strong></div>
         <div class="mini-stat"><span>Customer Satisfaction</span><strong>${formatPercent(user.satisfaction)}</strong></div>
         <div class="mini-stat"><span>Reputation</span><strong>${formatPercent(user.reputation)}</strong></div>
         <div class="mini-stat"><span>Avg Morale</span><strong>${formatPercent(user.avgMorale)}</strong></div>
@@ -490,8 +536,34 @@ function renderStudentView() {
 function renderStudentRoundPanel() {
   const { game, currentRound, user } = state.data;
 
+  if (user.isEliminated && !game.isOpen) {
+    return `
+      <article class="decision-card loss-card">
+        <div class="section-head compact">
+          <p class="eyebrow">Dealership Eliminated</p>
+          <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
+        </div>
+        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your dealership is out of the game.")}</p>
+        <p class="note">The class session is closed, and this dealership will stay out until the teacher resets standings.</p>
+      </article>
+    `;
+  }
+
   if (!game.isOpen) {
     return `<div class="empty-state">The class session is closed right now. Once your teacher opens it, live staff situations will appear here.</div>`;
+  }
+
+  if (user.isEliminated && !currentRound) {
+    return `
+      <article class="decision-card loss-card">
+        <div class="section-head compact">
+          <p class="eyebrow">Dealership Eliminated</p>
+          <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
+        </div>
+        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your dealership is out of the game.")}</p>
+        <p class="note">No new global event is active, and this dealership will not receive the next one unless standings are reset.</p>
+      </article>
+    `;
   }
 
   if (!currentRound) {
@@ -503,6 +575,32 @@ function renderStudentRoundPanel() {
   const stepLabel = studentCase ? `Step ${studentCase.stepIndex} of ${studentCase.totalSteps}` : "";
   const eventOverview = renderCaseEventOverview(currentRound, studentCase);
   const caseTimeline = renderCaseTimeline(studentCase);
+
+  if (user.isEliminated) {
+    return `
+      <div class="case-chain-layout">
+        ${currentRound ? eventOverview : ""}
+        <article class="decision-card case-step-card loss-card">
+          <div class="section-head compact">
+            <p class="eyebrow">Dealership Eliminated</p>
+            <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
+          </div>
+          <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your dealership is out of the game.")}</p>
+          <div class="impact-summary">
+            <strong>Final standing snapshot</strong>
+            <div class="impact-grid">
+              <div class="impact-chip positive">Score ${formatScore(user.aggregateScore)}</div>
+              <div class="impact-chip positive">Revenue ${formatRevenue(user.sales)}</div>
+              <div class="impact-chip ${user.avgMorale >= 50 ? "positive" : "negative"}">Morale ${formatPercent(user.avgMorale)}</div>
+              <div class="impact-chip ${user.avgTrust >= 50 ? "positive" : "negative"}">Trust ${formatPercent(user.avgTrust)}</div>
+            </div>
+          </div>
+          <p class="note">You can still review the case timeline and leaderboard, but this dealership will not receive new event chains until the standings are reset.</p>
+        </article>
+        ${caseTimeline}
+      </div>
+    `;
+  }
 
   if (studentCase?.status === "resolved" && response) {
     return `
@@ -613,6 +711,7 @@ function renderStudentRoundPanel() {
 function renderCaseEventOverview(currentRound, studentCase) {
   return `
     <article class="decision-card case-overview-card">
+      ${renderEventArtwork(currentRound.presetId, currentRound.headline, "event-artwork event-artwork-wide")}
       <div class="section-head compact">
         <p class="eyebrow">Global Event</p>
         <h3>${escapeHtml(currentRound.headline)}</h3>
@@ -624,7 +723,7 @@ function renderCaseEventOverview(currentRound, studentCase) {
         <span class="pill pill-neutral">${escapeHtml(currentRound.pressure)} Pressure</span>
         ${
           studentCase
-            ? `<span class="pill ${studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
+            ? `<span class="pill ${studentCase.status === "lost" ? "pill-closed" : studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "lost" ? "Dealership lost" : studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
             : ""
         }
       </div>
@@ -666,8 +765,8 @@ function renderTeacherView() {
   refs.teacherSummary.innerHTML = `
     <div class="summary-grid admin-summary-grid">
       <article class="hero-stat">
-        <span class="eyebrow">Top Revenue</span>
-        <strong>${admin.metrics.topStudent ? formatRevenue(admin.metrics.topStudent.sales) : "No players yet"}</strong>
+        <span class="eyebrow">Top Score</span>
+        <strong>${admin.metrics.topStudent ? formatScore(admin.metrics.topStudent.aggregateScore) : "No players yet"}</strong>
         <div class="stat-subline">
           <span>${admin.metrics.topStudent ? escapeHtml(admin.metrics.topStudent.displayName) : "Waiting for students"}</span>
           <span>${admin.metrics.studentCount} students active</span>
@@ -757,6 +856,7 @@ function renderScenarioPreview() {
 
   refs.scenarioPreview.innerHTML = `
     <article class="preview-card">
+      ${renderEventArtwork(preset.id, headline, "event-artwork")}
       <div class="section-head compact">
         <p class="eyebrow">${escapeHtml(preset.category)} · ${escapeHtml(preset.pressure)}</p>
         <h3>${escapeHtml(headline)}</h3>
@@ -784,8 +884,12 @@ function renderLeaderboard() {
                 </div>
               </div>
               <div class="feed-metrics">
+                <div><strong>${formatScore(entry.aggregateScore)}</strong><span>Score</span></div>
                 <div><strong>${formatRevenue(entry.sales)}</strong><span>Revenue</span></div>
                 <div><strong>${formatPercent(entry.teamHealth)}</strong><span>Team health</span></div>
+              </div>
+              <div class="focus-row">
+                <span class="pill ${entry.isEliminated ? "pill-closed" : "pill-open"}">${entry.isEliminated ? `Lost: ${escapeHtml(entry.lossState?.name || "Staff quit")}` : "Active"}</span>
               </div>
             </article>
           `
@@ -813,10 +917,10 @@ function renderStaffCard(staff) {
             <div class="role-badge role-badge-${meta.accent}">${escapeHtml(meta.badge)}</div>
           </div>
         </div>
-        <span class="tag">${staff.morale < 40 || staff.trust < 40 ? "At risk" : "Stable"}</span>
+        <span class="tag ${staff.hasQuit ? "tag-danger" : ""}">${staff.hasQuit ? "Quit" : staff.morale < 40 || staff.trust < 40 ? "At risk" : "Stable"}</span>
       </div>
       <p>${escapeHtml(staff.summary)}</p>
-      <p class="note">${escapeHtml(staff.tension)}</p>
+      <p class="note">${escapeHtml(staff.hasQuit ? `${staff.name} has quit the dealership.` : staff.tension)}</p>
       <div class="meter-block">
         <div class="meter-label"><span>Morale</span><strong>${formatPercent(staff.morale)}</strong></div>
         <div class="meter"><div class="meter-fill ${staff.morale < 40 ? "low" : ""}" style="width: ${staff.morale}%"></div></div>
@@ -877,15 +981,17 @@ function renderStudentRosterRow(student) {
           <strong>${escapeHtml(student.displayName)}</strong>
           <div class="subtext">@${escapeHtml(student.username)} · Joined ${formatDate(student.joinedAt)}</div>
         </div>
-        <span class="pill ${student.respondedToCurrentRound ? "pill-open" : "pill-muted"}">
-          ${student.respondedToCurrentRound ? "Completed" : escapeHtml(student.progressLabel || "Waiting")}
+        <span class="pill ${student.progressTone === "closed" ? "pill-closed" : student.progressTone === "open" ? "pill-open" : "pill-muted"}">
+          ${escapeHtml(student.progressLabel || "Waiting")}
         </span>
       </div>
       <div class="feed-metrics">
+        <div><strong>${formatScore(student.aggregateScore)}</strong><span>Score</span></div>
         <div><strong>${formatRevenue(student.sales)}</strong><span>Revenue</span></div>
         <div><strong>${formatPercent(student.avgMorale)}</strong><span>Morale</span></div>
         <div><strong>${formatPercent(student.teamHealth)}</strong><span>Health</span></div>
       </div>
+      ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This dealership has been eliminated.")}</p>` : ""}
       <div class="roster-actions">
         <form data-password-form class="inline-form">
           <input type="hidden" name="userId" value="${student.id}" />
@@ -928,6 +1034,7 @@ function renderTeacherFeedRow(entry) {
 function renderRoundRow(round) {
   return `
     <article class="feed-row">
+      ${renderEventArtwork(round.presetId, round.headline, "event-artwork event-artwork-feed")}
       <div class="feed-main">
         <div>
           <strong>Event ${round.roundNumber}: ${escapeHtml(round.headline)}</strong>
@@ -949,6 +1056,19 @@ function renderRoundRow(round) {
           : ""
       }
     </article>
+  `;
+}
+
+function renderEventArtwork(presetId, headline, className = "event-artwork") {
+  const meta = EVENT_ART_DIRECTORY[presetId];
+  if (!meta?.image) {
+    return "";
+  }
+
+  return `
+    <div class="${className}">
+      <img src="${meta.image}" alt="${escapeHtml(meta.alt || `${headline} artwork`)}" />
+    </div>
   `;
 }
 
@@ -1065,7 +1185,7 @@ function getStaffMeta(staffId) {
       return {
         name: match.name,
         title: match.title,
-        avatar: STAFF_DIRECTORY[staffId]?.avatar || "/assets/staff/jake.svg",
+        avatar: STAFF_DIRECTORY[staffId]?.avatar || "/assets/staff/jake.png",
         accent: STAFF_DIRECTORY[staffId]?.accent || "sales",
         badge: STAFF_DIRECTORY[staffId]?.badge || "Team"
       };
@@ -1075,7 +1195,7 @@ function getStaffMeta(staffId) {
   return STAFF_DIRECTORY[staffId] || {
     name: staffId,
     title: "",
-    avatar: "/assets/staff/jake.svg",
+    avatar: "/assets/staff/jake.png",
     accent: "sales",
     badge: "Team"
   };
@@ -1092,6 +1212,10 @@ function showToast(message) {
 
 function formatRevenue(value) {
   return `$${Math.round(Number(value || 0)).toLocaleString()}k`;
+}
+
+function formatScore(value) {
+  return Number(value || 0).toFixed(1);
 }
 
 function formatSignedRevenue(value) {

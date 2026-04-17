@@ -33,6 +33,8 @@ npm start
 
 Then open [http://localhost:3000](http://localhost:3000).
 
+The new domestic mystery prototype lives at [http://localhost:3000/casefile.html](http://localhost:3000/casefile.html).
+
 ## Default Teacher Login
 
 - Username: `teacher`
@@ -81,3 +83,14 @@ This project is now set up to deploy cleanly on Railway.
 - Each completed event stores the full case result, not just the last action in the chain.
 - Low morale and low trust can create automatic penalties on future outcomes.
 - The leaderboard is primarily ranked by `revenue`, with team health used as a tie-breaker.
+
+## Narrative Prototype
+
+- [public/casefile.html](/Users/josh/Documents/New project/public/casefile.html) is a separate text-forward detective prototype for a domestic disappearance story.
+- It currently includes one playable case, branching lead selection, evidence pinning, suspect-board updates, and a multi-part accusation flow.
+- The first case is intentionally authored as a standalone route so it can evolve without disturbing the existing classroom management sim.
+
+## Google-Hosted Prototype
+
+- A parallel Google Apps Script version now lives in [gas-dealership-manager/README.md](/Users/josh/Documents/New%20project/gas-dealership-manager/README.md).
+- It is separate from the Node/Railway app and is intended for school environments that are more permissive with Google-hosted tools.

@@ -137,9 +137,34 @@ select {
   margin-top: 6px;
 }
 
+.hero-logo-lockup {
+  display: flex;
+  align-items: flex-start;
+}
+
+.hero-logo {
+  display: block;
+  width: min(100%, 720px);
+  height: auto;
+  margin-left: -18px;
+  filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.38));
+}
+
 .hero-copy-wrap {
   display: grid;
   gap: 14px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero-copy,
@@ -186,6 +211,11 @@ select {
 .tag {
   background: rgba(129, 167, 184, 0.1);
   color: #d8e7ee;
+}
+
+.tag-danger {
+  background: rgba(239, 138, 122, 0.14);
+  color: var(--danger);
 }
 
 .tag.subtle {
@@ -306,6 +336,36 @@ select {
   font-size: 1.15rem;
 }
 
+.event-artwork {
+  margin-bottom: 14px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(214, 178, 115, 0.18);
+  background:
+    radial-gradient(circle at top, rgba(214, 178, 115, 0.12), transparent 58%),
+    rgba(13, 21, 31, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.event-artwork img {
+  display: block;
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.event-artwork-wide img {
+  height: 250px;
+}
+
+.event-artwork-feed {
+  margin-bottom: 12px;
+}
+
+.event-artwork-feed img {
+  height: 150px;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
@@ -422,6 +482,13 @@ button:disabled {
 .danger-button {
   color: #ffd7d1;
   border-color: rgba(239, 138, 122, 0.24);
+}
+
+.loss-card {
+  border-color: rgba(239, 138, 122, 0.34);
+  background:
+    linear-gradient(145deg, rgba(39, 21, 21, 0.96), rgba(16, 10, 12, 0.92)),
+    linear-gradient(120deg, rgba(239, 138, 122, 0.12), rgba(185, 109, 66, 0.04));
 }
 
 .divider {
@@ -888,6 +955,11 @@ button:disabled {
 
   .hero h1 {
     font-size: clamp(2.2rem, 12vw, 3.3rem);
+  }
+
+  .hero-logo {
+    width: min(100%, 540px);
+    margin-left: -10px;
   }
 
   .mini-grid,

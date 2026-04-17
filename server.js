@@ -25,6 +25,12 @@ const DEFAULT_STUDENT_STATE = {
   satisfaction: 72,
   reputation: 68
 };
+const SCORE_WEIGHTS = {
+  revenue: 0.65,
+  morale: 0.25,
+  trust: 0.1
+};
+const GLOBAL_EVENT_TEMPLATES = require("./event-templates");
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, ".env");
@@ -727,7 +733,7 @@ const SCENARIO_PRESETS = [
   }
 ];
 
-const GLOBAL_EVENT_TEMPLATES = [
+const UNUSED_LEGACY_EVENT_TEMPLATES = [
   {
     id: "delivery-breakdown",
     category: "Delivery Breakdown",
@@ -5691,6 +5697,9 @@ function createCaseFile(roundId, userId, preset) {
 }
 
 function ensureCaseFile(roundId, userId) {
+  if (getUserLossState(userId)) {
+    return null;
+  }
   const round = getRoundById(roundId);
   if (!round) {
     return null;
@@ -5833,6 +5842,12 @@ function serializeUser(userId) {
   const avgMorale = roundNumber(staff.reduce((sum, member) => sum + member.morale, 0) / staff.length, 1);
   const avgTrust = roundNumber(staff.reduce((sum, member) => sum + member.trust, 0) / staff.length, 1);
   const teamHealth = roundNumber((user.satisfaction + user.reputation + avgMorale + avgTrust) / 4, 1);
+  const lossState = buildLossState(staff);
+  const aggregateScore = computeAggregateScore(user.sales, avgMorale, avgTrust);
+  const decoratedStaff = staff.map((member) => ({
+    ...member,
+    hasQuit: Boolean(lossState && lossState.staffId === member.id)
+  }));
   const lowestMorale = Math.min(...staff.map((member) => member.morale));
   const currentRoundId = getGameState().currentRoundId;
   const currentResponse = currentRoundId ? getResponseForRound(currentRoundId, userId) : null;
@@ -5860,11 +5875,14 @@ function serializeUser(userId) {
   }));
 
   const warnings = [];
-  if (lowestMorale < 35) {
+  if (lossState) {
+    warnings.push(lossState.message);
+    warnings.push("This dealership is out of the competition until the teacher resets standings.");
+  } else if (lowestMorale < 35) {
     const atRisk = staff.filter((member) => member.morale < 35).map((member) => member.name).join(", ");
     warnings.push(`${atRisk} is close to burnout. Future decisions may trigger hidden sales penalties.`);
   }
-  if (avgTrust < 50) {
+  if (!lossState && avgTrust < 50) {
     warnings.push("Team trust in your leadership is shaky. Future customer situations may be harder to stabilize.");
   }
 
@@ -5878,7 +5896,10 @@ function serializeUser(userId) {
     avgMorale,
     avgTrust,
     teamHealth,
-    staff,
+    aggregateScore,
+    isEliminated: Boolean(lossState),
+    lossState,
+    staff: decoratedStaff,
     warnings,
     managerProfile: buildManagerProfile(managerFlags),
     currentResponse,
@@ -5892,6 +5913,12 @@ function computeLeaderboard() {
   ).all().map((row) => serializeUser(row.id))
     .filter(Boolean)
     .sort((a, b) => {
+      if (Number(a.isEliminated) !== Number(b.isEliminated)) {
+        return Number(a.isEliminated) - Number(b.isEliminated);
+      }
+      if (b.aggregateScore !== a.aggregateScore) {
+        return b.aggregateScore - a.aggregateScore;
+      }
       if (b.sales !== a.sales) {
         return b.sales - a.sales;
       }
@@ -5906,11 +5933,14 @@ function computeLeaderboard() {
       displayName: entry.displayName,
       username: entry.username,
       sales: entry.sales,
+      aggregateScore: entry.aggregateScore,
       satisfaction: entry.satisfaction,
       reputation: entry.reputation,
       avgMorale: entry.avgMorale,
       avgTrust: entry.avgTrust,
-      teamHealth: entry.teamHealth
+      teamHealth: entry.teamHealth,
+      isEliminated: entry.isEliminated,
+      lossState: entry.lossState
     }));
 }
 
@@ -5921,10 +5951,25 @@ function buildAdminPayload() {
   const students = leaderboard.map((entry) => {
     const responded = currentRoundId ? Boolean(getResponseForRound(currentRoundId, entry.id)) : false;
     const caseFile = currentRoundId ? getCaseFile(currentRoundId, entry.id) : null;
+    const progressState = entry.isEliminated
+      ? {
+          label: entry.lossState?.name ? `Lost: ${entry.lossState.name} quit` : "Lost",
+          tone: "closed"
+        }
+      : responded
+        ? {
+            label: "Completed",
+            tone: "open"
+          }
+        : {
+            label: buildCaseProgressLabel(caseFile),
+            tone: "muted"
+          };
     return {
       ...entry,
       respondedToCurrentRound: responded,
-      progressLabel: buildCaseProgressLabel(caseFile),
+      progressLabel: progressState.label,
+      progressTone: progressState.tone,
       joinedAt: getUserById(entry.id)?.created_at || null
     };
   });
@@ -6011,7 +6056,8 @@ function serializeRound(row, session) {
   const totalStudents = db.prepare(`SELECT COUNT(*) AS count FROM users`).get().count;
   const currentUserResponse = session?.userId ? getResponseForRound(row.id, session.userId) : null;
   const preset = getRoundPreset(row);
-  const caseFile = session?.userId ? ensureCaseFile(row.id, session.userId) : null;
+  const existingCaseFile = session?.userId ? getCaseFile(row.id, session.userId) : null;
+  const caseFile = session?.userId ? (existingCaseFile || ensureCaseFile(row.id, session.userId)) : null;
   const studentCase = caseFile ? serializeCaseFile(caseFile, row, preset) : null;
 
   return {
@@ -6063,6 +6109,7 @@ function serializeCaseFile(caseFile, round, preset) {
   return {
     id: caseFile.id,
     status: caseFile.status,
+    lossState: context.lossState || null,
     currentNodeId: caseFile.current_node_id,
     currentPhase: caseFile.current_phase,
     selectedConsultantId: caseFile.selected_consultant_id || null,
@@ -6110,6 +6157,9 @@ function serializeCaseFile(caseFile, round, preset) {
 function buildCaseProgressLabel(caseFile) {
   if (!caseFile) {
     return "Waiting";
+  }
+  if (caseFile.status === "lost") {
+    return "Lost";
   }
   if (caseFile.status === "resolved") {
     return "Completed";
@@ -6230,9 +6280,9 @@ function closeCurrentRound() {
 
   db.prepare(
     `UPDATE case_files
-     SET status = CASE WHEN status = 'resolved' THEN status ELSE 'closed' END,
+     SET status = CASE WHEN status IN ('resolved', 'lost') THEN status ELSE 'closed' END,
          updated_at = ?,
-         resolved_at = CASE WHEN status = 'resolved' THEN resolved_at ELSE ? END
+         resolved_at = CASE WHEN status IN ('resolved', 'lost') THEN resolved_at ELSE ? END
      WHERE round_id = ?`
   ).run(new Date().toISOString(), new Date().toISOString(), current.currentRoundId);
 
@@ -6284,6 +6334,11 @@ function submitResponse(userId, optionId) {
   const game = getGameState();
   if (!game.isOpen) {
     throw new Error("The class session is currently closed.");
+  }
+
+  const lossState = getUserLossState(userId);
+  if (lossState) {
+    throw new Error(`${lossState.name} already quit your dealership. You are out of the game until standings are reset.`);
   }
 
   if (!game.currentRoundId) {
@@ -6394,9 +6449,14 @@ function chooseAction(caseFile, round, preset, actionId) {
     baseEffects
   );
   const staffEffects = mergeStaffEffects(baseEffects.staff || {}, dynamicOutcome.staffEffects || {});
-
-  applyDealershipOutcome(caseFile.user_id, dynamicOutcome, staffEffects);
+  const lossAfterAction = applyDealershipOutcome(caseFile.user_id, dynamicOutcome, staffEffects);
   applyManagerFlagChanges(caseFile.user_id, dynamicOutcome.flagChanges);
+  const resolvedOutcome = lossAfterAction
+    ? {
+        ...dynamicOutcome,
+        note: `${dynamicOutcome.note} ${lossAfterAction.message} Your dealership is out of the game.`.trim()
+      }
+    : dynamicOutcome;
 
   const nextNodeId = option.nextNodeId || null;
   const nextStep = Number(context.stepIndex || 1) + 1;
@@ -6431,12 +6491,28 @@ function chooseAction(caseFile, round, preset, actionId) {
     consultantId,
     option.id,
     option.label,
-    `${option.outcome} ${dynamicOutcome.note}`.trim(),
-    dynamicOutcome.salesDelta,
-    dynamicOutcome.satisfactionDelta,
-    dynamicOutcome.reputationDelta,
+    `${option.outcome} ${resolvedOutcome.note}`.trim(),
+    resolvedOutcome.salesDelta,
+    resolvedOutcome.satisfactionDelta,
+    resolvedOutcome.reputationDelta,
     new Date().toISOString()
   );
+
+  if (lossAfterAction) {
+    resolveCaseFile(
+      caseFile,
+      round,
+      option,
+      resolvedOutcome,
+      {
+        ...nextContext,
+        lossState: lossAfterAction
+      },
+      staffEffects,
+      "lost"
+    );
+    return;
+  }
 
   if (nextNodeId) {
     db.prepare(
@@ -6453,7 +6529,7 @@ function chooseAction(caseFile, round, preset, actionId) {
     return;
   }
 
-  resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, staffEffects);
+  resolveCaseFile(caseFile, round, option, resolvedOutcome, nextContext, staffEffects);
 }
 
 function applyDealershipOutcome(userId, dynamicOutcome, staffEffects) {
@@ -6481,16 +6557,18 @@ function applyDealershipOutcome(userId, dynamicOutcome, staffEffects) {
        ON CONFLICT(user_id, staff_id) DO UPDATE SET morale = excluded.morale, trust = excluded.trust`
     ).run(userId, staffId, nextMorale, nextTrust);
   });
+
+  return getUserLossState(userId);
 }
 
-function resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, staffEffects) {
+function resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, staffEffects, status = "resolved") {
   const now = new Date().toISOString();
   db.prepare(
     `UPDATE case_files
-     SET status = 'resolved', current_phase = 'resolved', selected_consultant_id = NULL,
+     SET status = ?, current_phase = ?, selected_consultant_id = NULL,
          context_json = ?, updated_at = ?, resolved_at = ?
      WHERE id = ?`
-  ).run(JSON.stringify(nextContext), now, now, caseFile.id);
+  ).run(status, status, JSON.stringify(nextContext), now, now, caseFile.id);
 
   const totals = summarizeCaseChoices(getCaseChoices(caseFile.id));
   const responseId = crypto.randomUUID();
@@ -6843,6 +6921,65 @@ function describeCultureState(user, flags) {
     return "The store is starting to expect fast answers from you, which helps urgency but can make sloppy habits easier to normalize.";
   }
   return "";
+}
+
+function buildLossState(staff) {
+  const quitter = [...staff]
+    .filter((member) => member.morale <= 0 || member.trust <= 0)
+    .sort((a, b) => Math.min(a.morale, a.trust) - Math.min(b.morale, b.trust))[0];
+  if (!quitter) {
+    return null;
+  }
+
+  const trigger = quitter.morale <= 0 && quitter.trust <= 0
+    ? "morale and trust"
+    : quitter.morale <= 0
+      ? "morale"
+      : "trust";
+
+  return {
+    staffId: quitter.id,
+    name: quitter.name,
+    trigger,
+    message: trigger === "morale and trust"
+      ? `${quitter.name} quit after both morale and trust collapsed.`
+      : trigger === "morale"
+        ? `${quitter.name} quit after morale hit zero.`
+        : `${quitter.name} quit after trust in management hit zero.`
+  };
+}
+
+function getUserLossState(userId) {
+  const staffRows = db.prepare(
+    `SELECT staff_id, morale, trust FROM staff_state WHERE user_id = ?`
+  ).all(userId);
+  if (!staffRows.length) {
+    return null;
+  }
+
+  const staffMap = new Map(staffRows.map((row) => [row.staff_id, row]));
+  const staff = STAFF_MEMBERS.map((member) => {
+    const current = staffMap.get(member.id);
+    return {
+      id: member.id,
+      name: member.name,
+      morale: clampPercent(current?.morale ?? member.defaultMorale),
+      trust: clampPercent(current?.trust ?? member.defaultTrust)
+    };
+  });
+
+  return buildLossState(staff);
+}
+
+function computeAggregateScore(sales, avgMorale, avgTrust) {
+  const salesGoal = Math.max(1, getSalesGoal());
+  const normalizedRevenue = Math.min(160, Math.max(0, Number(sales || 0)) / salesGoal * 100);
+  return roundNumber(
+    normalizedRevenue * SCORE_WEIGHTS.revenue
+      + Number(avgMorale || 0) * SCORE_WEIGHTS.morale
+      + Number(avgTrust || 0) * SCORE_WEIGHTS.trust,
+    1
+  );
 }
 
 function scoreToFlagDelta(score) {
