@@ -30,6 +30,11 @@ const SCORE_WEIGHTS = {
   morale: 0.25,
   trust: 0.1
 };
+const REVENUE_TUNING = {
+  positiveMultiplier: 3,
+  negativeMultiplier: 2,
+  cleanExecutionFloor: 2
+};
 const GLOBAL_EVENT_TEMPLATES = require("./event-templates");
 
 function loadEnvFile() {
@@ -6611,7 +6616,7 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   const noteParts = [];
   const flagChanges = buildFlagChanges(profile);
 
-  let salesDelta = roundNumber(Number(baseEffects.sales || 0), 0);
+  let salesDelta = computeRevenueDelta(baseEffects, profile);
   let satisfactionDelta = Math.round(Number(baseEffects.satisfaction || 0));
   let reputationDelta = Math.round(Number(baseEffects.reputation || 0));
 
@@ -6693,6 +6698,22 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
     satisfactionDelta += 1;
     reputationDelta += 1;
     noteParts.push("Your recent pattern of balanced management gave the team and customers more confidence in this call.");
+  }
+
+  const rewardBonus = computeRevenueRewardBonus(user, {
+    profile,
+    baseEffects,
+    salesDelta,
+    satisfactionDelta,
+    reputationDelta
+  });
+  if (rewardBonus !== 0) {
+    salesDelta += rewardBonus;
+    if (rewardBonus > 0) {
+      noteParts.push(`Strong morale and dealership reputation created a +$${rewardBonus}k reward bonus on this outcome.`);
+    } else {
+      noteParts.push(`Weak morale and reputation shaved $${Math.abs(rewardBonus)}k off the result before it hit the board.`);
+    }
   }
 
   const cultureNote = describeCultureState(user, flags);
@@ -6797,6 +6818,61 @@ function applyDimensionBoosts(target, boosts) {
   Object.entries(boosts).forEach(([key, value]) => {
     target[key] = (target[key] || 0) + Number(value || 0);
   });
+}
+
+function computeRevenueDelta(baseEffects, profile) {
+  const rawBaseSales = Number(baseEffects.sales || 0);
+  let tuned = rawBaseSales >= 0
+    ? rawBaseSales * REVENUE_TUNING.positiveMultiplier
+    : rawBaseSales * REVENUE_TUNING.negativeMultiplier;
+
+  const hasHealthyCustomerShape = Number(baseEffects.satisfaction || 0) >= 0 && Number(baseEffects.reputation || 0) >= 0;
+  if (rawBaseSales >= 0 && hasHealthyCustomerShape) {
+    tuned += REVENUE_TUNING.cleanExecutionFloor;
+  }
+
+  if (profile.customerCare + profile.fairness + profile.transparency >= 5 && rawBaseSales >= 0) {
+    tuned += 1;
+  }
+
+  return roundNumber(tuned, 0);
+}
+
+function computeRevenueRewardBonus(user, outcome) {
+  const { profile, baseEffects, salesDelta, satisfactionDelta, reputationDelta } = outcome;
+  let bonus = 0;
+
+  if (user.avgMorale >= 80) {
+    bonus += 2;
+  } else if (user.avgMorale >= 68) {
+    bonus += 1;
+  } else if (user.avgMorale < 45) {
+    bonus -= 1;
+  }
+
+  if (user.reputation >= 82) {
+    bonus += 3;
+  } else if (user.reputation >= 70) {
+    bonus += 2;
+  } else if (user.reputation >= 58) {
+    bonus += 1;
+  } else if (user.reputation < 40) {
+    bonus -= 2;
+  }
+
+  if (salesDelta >= 4 && satisfactionDelta >= 1 && reputationDelta >= 1) {
+    bonus += 1;
+  }
+
+  if (profile.customerCare + profile.fairness + profile.transparency >= 5 && user.avgMorale >= 60) {
+    bonus += 1;
+  }
+
+  if (Number(baseEffects.sales || 0) < 0 && (satisfactionDelta < 0 || reputationDelta < 0)) {
+    bonus = Math.min(bonus, 0);
+  }
+
+  return roundNumber(bonus, 0);
 }
 
 function computePreferenceAlignment(preferences, profile) {
