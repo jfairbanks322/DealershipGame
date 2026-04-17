@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classroom Stock Arena</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="background-orb orb-one"></div>
+    <div class="background-orb orb-two"></div>
+    <main class="shell">
+      <section class="hero card lift">
+        <div>
+          <p class="eyebrow">Classroom Stock Simulation</p>
+          <h1 class="hero-title">
+            <img class="hero-logo" src="/assets/stockarena.png" alt="Stock Arena" />
+            <span class="sr-only">Stock Arena</span>
+          </h1>
+          <p class="hero-copy">
+            Students start with <strong>$10,000</strong>, trade fake companies during the market window, and climb a
+            running leaderboard while teacher-created news events move prices.
+          </p>
+        </div>
+        <div class="status-panel" id="market-status-panel"></div>
+      </section>
+
+      <section id="auth-section" class="grid auth-grid">
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Students</p>
+            <h2>Login or Register</h2>
+          </div>
+          <div class="auth-block-label">Returning student? Log in here first.</div>
+          <form id="student-login-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" minlength="4" placeholder="Password" required />
+            </label>
+            <button type="submit" class="secondary">Student Login</button>
+          </form>
+          <p class="auth-help-text">Use your lowercase username. If you forgot your password, ask your teacher to reset it.</p>
+
+          <div class="divider"></div>
+
+          <div class="auth-block-label">New student? Create your account below.</div>
+          <form id="student-register-form" class="stack">
+            <label>
+              Display Name
+              <input name="displayName" type="text" maxlength="32" placeholder="Avery" required />
+            </label>
+            <label>
+              Username
+              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" minlength="4" placeholder="4+ characters" required />
+            </label>
+            <button type="submit">Create Student Account</button>
+          </form>
+        </div>
+
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Teacher</p>
+            <h2>Control the Market</h2>
+          </div>
+          <form id="teacher-login-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" placeholder="teacher" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" placeholder="Teacher password" required />
+            </label>
+            <button type="submit">Teacher Login</button>
+          </form>
+          <p class="note">
+            Teacher access unlocks market open/close controls and classroom event publishing.
+          </p>
+        </div>
+      </section>
+
+      <section id="session-bar" class="session-bar hidden"></section>
+
+      <section id="student-market-deck" class="hidden stack-block">
+        <div id="ticker-bar" class="card lift hidden"></div>
+        <div id="ipo-wave-banner" class="hidden"></div>
+
+        <details class="card lift company-accordion" open>
+          <summary class="company-summary">
+            <div class="company-summary-main">
+              <div>
+                <p class="eyebrow">Companies</p>
+                <h2>Trade Board</h2>
+                <div class="company-summary-subtitle">
+                  <span>Now closer to the top</span>
+                  <span>Browse companies, track the tickers, and trade without scrolling to the bottom</span>
+                </div>
+              </div>
+              <span class="company-summary-toggle">Hide Board</span>
+            </div>
+          </summary>
+          <div class="company-body stack-block">
+            <div id="companies-toolbar"></div>
+            <div id="market-movers"></div>
+            <div id="companies-grid" class="companies-grid"></div>
+          </div>
+        </details>
+      </section>
+
+      <section id="student-view" class="hidden stack-block">
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Portfolio</p>
+              <h2 id="student-name-heading">Your Account</h2>
+            </div>
+            <div id="portfolio-summary"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Recent Activity</p>
+              <h2>Trade History</h2>
+            </div>
+            <div id="transactions-list"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">My Watchlist</p>
+              <h2>Quick Research Picks</h2>
+            </div>
+            <div id="watchlist-panel"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">Market Intel</p>
+              <h2>Research Stocks</h2>
+            </div>
+            <div id="research-panel"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">Side Bet</p>
+              <h2>Lottery Ticket</h2>
+            </div>
+            <div id="lottery-panel"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">Civics Power Play</p>
+              <h2>Lobby Congress</h2>
+            </div>
+            <div id="lobby-panel"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">Daily Risk</p>
+              <h2>Shady Tip</h2>
+            </div>
+            <div id="shady-tip-panel"></div>
+          </div>
+          <div class="card lift student-watchlist-card">
+            <div class="section-head">
+              <p class="eyebrow">Achievements</p>
+              <h2>Badge Board</h2>
+            </div>
+            <div id="badge-panel"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="teacher-view" class="hidden stack-block">
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Teacher Dashboard</p>
+              <h2>Control Center</h2>
+            </div>
+            <div id="teacher-summary" class="stack"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Teacher Settings</p>
+              <h2>Login and Cash Rules</h2>
+            </div>
+            <form id="teacher-settings-form" class="stack">
+              <label>
+                Teacher Username
+                <input name="teacherUsername" type="text" maxlength="20" required />
+              </label>
+              <label>
+                Starting Cash Per Student
+                <input name="startingCash" type="number" min="100" step="100" required />
+              </label>
+              <label>
+                Current Teacher Password
+                <input name="currentPassword" type="password" placeholder="Required only for login changes" />
+              </label>
+              <label>
+                New Teacher Password
+                <input name="newPassword" type="password" minlength="4" placeholder="Leave blank to keep current password" />
+              </label>
+              <button type="submit">Save Teacher Settings</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Market Operations</p>
+              <h2>Open and Close</h2>
+            </div>
+            <div id="teacher-controls" class="stack"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Classroom Events</p>
+              <h2>Publish News</h2>
+            </div>
+            <form id="event-form" class="stack">
+              <label>
+                Headline
+                <input name="headline" type="text" maxlength="100" placeholder="MegaCorp buys a goat robotics startup" required />
+              </label>
+              <label>
+                Story
+                <textarea name="body" rows="3" placeholder="Add the classroom news blurb students will read."></textarea>
+              </label>
+              <label class="checkbox-line big-story-toggle">
+                <input name="isBigStory" type="checkbox" />
+                <span>Show RAM Financial Report breaking-news graphic</span>
+              </label>
+              <div id="event-effects" class="effects-grid"></div>
+              <div id="event-summary"></div>
+              <button id="publish-event-button" type="submit">Publish Event</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid two-col">
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Student Roster</p>
+              <h2>Manage Accounts</h2>
+            </div>
+            <div id="student-roster"></div>
+          </div>
+          <div class="card lift">
+            <div class="section-head">
+              <p class="eyebrow">Teacher Feed</p>
+              <h2>Recent Trades</h2>
+            </div>
+            <div id="teacher-trades"></div>
+          </div>
+        </div>
+
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Badge Tracker</p>
+            <h2>Student Badge Case</h2>
+          </div>
+          <div id="teacher-badge-tracker"></div>
+        </div>
+
+        <details class="card lift company-accordion">
+          <summary class="company-summary">
+            <div class="company-summary-main">
+              <div>
+                <p class="eyebrow">Company Editor</p>
+                <h2>Adjust Profiles and Prices</h2>
+                <div class="company-summary-subtitle">
+                  <span>Collapsed by default</span>
+                  <span>Open when you need to edit prices or company profiles</span>
+                </div>
+              </div>
+              <span class="company-summary-toggle">Show Details</span>
+            </div>
+          </summary>
+          <div class="company-body">
+            <div id="company-editor" class="company-editor-grid"></div>
+          </div>
+        </details>
+
+        <div class="card lift">
+          <div class="section-head">
+            <p class="eyebrow">Reset Tools</p>
+            <h2>Classroom Cleanup</h2>
+          </div>
+        <div id="reset-tools" class="stack"></div>
+        </div>
+      </section>
+
+      <section class="card lift stack-block">
+        <div class="section-head">
+          <p class="eyebrow">Standings</p>
+          <h2>Leaderboard</h2>
+        </div>
+        <div id="leaderboard"></div>
+      </section>
+
+      <section class="card lift stack-block">
+        <div class="section-head">
+          <p class="eyebrow">News Wire</p>
+          <h2>Recent Events</h2>
+        </div>
+        <div id="events-feed"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <div id="floating-tooltip" class="floating-tooltip hidden" role="tooltip" aria-hidden="true"></div>
+    <div id="research-modal" class="event-modal hidden" aria-hidden="true">
+      <div class="event-modal-backdrop" data-research-close></div>
+      <div class="event-modal-card card research-modal-card" role="dialog" aria-modal="true" aria-labelledby="research-modal-title">
+        <div class="event-modal-top">
+          <div>
+            <p class="eyebrow">Research Stocks</p>
+            <h2 id="research-modal-title">Scan the Market</h2>
+          </div>
+          <button type="button" class="subtle event-modal-close" data-research-close>Close</button>
+        </div>
+        <div id="research-modal-body" class="stack"></div>
+      </div>
+    </div>
+    <div id="lottery-modal" class="event-modal hidden" aria-hidden="true">
+      <div class="event-modal-backdrop" data-lottery-close></div>
+      <div class="event-modal-card card lottery-modal-card" role="dialog" aria-modal="true" aria-labelledby="lottery-modal-title">
+        <div class="event-modal-top">
+          <div>
+            <p class="eyebrow">Lottery Ticket</p>
+            <h2 id="lottery-modal-title">Pick Your Ticket</h2>
+          </div>
+          <button type="button" class="subtle event-modal-close" data-lottery-close>Close</button>
+        </div>
+        <div id="lottery-modal-body" class="stack"></div>
+      </div>
+    </div>
+    <div id="lobby-modal" class="event-modal hidden" aria-hidden="true">
+      <div class="event-modal-backdrop" data-lobby-close></div>
+      <div class="event-modal-card card lobby-modal-card" role="dialog" aria-modal="true" aria-labelledby="lobby-modal-title">
+        <div class="event-modal-top">
+          <div>
+            <p class="eyebrow">Lobby Congress</p>
+            <h2 id="lobby-modal-title">Committee Count</h2>
+          </div>
+          <button type="button" class="subtle event-modal-close" data-lobby-close>Close</button>
+        </div>
+        <div id="lobby-modal-body" class="stack"></div>
+      </div>
+    </div>
+    <div id="event-modal" class="event-modal hidden" aria-hidden="true">
+      <div class="event-modal-backdrop" data-event-close></div>
+      <div class="event-modal-card card" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
+        <div class="event-modal-top">
+          <div>
+            <p class="eyebrow">Market Alert</p>
+            <h2 id="event-modal-title">New Event</h2>
+          </div>
+          <button type="button" class="subtle event-modal-close" data-event-close>Close</button>
+        </div>
+        <div id="event-modal-body" class="stack"></div>
+      </div>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+output/
+progress.md
+ios/Pods/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/rehearsal-backup-*/
+data/store.json
