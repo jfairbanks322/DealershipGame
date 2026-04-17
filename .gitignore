@@ -12,3 +12,9 @@ data/*.db-shm
 data/*.db-wal
 data/rehearsal-backup-*/
 data/store.json
+.tmp_shady_tip_verify/
+gas-dealership-manager/
+crime-case-app/
+public/casefile.css
+public/casefile.html
+public/casefile.js
