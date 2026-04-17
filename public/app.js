@@ -779,6 +779,7 @@ function renderTeacherView() {
         <div class="mini-stat"><span>Session State</span><strong>${game.isOpen ? "Open" : "Closed"}</strong></div>
       </div>
     </div>
+    ${renderAwardsBoard(admin.awards || [])}
   `;
 
   refs.teacherControls.innerHTML = `
@@ -991,6 +992,15 @@ function renderStudentRosterRow(student) {
         <div><strong>${formatPercent(student.avgMorale)}</strong><span>Morale</span></div>
         <div><strong>${formatPercent(student.teamHealth)}</strong><span>Health</span></div>
       </div>
+      ${
+        student.award
+          ? `<div class="award-inline">
+              <strong>${escapeHtml(student.award.title)}</strong>
+              <span>${escapeHtml(student.award.subtitle)}</span>
+              <p class="note">${escapeHtml(student.award.reason)}</p>
+            </div>`
+          : ""
+      }
       ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This dealership has been eliminated.")}</p>` : ""}
       <div class="roster-actions">
         <form data-password-form class="inline-form">
@@ -1028,6 +1038,39 @@ function renderTeacherFeedRow(entry) {
       </div>
       <div class="subtext">${formatDate(entry.submittedAt)}</div>
     </article>
+  `;
+}
+
+function renderAwardsBoard(awards) {
+  if (!awards.length) {
+    return "";
+  }
+
+  return `
+    <section class="award-board">
+      <div class="section-head compact">
+        <p class="eyebrow">End Of Game Awards</p>
+        <h3>Personalized awards for today</h3>
+      </div>
+      <div class="award-grid">
+        ${awards
+          .map(
+            (award) => `
+              <article class="award-card">
+                <div class="award-topline">
+                  <div>
+                    <strong>${escapeHtml(award.title)}</strong>
+                    <div class="subtext">${escapeHtml(award.subtitle)}</div>
+                  </div>
+                  <span class="pill pill-neutral">${escapeHtml(award.studentName)}</span>
+                </div>
+                <p class="note">${escapeHtml(award.reason)}</p>
+              </article>
+            `
+          )
+          .join("")}
+      </div>
+    </section>
   `;
 }
 

@@ -5952,8 +5952,20 @@ function computeLeaderboard() {
 function buildAdminPayload() {
   const settings = getSettings();
   const leaderboard = computeLeaderboard();
+  const detailedStudents = leaderboard.map((entry) => {
+    const detail = serializeUser(entry.id) || {};
+    return {
+      ...detail,
+      rank: entry.rank,
+      responseStats: getUserResponseStats(entry.id),
+      lowestMorale: Math.min(...(detail.staff || []).map((member) => member.morale)),
+      lowestTrust: Math.min(...(detail.staff || []).map((member) => member.trust)),
+      atRiskCount: (detail.staff || []).filter((member) => member.morale < 40 || member.trust < 40).length
+    };
+  });
   const currentRoundId = getGameState().currentRoundId;
   const students = leaderboard.map((entry) => {
+    const detail = detailedStudents.find((student) => student.id === entry.id) || null;
     const responded = currentRoundId ? Boolean(getResponseForRound(currentRoundId, entry.id)) : false;
     const caseFile = currentRoundId ? getCaseFile(currentRoundId, entry.id) : null;
     const progressState = entry.isEliminated
@@ -5972,11 +5984,18 @@ function buildAdminPayload() {
           };
     return {
       ...entry,
+      award: null,
+      managerProfile: detail?.managerProfile || null,
       respondedToCurrentRound: responded,
       progressLabel: progressState.label,
       progressTone: progressState.tone,
       joinedAt: getUserById(entry.id)?.created_at || null
     };
+  });
+  const awards = assignStudentAwards(detailedStudents);
+  const awardMap = new Map(awards.map((award) => [award.studentId, award]));
+  students.forEach((student) => {
+    student.award = awardMap.get(student.id) || null;
   });
 
   const averageSales = students.length
@@ -6020,8 +6039,215 @@ function buildAdminPayload() {
       topStudent: leaderboard[0] || null
     },
     students,
+    awards,
     recentResponses
   };
+}
+
+function getUserResponseStats(userId) {
+  const row = db.prepare(
+    `SELECT COUNT(*) AS response_count,
+            COALESCE(SUM(sales_delta), 0) AS total_sales_delta,
+            COALESCE(SUM(satisfaction_delta), 0) AS total_satisfaction_delta,
+            COALESCE(SUM(reputation_delta), 0) AS total_reputation_delta,
+            COALESCE(SUM(CASE WHEN sales_delta > 0 THEN 1 ELSE 0 END), 0) AS positive_sales_count,
+            COALESCE(SUM(CASE WHEN sales_delta < 0 THEN 1 ELSE 0 END), 0) AS negative_sales_count,
+            COALESCE(SUM(CASE WHEN satisfaction_delta > 0 THEN 1 ELSE 0 END), 0) AS positive_satisfaction_count,
+            COALESCE(SUM(CASE WHEN reputation_delta > 0 THEN 1 ELSE 0 END), 0) AS positive_reputation_count,
+            COALESCE(MAX(sales_delta), 0) AS best_sales_event,
+            COALESCE(MIN(sales_delta), 0) AS worst_sales_event
+     FROM responses
+     WHERE user_id = ?`
+  ).get(userId);
+
+  return {
+    responseCount: Number(row?.response_count || 0),
+    totalSalesDelta: Number(row?.total_sales_delta || 0),
+    totalSatisfactionDelta: Number(row?.total_satisfaction_delta || 0),
+    totalReputationDelta: Number(row?.total_reputation_delta || 0),
+    positiveSalesCount: Number(row?.positive_sales_count || 0),
+    negativeSalesCount: Number(row?.negative_sales_count || 0),
+    positiveSatisfactionCount: Number(row?.positive_satisfaction_count || 0),
+    positiveReputationCount: Number(row?.positive_reputation_count || 0),
+    bestSalesEvent: Number(row?.best_sales_event || 0),
+    worstSalesEvent: Number(row?.worst_sales_event || 0)
+  };
+}
+
+function assignStudentAwards(students) {
+  const awardLibrary = buildAwardLibrary();
+  const sortedStudents = [...students].sort((a, b) => {
+    if (b.aggregateScore !== a.aggregateScore) {
+      return b.aggregateScore - a.aggregateScore;
+    }
+    return (a.rank || 999) - (b.rank || 999);
+  });
+  const availableAwards = [...awardLibrary];
+  const assignments = [];
+
+  sortedStudents.forEach((student, index) => {
+    if (!availableAwards.length) {
+      return;
+    }
+
+    let bestIndex = 0;
+    let bestScore = -Infinity;
+    availableAwards.forEach((award, awardIndex) => {
+      const score = Number(award.score(student, students));
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = awardIndex;
+      }
+    });
+
+    const [award] = availableAwards.splice(bestIndex, 1);
+    assignments.push({
+      studentId: student.id,
+      studentName: student.displayName,
+      title: award.title,
+      subtitle: award.subtitle,
+      reason: award.reason(student, students),
+      sortOrder: index + 1
+    });
+  });
+
+  return assignments.sort((a, b) => a.studentName.localeCompare(b.studentName));
+}
+
+function buildAwardLibrary() {
+  return [
+    {
+      id: "rainmaker",
+      title: "The Rainmaker",
+      subtitle: "Top-line revenue driver",
+      score: (student) => student.sales * 10 + student.aggregateScore,
+      reason: (student) => `Generated ${formatAwardRevenue(student.sales)} and kept the dealership moving financially.`
+    },
+    {
+      id: "culture_builder",
+      title: "Culture Builder",
+      subtitle: "Highest morale footprint",
+      score: (student) => student.avgMorale * 8 + student.teamHealth,
+      reason: (student) => `Finished with ${formatAwardPercent(student.avgMorale)} average morale and kept people from burning out.`
+    },
+    {
+      id: "trusted_leader",
+      title: "Trusted Leader",
+      subtitle: "Strongest trust in management",
+      score: (student) => student.avgTrust * 8 + student.teamHealth,
+      reason: (student) => `Held team trust at ${formatAwardPercent(student.avgTrust)}, which means the staff kept believing in your calls.`
+    },
+    {
+      id: "customer_whisperer",
+      title: "Customer Whisperer",
+      subtitle: "Best customer-facing instincts",
+      score: (student) => student.satisfaction * 6 + student.responseStats.positiveSatisfactionCount * 8 + student.responseStats.positiveReputationCount * 4,
+      reason: (student) => `Customer satisfaction stayed at ${formatAwardPercent(student.satisfaction)} and your choices consistently landed well with the public-facing side of the dealership.`
+    },
+    {
+      id: "reputation_shield",
+      title: "Reputation Shield",
+      subtitle: "Protected the dealership name",
+      score: (student) => student.reputation * 7 + student.responseStats.totalReputationDelta * 5,
+      reason: (student) => `Closed with ${formatAwardPercent(student.reputation)} reputation and kept the store's image steadier than most.`
+    },
+    {
+      id: "balanced_boss",
+      title: "Balanced Boss",
+      subtitle: "Best all-around operator",
+      score: (student) => student.teamHealth * 7 + student.aggregateScore * 3 - Math.abs(student.avgMorale - student.avgTrust),
+      reason: (student) => `Balanced revenue, morale, and trust into a ${formatAwardPercent(student.teamHealth)} team-health finish.`
+    },
+    {
+      id: "systems_builder",
+      title: "Systems Builder",
+      subtitle: "Process-first manager",
+      score: (student) => (student.managerProfile?.title === "Systems Builder" ? 500 : 0) + student.reputation * 4 + student.avgTrust * 2,
+      reason: (student) => `Your dealership read like a process-driven shop that values structure and follow-through.`
+    },
+    {
+      id: "people_first",
+      title: "People-First Leader",
+      subtitle: "Human-centered manager",
+      score: (student) => (student.managerProfile?.title === "People-First Leader" ? 500 : 0) + student.avgMorale * 4 + student.satisfaction * 3,
+      reason: (student) => `You consistently protected people and relationships, and the store felt it.`
+    },
+    {
+      id: "growth_promoter",
+      title: "Growth Promoter",
+      subtitle: "Most momentum-friendly brand instincts",
+      score: (student) => (student.managerProfile?.title === "Growth Promoter" ? 500 : 0) + student.sales * 4 + student.reputation * 2,
+      reason: (student) => `You leaned into visibility and momentum without losing the store completely in the process.`
+    },
+    {
+      id: "fast_closer",
+      title: "Fast Lane Closer",
+      subtitle: "Most decisive operator",
+      score: (student) => (student.managerProfile?.title === "Fast-Moving Closer" ? 500 : 0) + student.responseStats.bestSalesEvent * 20 + student.sales * 3,
+      reason: (student) => `Your biggest single-event revenue swing hit ${formatSignedAwardRevenue(student.responseStats.bestSalesEvent)}, and your style stayed aggressively decisive.`
+    },
+    {
+      id: "resilience_engine",
+      title: "Resilience Engine",
+      subtitle: "Survived the roughest culture drag",
+      score: (student) => (!student.isEliminated ? 300 : 0) + (100 - Math.min(student.lowestMorale, student.lowestTrust)) * 4 + student.aggregateScore,
+      reason: (student) => `Kept the dealership alive even with low points like ${formatAwardPercent(student.lowestMorale)} morale / ${formatAwardPercent(student.lowestTrust)} trust at the floor.`
+    },
+    {
+      id: "steady_hand",
+      title: "Steady Hand",
+      subtitle: "Most consistent under pressure",
+      score: (student) => student.responseStats.responseCount * 20 - student.responseStats.negativeSalesCount * 8 + student.avgTrust * 2,
+      reason: (student) => `Stayed comparatively stable across ${student.responseStats.responseCount} scored decisions without drifting into chaos.`
+    },
+    {
+      id: "showroom_anchor",
+      title: "Showroom Anchor",
+      subtitle: "Held the floor together",
+      score: (student) => student.avgTrust * 3 + student.avgMorale * 3 + student.responseStats.positiveReputationCount * 10,
+      reason: (student) => `Your dealership felt like it had an adult in charge when the room got weird.`
+    },
+    {
+      id: "profit_protector",
+      title: "Profit Protector",
+      subtitle: "Defended the bottom line",
+      score: (student) => student.aggregateScore * 5 + student.responseStats.totalSalesDelta * 4 - student.responseStats.negativeSalesCount * 5,
+      reason: (student) => `Protected the financial side of the dealership better than most, finishing at ${formatAwardScore(student.aggregateScore)} overall score.`
+    },
+    {
+      id: "comeback_manager",
+      title: "Comeback Manager",
+      subtitle: "Recovered from shaky moments",
+      score: (student) => (!student.isEliminated ? 200 : 0) + student.atRiskCount * 20 + student.responseStats.positiveSalesCount * 12 + student.teamHealth * 2,
+      reason: (student) => `Worked through visible danger signs and still kept the dealership functional by the end.`
+    },
+    {
+      id: "hard_lesson",
+      title: "Hard Lesson Award",
+      subtitle: "Most memorable management warning",
+      score: (student) => (student.isEliminated ? 800 : 0) + (100 - student.lowestTrust) * 3 + (100 - student.lowestMorale) * 3,
+      reason: (student) => student.isEliminated
+        ? `${student.lossState?.name || "A staff member"} quitting made this the clearest lesson in how fast culture can break.`
+        : `Came closest to the edge without fully losing the dealership, which made the management lesson impossible to miss.`
+    }
+  ];
+}
+
+function formatAwardRevenue(value) {
+  return `$${Math.round(Number(value || 0)).toLocaleString()}k`;
+}
+
+function formatSignedAwardRevenue(value) {
+  const number = Math.round(Number(value || 0));
+  return `${number >= 0 ? "+" : "-"}$${Math.abs(number).toLocaleString()}k`;
+}
+
+function formatAwardPercent(value) {
+  return `${Math.round(Number(value || 0))}%`;
+}
+
+function formatAwardScore(value) {
+  return Number(value || 0).toFixed(1);
 }
 
 function getRoundById(roundId) {
