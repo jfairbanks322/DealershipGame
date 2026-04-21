@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dealership Manager</title>
+    <title>Feast Haven Manager</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -14,28 +14,34 @@
       <section class="hero card">
         <div class="hero-copy-wrap">
           <p class="eyebrow">Business Management Simulation</p>
-          <div class="hero-logo-lockup">
-            <img class="hero-logo" src="/assets/ram-autos-logo.png" alt="Ram Autos" />
-            <h1 class="sr-only">Ram Autos</h1>
+          <div class="hero-logo-lockup hero-wordmark-lockup">
+            <div>
+              <h1 class="sr-only">Feast Haven Restaurant Manager</h1>
+              <img class="hero-logo" src="/assets/feast-haven/logo-primary.png" alt="Feast Haven logo" />
+              <p class="hero-subbrand">Restaurant Manager</p>
+            </div>
           </div>
           <p class="hero-copy">
-            Students step into the manager chair of a busy car dealership, handle live staff situations, and try to
-            grow dealership revenue without breaking morale, trust, or customer confidence.
+            Students step into the manager chair at Feast Haven, handle live staff situations, and try to
+            grow revenue without breaking morale, trust, or guest confidence.
           </p>
           <div class="hero-tags">
             <span class="tag">Teacher-pushed global events</span>
-            <span class="tag">Live dealership leaderboard</span>
-            <span class="tag">Five staff personalities</span>
+            <span class="tag">6-step case chains</span>
+            <span class="tag">8 employee trust meters</span>
+          </div>
+          <div class="hero-resource-row">
+            <a class="button-link secondary" href="/student-cheat-sheet.html">Student Quick Start</a>
+            <a class="button-link subtle" href="/awards-report.html">Awards Report</a>
           </div>
         </div>
-        <div id="market-status-panel" class="status-panel"></div>
       </section>
 
       <section id="auth-section" class="grid auth-grid">
         <article class="card">
           <div class="section-head">
             <p class="eyebrow">Students</p>
-            <h2>Join the Dealership Floor</h2>
+            <h2>Join The Restaurant Floor</h2>
           </div>
           <p class="section-copy">Returning student? Log in first. New student? Create an account below.</p>
 
@@ -66,6 +72,16 @@
               Password
               <input name="password" type="password" minlength="4" placeholder="4+ characters" required />
             </label>
+            <div class="stack avatar-picker-block">
+              <div>
+                <div class="avatar-picker-head">
+                  <span>Choose your manager portrait</span>
+                  <span class="subtext">This becomes your Feast Haven profile picture</span>
+                </div>
+                <input id="student-avatar-id" name="avatarId" type="hidden" />
+                <div id="student-avatar-picker" class="avatar-picker-grid"></div>
+              </div>
+            </div>
             <button type="submit">Create Student Account</button>
           </form>
         </article>
@@ -73,7 +89,7 @@
         <article class="card">
           <div class="section-head">
             <p class="eyebrow">Teacher</p>
-            <h2>Run the Showroom</h2>
+            <h2>Run The Restaurant</h2>
           </div>
           <p class="section-copy">
             Teacher mode unlocks class session controls, global event launch tools, password resets, and live response
@@ -100,7 +116,7 @@
         <div class="grid two-col">
           <article class="card">
             <div class="section-head">
-              <p class="eyebrow">My Dealership</p>
+              <p class="eyebrow">My Restaurant</p>
               <h2 id="student-name-heading">Manager Dashboard</h2>
             </div>
             <div id="student-summary"></div>
@@ -181,7 +197,7 @@
           <article class="card">
             <div class="section-head">
               <p class="eyebrow">Global Event</p>
-              <h2>Launch the Next Dealership Crisis</h2>
+              <h2>Launch the Next Restaurant Crisis</h2>
             </div>
             <form id="scenario-form" class="stack">
               <label>
@@ -224,8 +240,8 @@
       <section class="grid two-col">
         <article class="card">
           <div class="section-head">
-            <p class="eyebrow">Leaderboard</p>
-            <h2>Revenue Standings</h2>
+            <p class="eyebrow">Leaderboards</p>
+            <h2>Three Ways To Lead</h2>
           </div>
           <div id="leaderboard"></div>
         </article>

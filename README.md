@@ -1,31 +1,36 @@
-# Dealership Manager
+# Feast Haven Manager
 
-A lightweight classroom Business Management simulation where students act as the manager of a car dealership.
+Feast Haven Manager is a classroom business simulation where students run a restaurant under pressure. The teacher launches one shared event for the class, and each student works through a 6-step decision chain that changes revenue, guest confidence, staff morale, trust, and the long-term condition of the restaurant.
 
-## What It Does
+## What The Live App Includes
 
-- student accounts with saved dealership progress
-- a teacher login for session control
-- five staff personalities with morale and trust meters
-- teacher-launched global dealership events
-- branching case chains where students choose which employee to consult first
-- a running leaderboard based on dealership revenue
-- SQLite storage for student accounts, case history, and final event outcomes
+- teacher-controlled class session open/close flow
+- student accounts with saved progress
+- 8 restaurant staff members with individual morale and trust
+- 10 authored Feast Haven event chains
+- persistent restaurant state between events:
+  - guest confidence
+  - kitchen stability
+  - staff burnout
+  - supply control
+  - brand heat
+- lingering effects that carry from one event into the next
+- three class leaderboards:
+  - overall
+  - revenue
+  - culture
+- timing analytics for the teacher dashboard
+- printable end-of-game awards report
 
 ## Core Loop
 
 1. The teacher opens the class session.
-2. The teacher launches one global dealership event for the whole class.
-3. Students choose which employee to consult, then work through a personalized chain of follow-up actions.
-4. Each choice updates:
-   - revenue
-   - customer satisfaction
-   - dealership reputation
-   - staff morale
-   - staff trust
-5. When the case resolves, the leaderboard reorders in real time based on the total event outcome.
+2. The teacher launches a global Feast Haven event for the whole class.
+3. Students choose which staff member to consult and work through a 6-step event chain.
+4. Each choice affects the current case and the restaurant's future condition.
+5. When the case resolves, the leaderboard updates and the next event starts from the new restaurant state.
 
-## Run It
+## Local Run
 
 ```bash
 npm start
@@ -33,64 +38,58 @@ npm start
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-The new domestic mystery prototype lives at [http://localhost:3000/casefile.html](http://localhost:3000/casefile.html).
-
 ## Default Teacher Login
 
 - Username: `teacher`
 - Password: `showroom`
 
-## Data
+Change that after first deploy from the teacher settings panel.
 
-- The sim stores data in [data/dealership-manager.db](/Users/josh/Documents/New project/data/dealership-manager.db).
-- The original stock-market database is left untouched in [data/stock-arena.db](/Users/josh/Documents/New project/data/stock-arena.db).
-- You can override the storage location with the `DATA_DIR` environment variable.
-- On Railway, the app will automatically use `/app/data` if that volume mount exists.
+## Data And Persistence
+
+- SQLite data is stored at [data/dealership-manager.db](/Users/josh/Documents/New project/data/dealership-manager.db) by default.
+  The filename is still legacy under the hood so existing saves stay intact.
+- You can override the storage directory with `DATA_DIR`.
+- On Railway, the app automatically uses `/app/data` if a volume is mounted there.
 
 ## Deploy To Railway
 
-This project is now set up to deploy cleanly on Railway.
+This project is already configured for Railway.
 
-### What is already configured
+### Included setup
 
-- [railway.json](/Users/josh/Documents/New project/railway.json) sets:
-  - `node server.js` as the start command
-  - `/health` as the healthcheck path
-  - `/app/data` as the required mounted volume path
-- [server.js](/Users/josh/Documents/New project/server.js) now:
+- [railway.json](/Users/josh/Documents/New project/railway.json)
+  - starts the app with `node server.js`
+  - uses `/health` as the healthcheck path
+  - expects persistent storage at `/app/data`
+- [server.js](/Users/josh/Documents/New project/server.js)
+  - respects `PORT`
   - respects `DATA_DIR` or `RAILWAY_VOLUME_MOUNT_PATH`
   - exposes `GET /health`
   - shuts down cleanly on `SIGTERM`
 
-### Railway setup steps
+### Railway steps
 
-1. Push this project to GitHub.
-2. In Railway, create a new project from that GitHub repo.
-3. Add a Volume to the web service and mount it at `/app/data`.
-4. Deploy the service.
-5. Open the generated Railway domain.
+1. Push this repo to GitHub.
+2. Create a Railway project from the repo.
+3. Add a Volume to the web service.
+4. Mount that Volume at `/app/data`.
+5. Deploy.
+6. Open the generated Railway URL.
 
-### Important notes
+### Important deployment note
 
-- This app uses SQLite, so the mounted volume is required if you want student data to persist between deploys.
-- The default teacher login is still `teacher / showroom`, so change that after first deploy from the teacher settings screen.
-- Railway will provide the `PORT` automatically. The app already respects that.
+This app uses SQLite. If you do not mount a persistent Railway Volume, student accounts and class progress will be lost on redeploy.
 
-## Current MVP Notes
+## Teacher-Facing Notes
 
-- Teachers currently launch event chains from a preset library.
-- The intended custom-content workflow is manual authoring, not in-app AI generation.
-- Each completed event stores the full case result, not just the last action in the chain.
-- Low morale and low trust can create automatic penalties on future outcomes.
-- The leaderboard is primarily ranked by `revenue`, with team health used as a tie-breaker.
+- Event chains are currently authored from the preset library in [event-templates.js](/Users/josh/Documents/New project/event-templates.js).
+- Each completed case stores the full chain of decisions, not just the final click.
+- Low morale or trust can still create future penalties.
+- Students can lose the game if an employee's morale or trust collapses far enough.
 
-## Narrative Prototype
+## Extra Routes
 
-- [public/casefile.html](/Users/josh/Documents/New project/public/casefile.html) is a separate text-forward detective prototype for a domestic disappearance story.
-- It currently includes one playable case, branching lead selection, evidence pinning, suspect-board updates, and a multi-part accusation flow.
-- The first case is intentionally authored as a standalone route so it can evolve without disturbing the existing classroom management sim.
-
-## Google-Hosted Prototype
-
-- A parallel Google Apps Script version now lives in [gas-dealership-manager/README.md](/Users/josh/Documents/New%20project/gas-dealership-manager/README.md).
-- It is separate from the Node/Railway app and is intended for school environments that are more permissive with Google-hosted tools.
+- [public/student-cheat-sheet.html](/Users/josh/Documents/New project/public/student-cheat-sheet.html) is a print-friendly Feast Haven student quick-start guide.
+- [public/awards-report.html](/Users/josh/Documents/New project/public/awards-report.html) is the teacher-facing printable awards report.
+- [public/prediction-market.html](/Users/josh/Documents/New project/public/prediction-market.html) is a separate side lesson prototype and is not required for the Feast Haven launch.

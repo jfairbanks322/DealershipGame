@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stock Arena Student Cheat Sheet</title>
+    <title>Feast Haven Student Quick Start</title>
     <link rel="stylesheet" href="/styles.css" />
     <style>
       .cheat-sheet-shell {
@@ -50,10 +50,10 @@
       }
 
       .cheat-callout {
-        border: 1px solid rgba(240, 193, 75, 0.18);
+        border: 1px solid rgba(242, 194, 48, 0.18);
         border-radius: 20px;
         padding: 16px;
-        background: linear-gradient(135deg, rgba(32, 18, 52, 0.95), rgba(20, 12, 34, 0.95));
+        background: linear-gradient(135deg, rgba(27, 8, 8, 0.95), rgba(15, 4, 4, 0.95));
         color: var(--ink-soft);
       }
 
@@ -95,7 +95,9 @@
           color: #111111;
         }
 
-        .background-orb {
+        .glow,
+        body::before,
+        body::after {
           display: none;
         }
 
@@ -131,147 +133,148 @@
     </style>
   </head>
   <body>
-    <div class="background-orb orb-one"></div>
-    <div class="background-orb orb-two"></div>
+    <div class="glow glow-top"></div>
+    <div class="glow glow-bottom"></div>
     <main class="cheat-sheet-shell">
-      <section class="hero card lift">
+      <section class="hero card">
         <div>
           <p class="eyebrow">Student Guide</p>
-          <h1>Stock Arena Cheat Sheet</h1>
+          <h1>Feast Haven Quick Start</h1>
           <p class="hero-copy">
-            Everything you need to log in, follow the market, buy and sell stocks, and keep track of your portfolio during class.
+            Everything students need to log in, read the dashboard, work through event chains, and make stronger restaurant-management decisions during class.
           </p>
         </div>
         <div class="status-panel">
           <div class="market-box">
             <div class="stats-row">
-              <span class="market-pill open">Market Open</span>
+              <span class="market-pill open">Class Session Open</span>
               <span class="role-pill student">Student View</span>
             </div>
             <div class="stats-row">
               <div class="mini-stat">
-                <span>Starting Cash</span>
-                <strong>$10,000</strong>
+                <span>Case Length</span>
+                <strong>6 steps</strong>
               </div>
               <div class="mini-stat">
-                <span>Watchlist</span>
-                <strong>Up to 5</strong>
+                <span>Score</span>
+                <strong>Revenue first</strong>
               </div>
               <div class="mini-stat">
-                <span>Goal</span>
-                <strong>Grow your total value</strong>
+                <span>Big Risk</span>
+                <strong>Staff can quit</strong>
               </div>
             </div>
-            <p class="note">Your score is your cash plus the current value of all the shares you own.</p>
+            <p class="note">Winning the current event is not enough. Your choices also shape the next event through morale, trust, and restaurant state.</p>
           </div>
         </div>
       </section>
 
       <section class="cheat-sheet-grid">
-        <article class="card cheat-card lift">
+        <article class="card cheat-card">
           <div class="section-head compact">
             <p class="eyebrow">1. Get In</p>
             <h2>Login and Setup</h2>
           </div>
           <ol class="cheat-steps">
-            <li><strong>Create your account</strong> with your display name, username, and password the first time you play.</li>
-            <li><strong>Use the same login each class</strong> so your portfolio and rank stay saved.</li>
+            <li><strong>Create your account</strong> with your display name, username, password, and manager portrait the first time you play.</li>
+            <li><strong>Use the same login each class</strong> so your restaurant progress stays saved.</li>
             <li><strong>Do not share your password</strong> unless your teacher resets it for you.</li>
           </ol>
           <div class="cheat-callout">
-            <strong>If you cannot get in:</strong> ask your teacher to reset your password. Your portfolio can stay the same even if the password changes.
+            <strong>If you cannot get in:</strong> ask your teacher to reset your password. Your restaurant data can still stay intact.
           </div>
         </article>
 
-        <article class="card cheat-card lift">
+        <article class="card cheat-card">
           <div class="section-head compact">
             <p class="eyebrow">2. Read The Screen</p>
             <h2>What You Are Looking At</h2>
           </div>
           <div class="cheat-tag-row">
-            <span class="cheat-tag">Portfolio Value = your score</span>
-            <span class="cheat-tag">Cash Ready = money not invested</span>
-            <span class="cheat-tag">Trade Board = company research + trading</span>
+            <span class="cheat-tag">Restaurant State = long-term health</span>
+            <span class="cheat-tag">Case Chain = current event</span>
+            <span class="cheat-tag">Staff Cards = morale + trust</span>
             <span class="cheat-tag">Leaderboard = class ranking</span>
-            <span class="cheat-tag">News Wire = teacher events</span>
+            <span class="cheat-tag">Decision Log = what you already did</span>
           </div>
           <ul class="cheat-list">
-            <li><strong>Green numbers</strong> usually mean a price went up.</li>
-            <li><strong>Red numbers</strong> usually mean a price went down.</li>
-            <li><strong>Your watchlist</strong> lets you save the companies you want to keep an eye on.</li>
+            <li><strong>Restaurant State</strong> shows the long-run condition of your business.</li>
+            <li><strong>Lingering Effects</strong> show what is still following you from earlier events.</li>
+            <li><strong>Staff trust and morale</strong> matter because broken relationships can eventually end your game.</li>
           </ul>
         </article>
 
-        <article class="card cheat-card lift">
+        <article class="card cheat-card">
           <div class="section-head compact">
-            <p class="eyebrow">3. Trade</p>
-            <h2>How To Buy and Sell</h2>
+            <p class="eyebrow">3. Work The Case</p>
+            <h2>How Each Event Works</h2>
           </div>
           <ol class="cheat-steps">
-            <li><strong>Find a company</strong> using the company list, search box, or filters.</li>
-            <li><strong>Click the company</strong> to read its bio, pros, cons, industry, and current price.</li>
-            <li><strong>Enter the number of shares</strong> you want to buy or sell.</li>
-            <li><strong>Click Buy or Sell</strong> only while the market is open.</li>
+            <li><strong>Read the event headline and context</strong> before clicking anything.</li>
+            <li><strong>Choose a staff member to consult</strong> based on who knows that problem best.</li>
+            <li><strong>Pick a response option</strong> that fits both the current crisis and the long-term health of the restaurant.</li>
+            <li><strong>Repeat through the full 6-step chain</strong> until the event resolves.</li>
           </ol>
           <div class="cheat-callout">
-            <strong>Important:</strong> if the market is closed, you can still research companies, but your trade buttons will not work.
+            <strong>Important:</strong> a choice that looks good for revenue right now can still damage trust, morale, or your next event.
           </div>
         </article>
 
-        <article class="card cheat-card lift">
+        <article class="card cheat-card">
           <div class="section-head compact">
-            <p class="eyebrow">4. Watchlist</p>
-            <h2>Track Your Favorites</h2>
+            <p class="eyebrow">4. Score Smart</p>
+            <h2>What Actually Matters</h2>
           </div>
           <ul class="cheat-list">
-            <li><strong>Click the star</strong> next to a company to add it to your watchlist.</li>
-            <li><strong>You can watch up to 5 companies</strong> at a time.</li>
-            <li><strong>Use the watchlist panel</strong> to jump back to those companies quickly during class.</li>
+            <li><strong>Revenue matters most</strong> in your aggregate score.</li>
+            <li><strong>Morale matters next</strong> because a burned-out team gets harder to manage.</li>
+            <li><strong>Trust still matters</strong> because low-trust employees weaken future decisions.</li>
+            <li><strong>Restaurant State matters</strong> because it changes how later events behave.</li>
           </ul>
         </article>
 
-        <article class="card cheat-card lift">
+        <article class="card cheat-card">
           <div class="section-head compact">
-            <p class="eyebrow">5. Pay Attention</p>
-            <h2>Teacher Events Matter</h2>
+            <p class="eyebrow">5. Avoid Losing</p>
+            <h2>How Students Fail The Game</h2>
           </div>
           <ul class="cheat-list">
-            <li><strong>Read the News Wire</strong> because teacher events can change prices immediately.</li>
-            <li><strong>One event can help some companies and hurt others</strong> at the same time.</li>
-            <li><strong>Think before you panic</strong>. A bad event might be temporary, but a risky company can crash hard.</li>
+            <li><strong>If an employee crashes to zero morale or trust</strong>, they can quit.</li>
+            <li><strong>If someone quits</strong>, your restaurant run is over until the teacher resets standings.</li>
+            <li><strong>Ignoring the same weak area repeatedly</strong> can make future events much harder.</li>
           </ul>
         </article>
 
-        <article class="card cheat-card lift">
+        <article class="card cheat-card">
           <div class="section-head compact">
-            <p class="eyebrow">6. Play Smart</p>
-            <h2>Quick Strategy Tips</h2>
+            <p class="eyebrow">6. Simple Routine</p>
+            <h2>Best Way To Play In Class</h2>
           </div>
-          <ul class="cheat-list">
-            <li><strong>Do not put everything into one stock</strong> unless you are comfortable with big risk.</li>
-            <li><strong>Cheap stocks are not always better</strong>. Look at the company details, not just the price.</li>
-            <li><strong>Stable companies</strong> may grow slowly, while risky companies can jump or crash fast.</li>
-            <li><strong>Check your rank</strong>, but do not chase every move on the leaderboard.</li>
-          </ul>
+          <ol class="cheat-steps">
+            <li>Check your current restaurant state first.</li>
+            <li>Read the full event carefully.</li>
+            <li>Choose staff intentionally, not randomly.</li>
+            <li>Watch for repeated damage to the same employee or weak system.</li>
+            <li>Finish the full chain before class moves on.</li>
+          </ol>
         </article>
       </section>
 
-      <section class="card cheat-card lift" style="margin-top: 18px;">
+      <section class="card cheat-card" style="margin-top: 18px;">
         <div class="section-head compact">
           <p class="eyebrow">Fast Reminder</p>
-          <h2>Class-Day Routine</h2>
+          <h2>Teacher Expectations</h2>
         </div>
-        <ol class="cheat-steps">
-          <li>Log in.</li>
-          <li>Check your portfolio, rank, and watchlist.</li>
-          <li>Read the latest event or news update.</li>
-          <li>Research companies on the trade board.</li>
-          <li>Trade before the market closes.</li>
-          <li>Check how your choices changed your score.</li>
-        </ol>
+        <div class="cheat-tag-row">
+          <span class="cheat-tag">Read before clicking</span>
+          <span class="cheat-tag">Think long-term</span>
+          <span class="cheat-tag">Protect trust</span>
+          <span class="cheat-tag">Watch morale</span>
+          <span class="cheat-tag">Do not rush the chain</span>
+        </div>
       </section>
 
-      <p class="print-note">Tip: this page can also be printed as a one-page student handout.</p>
+      <p class="print-note">Tip: this page is designed to print cleanly as a one-page student handout.</p>
     </main>
   </body>
 </html>

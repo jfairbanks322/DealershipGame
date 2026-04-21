@@ -13,6 +13,25 @@ const reportDateFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit"
 });
 
+const AWARD_ICON_BY_ID = {
+  rainmaker: "/assets/feast-haven/award-icons/award-revenue-bag.png",
+  profit_protector: "/assets/feast-haven/award-icons/award-revenue-bag.png",
+  culture_builder: "/assets/feast-haven/award-icons/award-team-lineup.png",
+  people_first: "/assets/feast-haven/award-icons/award-team-lineup.png",
+  showroom_anchor: "/assets/feast-haven/award-icons/award-team-lineup.png",
+  trusted_leader: "/assets/feast-haven/award-icons/award-trust-heartshield.png",
+  customer_whisperer: "/assets/feast-haven/award-icons/award-trust-heartshield.png",
+  reputation_shield: "/assets/feast-haven/award-icons/award-trust-heartshield.png",
+  balanced_boss: "/assets/feast-haven/award-icons/award-balance-scales.png",
+  systems_builder: "/assets/feast-haven/award-icons/award-balance-scales.png",
+  steady_hand: "/assets/feast-haven/award-icons/award-balance-scales.png",
+  comeback_manager: "/assets/feast-haven/award-icons/award-phoenix-cup.png",
+  resilience_engine: "/assets/feast-haven/award-icons/award-phoenix-cup.png",
+  hard_lesson: "/assets/feast-haven/award-icons/award-phoenix-cup.png",
+  growth_promoter: "/assets/feast-haven/award-icons/award-chef-cup.png",
+  fast_closer: "/assets/feast-haven/award-icons/award-chef-cup.png"
+};
+
 reportRefs.printButton.addEventListener("click", () => {
   window.print();
 });
@@ -115,6 +134,7 @@ function renderReportAwardCard(award, student, order) {
   return `
     <article class="award-card report-award-card">
       <div class="award-topline">
+        ${renderAwardIcon(award)}
         <div>
           <p class="eyebrow">Award ${order}</p>
           <strong>${escapeHtml(award.title)}</strong>
@@ -131,6 +151,11 @@ function renderReportAwardCard(award, student, order) {
       </div>
     </article>
   `;
+}
+
+function renderAwardIcon(award) {
+  const image = AWARD_ICON_BY_ID[award?.awardId] || "/assets/feast-haven/award-icons/award-chef-cup.png";
+  return `<img class="award-icon" src="${image}" alt="${escapeHtml(award?.title || "Award")} icon" />`;
 }
 
 function renderReportError(message, actionMarkup) {

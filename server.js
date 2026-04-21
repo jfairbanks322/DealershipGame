@@ -16,6 +16,16 @@ const DATA_DIR = process.env.DATA_DIR
 const DB_PATH = path.join(DATA_DIR, "dealership-manager.db");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const SESSION_COOKIE = "dealership_manager_session";
+const AVATAR_MANIFEST_PATH = path.join(PUBLIC_DIR, "assets", "avatars", "feast-haven", "manifest.json");
+const LEGACY_AVATAR_ALIASES = {
+  "avatar-051": "avatar-001",
+  "avatar-052": "avatar-002",
+  "avatar-053": "avatar-003",
+  "avatar-054": "avatar-004",
+  "avatar-055": "avatar-005",
+  "avatar-056": "avatar-006",
+  "avatar-057": "avatar-007"
+};
 
 const DEFAULT_TEACHER_USERNAME = "teacher";
 const DEFAULT_TEACHER_PASSWORD = "showroom";
@@ -25,17 +35,477 @@ const DEFAULT_STUDENT_STATE = {
   satisfaction: 72,
   reputation: 68
 };
+const PREDICTION_MARKET_START_CASH = 40;
+const PREDICTION_MARKET_SEED_LIQUIDITY = 120;
+const PREDICTION_MARKET_TIMEZONE = process.env.PREDICTION_MARKET_TIMEZONE || "America/Detroit";
+const PREDICTION_MARKET_WORK_TEMPLATES = [
+  {
+    id: "evidence-quiz",
+    type: "Quiz",
+    title: "Evidence Check Quiz",
+    description: "Read a short market story and identify the strongest signal instead of the loudest reaction.",
+    prompt: "A city budget memo quietly cuts spending flexibility while social media stays optimistic. What should move the market most?",
+    basePay: 3,
+    bonusPay: 3,
+    artKey: "disciplinedTrader",
+    choices: [
+      { id: "memo", label: "The budget memo, because it is concrete evidence.", correct: true },
+      { id: "hashtags", label: "The optimistic posts, because excitement spreads faster.", correct: false },
+      { id: "guess", label: "Whichever side already has more traders in it.", correct: false }
+    ]
+  },
+  {
+    id: "risk-reflection",
+    type: "Reflection",
+    title: "Risk Reflection",
+    description: "Pick the response that best protects a student from turning a forecast into a chase.",
+    prompt: "A trader loses on one market and feels pressure to win it back fast. What is the healthiest next move?",
+    basePay: 3,
+    bonusPay: 2,
+    artKey: "stayInCash",
+    choices: [
+      { id: "pause", label: "Pause, review the evidence, and consider sitting out the next move.", correct: true },
+      { id: "double", label: "Double the next trade so the loss disappears faster.", correct: false },
+      { id: "copy", label: "Copy whatever side the crowd seems most emotional about.", correct: false }
+    ]
+  },
+  {
+    id: "signal-sort",
+    type: "Assignment",
+    title: "Signal Sort Assignment",
+    description: "Sort one market update into evidence, hype, or noise to earn steady cash.",
+    prompt: "A verified district operations email says buses are being rescheduled. What kind of signal is that?",
+    basePay: 4,
+    bonusPay: 2,
+    artKey: "walletRefilled",
+    choices: [
+      { id: "evidence", label: "Evidence, because an operational source changed real plans.", correct: true },
+      { id: "hype", label: "Hype, because lots of people will react to it.", correct: false },
+      { id: "noise", label: "Noise, because markets should ignore logistics.", correct: false }
+    ]
+  },
+  {
+    id: "discipline-drill",
+    type: "Drill",
+    title: "Discipline Drill",
+    description: "Choose the bankroll habit that makes a market lesson safer and more teachable.",
+    prompt: "Which habit keeps a prediction market from becoming a pure gambling rush?",
+    basePay: 3,
+    bonusPay: 3,
+    artKey: "disciplinedTrader",
+    choices: [
+      { id: "size", label: "Trading small enough that you can still think clearly.", correct: true },
+      { id: "swing", label: "Letting every market use most of your available cash.", correct: false },
+      { id: "revenge", label: "Taking bigger trades immediately after a loss.", correct: false }
+    ]
+  },
+  {
+    id: "private-bets-quiz",
+    type: "Quiz",
+    title: "Private Bets Quiz",
+    description: "Check whether you understand what the class should and should not see on the live board.",
+    prompt: "In the live class market, what should stay hidden from other students even when the odds move?",
+    basePay: 3,
+    bonusPay: 2,
+    artKey: "privateBets",
+    choices: [
+      { id: "identity", label: "Which student placed each trade.", correct: true },
+      { id: "line", label: "The shared market probability.", correct: false },
+      { id: "result", label: "Whether a market resolved YES or NO.", correct: false }
+    ]
+  },
+  {
+    id: "shared-pool-lab",
+    type: "Lab",
+    title: "Shared Pool Lab",
+    description: "Identify what happens when many students trade into the same class market.",
+    prompt: "If several students buy YES in the same market, what should happen to the shared class line?",
+    basePay: 4,
+    bonusPay: 2,
+    artKey: "sharedPoolLive",
+    choices: [
+      { id: "rise", label: "It should rise, because the shared YES pool becomes more expensive.", correct: true },
+      { id: "freeze", label: "It should freeze, because student trades stay private.", correct: false },
+      { id: "drop", label: "It should drop, because more people want the same side.", correct: false }
+    ]
+  }
+];
 const SCORE_WEIGHTS = {
   revenue: 0.65,
   morale: 0.25,
   trust: 0.1
 };
+const SCORE_TIERS = [
+  { level: 1, id: "in-the-weeds", label: "In The Weeds", minScore: 0, tone: "danger" },
+  { level: 2, id: "holding-line", label: "Holding The Line", minScore: 24, tone: "warning" },
+  { level: 3, id: "shift-stable", label: "Shift Stable", minScore: 42, tone: "muted" },
+  { level: 4, id: "rush-ready", label: "Rush Ready", minScore: 60, tone: "open" },
+  { level: 5, id: "house-favorite", label: "House Favorite", minScore: 78, tone: "gold" },
+  { level: 6, id: "feast-haven-elite", label: "Feast Haven Elite", minScore: 96, tone: "success" }
+];
+const RESTAURANT_STATE_DEFS = {
+  guest_confidence: {
+    label: "Guest Confidence",
+    defaultValue: 70,
+    goodHigh: true,
+    summary: "How much grace guests give Feast Haven when service gets bumpy."
+  },
+  kitchen_stability: {
+    label: "Kitchen Stability",
+    defaultValue: 68,
+    goodHigh: true,
+    summary: "How reliable the line, prep, and back-of-house handoffs feel."
+  },
+  staff_burnout: {
+    label: "Staff Burnout",
+    defaultValue: 34,
+    goodHigh: false,
+    summary: "How overloaded and emotionally cooked the team feels."
+  },
+  supply_control: {
+    label: "Supply Control",
+    defaultValue: 66,
+    goodHigh: true,
+    summary: "How confident the restaurant is in stock, ordering, and specials support."
+  },
+  brand_heat: {
+    label: "Brand Heat",
+    defaultValue: 52,
+    goodHigh: true,
+    summary: "How much attention, buzz, and scrutiny the restaurant is carrying."
+  }
+};
+const RESTAURANT_STATE_ORDER = Object.keys(RESTAURANT_STATE_DEFS);
+const PRESET_CONSEQUENCE_PROFILES = {
+  "open-close-kitchen-feud": {
+    positiveState: { kitchen_stability: 6, staff_burnout: -4 },
+    mixedState: { kitchen_stability: -1, staff_burnout: 1 },
+    negativeState: { kitchen_stability: -7, staff_burnout: 5, guest_confidence: -2 },
+    positiveEffects: [
+      {
+        effectKey: "close-open-reset",
+        title: "The close-to-open handoff is finally tighter",
+        summary: "The kitchen is carrying a more believable reset into the next couple of services.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "close-open-watch",
+        title: "The kitchen truce still feels fragile",
+        summary: "One more stressful shift could reopen the same argument fast.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "close-open-cold-war",
+        title: "Opening and closing crews are still keeping score",
+        summary: "The next kitchen-heavy problem will start with sharper resentment than usual.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "hard-burger-ticket-war": {
+    positiveState: { guest_confidence: 4, kitchen_stability: 5 },
+    mixedState: { guest_confidence: -1, kitchen_stability: -1 },
+    negativeState: { guest_confidence: -6, kitchen_stability: -4, staff_burnout: 2 },
+    positiveEffects: [
+      {
+        effectKey: "ticket-language-aligned",
+        title: "The ticket handoff is speaking one language",
+        summary: "Front and back of house are less likely to improvise the next order under pressure.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "ticket-watch",
+        title: "The service chain still needs double-checks",
+        summary: "Confusing orders are not a disaster yet, but nobody fully trusts the handoff.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "ticket-war-lingering",
+        title: "The pass line still feels argumentative",
+        summary: "Misfires between the floor and kitchen will trigger blame faster over the next few rounds.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "viral-gossip-backfire": {
+    positiveState: { guest_confidence: 3, brand_heat: 4 },
+    mixedState: { guest_confidence: -2, brand_heat: 1, staff_burnout: 1 },
+    negativeState: { guest_confidence: -6, staff_burnout: 4, brand_heat: 1 },
+    positiveEffects: [
+      {
+        effectKey: "content-boundaries-restored",
+        title: "The staff feels safer behind the scenes again",
+        summary: "Clearer boundaries around content and gossip are calming the room down.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "gossip-aftertaste",
+        title: "The gossip fallout is not fully gone",
+        summary: "Even after cleanup, people are still listening for the next embarrassing leak.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "privacy-breach",
+        title: "Staff privacy feels shaky now",
+        summary: "The next social or reputation issue will land in a room already watching its back.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "emotional-support-date": {
+    positiveState: { guest_confidence: 5, staff_burnout: -1 },
+    mixedState: { guest_confidence: -2 },
+    negativeState: { guest_confidence: -7, staff_burnout: 2 },
+    positiveEffects: [
+      {
+        effectKey: "standards-reassured",
+        title: "Guests feel the room still has standards",
+        summary: "A calm but firm response restored some trust in how Feast Haven runs the floor.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "policy-gray-area",
+        title: "Guests are still unsure where the line is",
+        summary: "The next unusual request will come with less patience and more side-eye.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "dining-room-circus",
+        title: "The dining room feels easier to disrupt now",
+        summary: "Guests are carrying a story that the floor lets chaos slide too long.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "buffalo-breakdown": {
+    positiveState: { supply_control: 6, guest_confidence: 2 },
+    mixedState: { supply_control: -2, guest_confidence: -1 },
+    negativeState: { supply_control: -8, guest_confidence: -4, staff_burnout: 2 },
+    positiveEffects: [
+      {
+        effectKey: "specials-back-under-control",
+        title: "Specials planning is back under control",
+        summary: "The restaurant is carrying a little more inventory discipline into the next supply problem.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "specials-fragile",
+        title: "The specials plan still feels patched together",
+        summary: "One more ordering miss could turn the same frustration into open blame.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "sauce-shortage-memory",
+        title: "The team is still bracing for the next stock miss",
+        summary: "Inventory decisions will feel more political for the next couple of rounds.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "busser-flirt-slowdown": {
+    positiveState: { guest_confidence: 3, staff_burnout: -2 },
+    mixedState: { guest_confidence: 0, staff_burnout: 1 },
+    negativeState: { guest_confidence: -4, staff_burnout: 4, kitchen_stability: -1 },
+    positiveEffects: [
+      {
+        effectKey: "hospitality-channeled",
+        title: "Charm is helping service instead of hijacking it",
+        summary: "The floor found a healthier balance between personality and coverage.",
+        tone: "positive",
+        intensity: 4
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "section-jealousy",
+        title: "The floor still feels a little uneven",
+        summary: "Coworkers are watching who gets freedom and who gets cleanup duty.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "service-distracted",
+        title: "The floor is feeling distracted and uneven",
+        summary: "The next guest-flow problem will hit a team already annoyed about fairness and pace.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "chef-mad-scientist-menu": {
+    positiveState: { brand_heat: 5, kitchen_stability: 2, supply_control: 2 },
+    mixedState: { brand_heat: 1, kitchen_stability: -2, supply_control: -2 },
+    negativeState: { brand_heat: -1, kitchen_stability: -5, supply_control: -6, guest_confidence: -2 },
+    positiveEffects: [
+      {
+        effectKey: "experimentation-disciplined",
+        title: "Innovation has guardrails now",
+        summary: "Creative dishes can still happen, but the kitchen is carrying more structure into the next push.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "menu-whiplash",
+        title: "The menu still feels a little unpredictable",
+        summary: "The room is intrigued, but the kitchen is not fully settled on what it is chasing.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "recipe-chaos",
+        title: "Kitchen confidence in the menu took a hit",
+        summary: "The next quality or prep issue will land in a back-of-house room already second-guessing the plan.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "silverware-collapse": {
+    positiveState: { supply_control: 6, guest_confidence: 3 },
+    mixedState: { supply_control: -2, guest_confidence: -2, staff_burnout: 1 },
+    negativeState: { supply_control: -8, guest_confidence: -6, staff_burnout: 2 },
+    positiveEffects: [
+      {
+        effectKey: "ops-credibility-restored",
+        title: "Operational credibility got rebuilt a little",
+        summary: "The staff believes basic service tools are being watched more carefully now.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "tool-anxiety",
+        title: "The team is still nervous about basic supplies",
+        summary: "Small operational slips will feel bigger until the room trusts the systems again.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "ops-embarrassment",
+        title: "The silverware fiasco is still haunting the room",
+        summary: "Guests and staff alike are quicker to read new mistakes as proof the basics are not covered.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "dirty-dishes-war": {
+    positiveState: { guest_confidence: 4, kitchen_stability: 5 },
+    mixedState: { guest_confidence: -2, kitchen_stability: -2 },
+    negativeState: { guest_confidence: -7, kitchen_stability: -6, staff_burnout: 3 },
+    positiveEffects: [
+      {
+        effectKey: "clean-standards-reset",
+        title: "Cleanliness standards feel sharper again",
+        summary: "The room is carrying more confidence that dirty dishes will be caught before guests do.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "dish-ping-pong",
+        title: "The dish blame game is still alive",
+        summary: "The next sanitation hiccup will bring the same departments back into conflict quickly.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "cleanliness-doubt",
+        title: "Cleanliness confidence is shaky now",
+        summary: "The next guest-facing error will feel dirtier and more reputational than it otherwise would have.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  },
+  "food-heaven-rivalry": {
+    positiveState: { brand_heat: 6, guest_confidence: 2, staff_burnout: -2 },
+    mixedState: { brand_heat: 1, staff_burnout: 2 },
+    negativeState: { brand_heat: -2, guest_confidence: -4, staff_burnout: 5 },
+    positiveEffects: [
+      {
+        effectKey: "identity-clarified",
+        title: "The team sounds more sure of what Feast Haven is",
+        summary: "Competition is energizing the room instead of hollowing it out.",
+        tone: "positive",
+        intensity: 5
+      }
+    ],
+    mixedEffects: [
+      {
+        effectKey: "comparison-noise",
+        title: "The rival is still living in everyone's head",
+        summary: "Even decent choices are being judged against the place across the street.",
+        tone: "warning",
+        intensity: 4
+      }
+    ],
+    negativeEffects: [
+      {
+        effectKey: "rival-identity-crisis",
+        title: "Competition is making the team second-guess itself",
+        summary: "Future pressure will hit a staff that already feels reactive, insecure, and comparison-heavy.",
+        tone: "negative",
+        intensity: 5
+      }
+    ]
+  }
+};
+const MIN_CASE_STEPS = 6;
 const REVENUE_TUNING = {
   positiveMultiplier: 3,
   negativeMultiplier: 2,
   cleanExecutionFloor: 2
 };
 const GLOBAL_EVENT_TEMPLATES = require("./event-templates");
+let avatarCatalogCache = null;
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, ".env");
@@ -68,12 +538,12 @@ function loadEnvFile() {
 const STAFF_MEMBERS = [
   {
     id: "jake",
-    name: "Jake",
-    title: "Floor Sales",
-    summary: "Big-energy closer who wants freedom, speed, and visible wins.",
-    tension: "Gets irritated by rules and long approval chains.",
-    defaultMorale: 68,
-    defaultTrust: 62,
+    name: "Adrian",
+    title: "Waiter",
+    summary: "Charismatic veteran waiter who thrives on reading the room and rescuing shaky tables before they turn sour.",
+    tension: "Gets prickly when scripts, rigid rules, or hesitant managers slow him down in front of guests.",
+    defaultMorale: 72,
+    defaultTrust: 66,
     preferences: {
       speed: 3,
       autonomy: 2,
@@ -87,12 +557,12 @@ const STAFF_MEMBERS = [
   },
   {
     id: "nina",
-    name: "Nina",
-    title: "Online Sales",
-    summary: "Process-driven lead manager who cares about clean handoffs and follow-up.",
-    tension: "Loses patience when people ignore the CRM or steal credit.",
-    defaultMorale: 74,
-    defaultTrust: 70,
+    name: "Celia",
+    title: "Waitress",
+    summary: "Polished waitress who keeps sections flowing smoothly and notices guest needs before they are spoken out loud.",
+    tension: "Loses patience when teammates ignore timing, forget modifiers, or leave her cleaning up messy handoffs.",
+    defaultMorale: 75,
+    defaultTrust: 72,
     preferences: {
       process: 3,
       fairness: 3,
@@ -106,31 +576,33 @@ const STAFF_MEMBERS = [
   },
   {
     id: "marcus",
-    name: "Marcus",
-    title: "Accounting",
-    summary: "Careful, blunt, and protective of margins, paperwork, and policy.",
-    tension: "Hates rushed promises that create financial messes later.",
-    defaultMorale: 66,
-    defaultTrust: 67,
+    name: "Omar",
+    title: "Busser",
+    summary: "Fast, observant busser who quietly keeps turns moving, water filled, and the room from looking stressed.",
+    tension: "Hates being treated like invisible backup while everyone else creates extra mess for him to absorb.",
+    defaultMorale: 69,
+    defaultTrust: 68,
     preferences: {
-      discipline: 3,
-      transparency: 3,
+      discipline: 2,
+      transparency: 2,
       process: 2,
       fairness: 1,
-      riskControl: 3,
-      speed: -2,
+      riskControl: 1,
+      speed: -1,
       creativity: -1,
+      realisticWorkload: 3,
+      respect: 2,
       publicAccountability: -1
     }
   },
   {
     id: "tasha",
-    name: "Tasha",
-    title: "Service Bay",
-    summary: "Experienced technician who values realistic timelines and quality work.",
-    tension: "Pushes back hard when sales promises work the shop cannot deliver.",
-    defaultMorale: 71,
-    defaultTrust: 68,
+    name: "Chef Renata",
+    title: "Head Chef",
+    summary: "Demanding head chef who protects quality, pacing, and kitchen credibility with almost military focus.",
+    tension: "Pushes back hard when the floor overpromises, rushes tickets, or treats the kitchen like a magic trick.",
+    defaultMorale: 73,
+    defaultTrust: 70,
     preferences: {
       quality: 3,
       respect: 3,
@@ -143,23 +615,129 @@ const STAFF_MEMBERS = [
   },
   {
     id: "elena",
-    name: "Elena",
-    title: "Marketing",
-    summary: "Creative and optimistic promoter who wants the dealership to feel modern.",
-    tension: "Gets frustrated when every idea is judged only by same-day numbers.",
-    defaultMorale: 75,
+    name: "Marisol",
+    title: "Hostess",
+    summary: "Warm, sharp hostess who controls the front door, manages the list, and feels the mood of the room instantly.",
+    tension: "Gets frustrated when servers freelance the seating chart or when guest expectations are set without her.",
+    defaultMorale: 74,
+    defaultTrust: 71,
+    preferences: {
+      creativity: 1,
+      autonomy: 1,
+      customerCare: 3,
+      recognition: 1,
+      discipline: 1,
+      process: 2,
+      fairness: 2,
+      transparency: 2
+    }
+  },
+  {
+    id: "luis",
+    name: "Theo",
+    title: "Line Cook",
+    summary: "Quick, confident line cook who works best when tickets are clean and expectations are realistic.",
+    tension: "Hates when front-of-house chaos gets dumped on the line like it is someone else's problem.",
+    defaultMorale: 68,
+    defaultTrust: 65,
+    preferences: {
+      quality: 2,
+      respect: 2,
+      realisticWorkload: 3,
+      discipline: 2,
+      speed: 1,
+      publicAccountability: -1
+    }
+  },
+  {
+    id: "priya",
+    name: "Imani",
+    title: "Line Cook",
+    summary: "Steady, technical line cook who values prep, consistency, and managers who think three tickets ahead.",
+    tension: "Gets irritated when preventable chaos shows up on the line as a surprise emergency.",
+    defaultMorale: 71,
     defaultTrust: 69,
     preferences: {
-      creativity: 3,
+      quality: 3,
+      process: 2,
+      realisticWorkload: 2,
+      transparency: 1,
+      speed: -1,
+      publicAccountability: -1
+    }
+  },
+  {
+    id: "devon",
+    name: "Parker",
+    title: "Host + Wait",
+    summary: "Flexible swing worker who can host, wait, and plug gaps anywhere, making them the restaurant's pressure-release valve.",
+    tension: "Gets frustrated when leadership asks for flexibility without clarity, support, or enough backup to succeed.",
+    defaultMorale: 76,
+    defaultTrust: 72,
+    preferences: {
+      creativity: 1,
       autonomy: 2,
       customerCare: 2,
       recognition: 1,
-      discipline: -1,
-      process: -1,
-      fairness: 1
+      discipline: 0,
+      process: 1,
+      fairness: 2,
+      speed: 2,
+      respect: 1
     }
   }
 ];
+
+const RELATIONSHIP_TYPES = {
+  best_friends: { label: "Best friends", tone: "supportive", intensity: 5 },
+  former_friends: { label: "Former friends", tone: "volatile", intensity: 4 },
+  romantic_exes: { label: "Romantic exes", tone: "volatile", intensity: 5 },
+  romantic_tension: { label: "Romantic tension", tone: "volatile", intensity: 3 },
+  despise_each_other: { label: "Despise each other", tone: "conflict", intensity: 5 },
+  doesnt_respect: { label: "Doesn't respect them", tone: "conflict", intensity: 3 },
+  respects_greatly: { label: "Respects them greatly", tone: "supportive", intensity: 4 },
+  mentor_bond: { label: "Mentor bond", tone: "supportive", intensity: 4 },
+  approval_seeking: { label: "Needs their approval", tone: "volatile", intensity: 4 },
+  friendly_rivals: { label: "Friendly rivals", tone: "competitive", intensity: 3 },
+  line_rivals: { label: "Kitchen rivals", tone: "competitive", intensity: 4 },
+  hard_on_them: { label: "Hard on them", tone: "volatile", intensity: 3 },
+  quietly_disappointed: { label: "Quietly disappointed in them", tone: "conflict", intensity: 3 },
+  skeptical_of: { label: "Skeptical of them", tone: "conflict", intensity: 2 },
+  trusts_greatly: { label: "Trusts them greatly", tone: "supportive", intensity: 4 }
+};
+
+const STAFF_RELATIONSHIPS = [
+  { from: "jake", to: "nina", type: "friendly_rivals", note: "Both want to be the floor standard and hate losing the comparison." },
+  { from: "nina", to: "jake", type: "friendly_rivals", note: "She likes him, but thinks his judgment gets looser the louder the room gets." },
+  { from: "jake", to: "elena", type: "romantic_tension", note: "He tries a little too hard to impress her whenever service is going well." },
+  { from: "elena", to: "jake", type: "doesnt_respect", note: "She finds him charming in small doses, but too image-focused to trust fully." },
+  { from: "jake", to: "tasha", type: "approval_seeking", note: "He badly wants Chef Renata to see him as more than a flashy floor person." },
+  { from: "tasha", to: "jake", type: "skeptical_of", note: "She sees talent there, but not nearly enough discipline." },
+  { from: "nina", to: "elena", type: "former_friends", note: "They used to be close before a rough season made them stop trusting each other." },
+  { from: "elena", to: "nina", type: "former_friends", note: "She misses the old friendship, but will not be the first to repair it." },
+  { from: "nina", to: "devon", type: "best_friends", note: "They talk like a unit and read the room in almost the same way." },
+  { from: "devon", to: "nina", type: "best_friends", note: "Parker is protective of Celia and usually backs her instincts first." },
+  { from: "marcus", to: "priya", type: "respects_greatly", note: "He trusts Imani because she almost never creates chaos for other people." },
+  { from: "priya", to: "marcus", type: "trusts_greatly", note: "She sees Omar as the calm utility player who keeps the restaurant honest." },
+  { from: "marcus", to: "luis", type: "skeptical_of", note: "He thinks Theo is gifted, but gets tired of the attitude that comes with it." },
+  { from: "luis", to: "marcus", type: "respects_greatly", note: "Theo actually listens when Omar gives him grounded advice." },
+  { from: "luis", to: "priya", type: "line_rivals", note: "He hates how often Chef Renata seems to trust Imani over him." },
+  { from: "priya", to: "luis", type: "line_rivals", note: "She thinks Theo could be great if he stopped making every rush personal." },
+  { from: "luis", to: "tasha", type: "approval_seeking", note: "Chef Renata's approval matters to Theo more than he will ever admit." },
+  { from: "tasha", to: "luis", type: "hard_on_them", note: "She pushes Theo hard because his talent is obvious and his discipline is uneven." },
+  { from: "priya", to: "tasha", type: "respects_greatly", note: "Imani trusts Renata's standards even when they are brutal." },
+  { from: "tasha", to: "priya", type: "trusts_greatly", note: "Renata trusts Imani to hold a standard even when the room gets loud." },
+  { from: "devon", to: "elena", type: "mentor_bond", note: "Parker sees Marisol as the person who taught them how to command a room." },
+  { from: "elena", to: "devon", type: "mentor_bond", note: "Marisol trusts Parker when the front door starts to wobble." },
+  { from: "devon", to: "jake", type: "doesnt_respect", note: "Parker thinks Adrian can make the floor about himself too quickly." },
+  { from: "jake", to: "devon", type: "skeptical_of", note: "Adrian thinks Parker can be quietly judgmental when service gets messy." },
+  { from: "nina", to: "luis", type: "despise_each_other", note: "Their arguments about ticket quality turn personal faster than either admits." },
+  { from: "luis", to: "nina", type: "despise_each_other", note: "He thinks Celia is controlling and fake-calm when the rush gets ugly." },
+  { from: "luis", to: "devon", type: "former_friends", note: "They used to click easily before too many rough shifts made it awkward." },
+  { from: "devon", to: "luis", type: "quietly_disappointed", note: "Parker still sees the old Theo under the swagger and hates what stress does to him." }
+];
+const KITCHEN_STAFF_IDS = new Set(["tasha", "luis", "priya"]);
+const FLOOR_STAFF_IDS = new Set(["jake", "nina", "elena", "devon"]);
 
 const SCENARIO_PRESETS = [
   {
@@ -737,6 +1315,17 @@ const SCENARIO_PRESETS = [
     ]
   }
 ];
+
+const LEGACY_STAFF_NAME_MAP = {
+  Jake: "jake",
+  Nina: "nina",
+  Marcus: "marcus",
+  Tasha: "tasha",
+  Elena: "elena",
+  Luis: "luis",
+  Priya: "priya",
+  Devon: "devon"
+};
 
 const UNUSED_LEGACY_EVENT_TEMPLATES = [
   {
@@ -5085,7 +5674,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Dealership manager sim running at http://${HOST}:${PORT}`);
+  console.log(`Restaurant manager sim running at http://${HOST}:${PORT}`);
   console.log(`Teacher login: ${DEFAULT_TEACHER_USERNAME} / ${DEFAULT_TEACHER_PASSWORD}`);
   console.log(`Data directory: ${DATA_DIR}`);
 });
@@ -5127,14 +5716,60 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/api/prediction-markets") {
+    sendJson(res, 200, buildPredictionMarketPayload(session));
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/prediction-markets/trade") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to trade in the live class market." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => executePredictionTrade(session.userId, body));
+      sendJson(res, 200, buildPredictionMarketPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/prediction-markets/work") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to complete off-market work." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => executePredictionWork(session.userId, body));
+      sendJson(res, 200, buildPredictionMarketPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/register") {
     const body = await readJsonBody(req);
     const username = normalizeUsername(body.username);
     const displayName = String(body.displayName || "").trim();
     const password = String(body.password || "");
+    const avatarCatalog = getAvatarCatalog();
+    const avatarId = String(body.avatarId || "").trim();
 
     if (!username || !displayName || password.length < 4) {
       sendJson(res, 400, { error: "Provide a display name, username, and a password with at least 4 characters." });
+      return;
+    }
+
+    if (avatarCatalog.length && !getAvatarById(avatarId)) {
+      sendJson(res, 400, { error: "Choose one of the available profile avatars." });
       return;
     }
 
@@ -5146,8 +5781,8 @@ async function handleApi(req, res, pathname) {
     const userId = crypto.randomUUID();
     runInTransaction(() => {
       db.prepare(
-        `INSERT INTO users (id, username, display_name, password_hash, sales, satisfaction, reputation, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO users (id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         userId,
         username,
@@ -5156,8 +5791,10 @@ async function handleApi(req, res, pathname) {
         DEFAULT_STUDENT_STATE.sales,
         DEFAULT_STUDENT_STATE.satisfaction,
         DEFAULT_STUDENT_STATE.reputation,
+        avatarCatalog.length ? avatarId : null,
         new Date().toISOString()
       );
+      initializePredictionPortfolio(userId);
       seedStudentStaff(userId);
       const currentRoundId = getGameState().currentRoundId;
       if (currentRoundId) {
@@ -5326,6 +5963,57 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/admin/prediction-markets/create") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => createPredictionMarket(body));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/prediction-markets/resolve") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => resolvePredictionMarket(String(body.marketId || ""), String(body.resolution || "")));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/prediction-markets/archive") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => archivePredictionMarket(String(body.marketId || "")));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/admin/student/password") {
     if (!session?.isAdmin) {
       sendJson(res, 401, { error: "Teacher access required." });
@@ -5422,6 +6110,7 @@ function initializeDatabase() {
       sales REAL NOT NULL,
       satisfaction INTEGER NOT NULL,
       reputation INTEGER NOT NULL,
+      avatar_id TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -5442,6 +6131,31 @@ function initializeDatabase() {
       FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS restaurant_state (
+      user_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value INTEGER NOT NULL,
+      PRIMARY KEY (user_id, key),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS lingering_effects (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      effect_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      tone TEXT NOT NULL,
+      target_staff_id TEXT,
+      intensity INTEGER NOT NULL,
+      source_round_id TEXT NOT NULL,
+      source_round_number INTEGER NOT NULL,
+      expires_round_number INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+      FOREIGN KEY (source_round_id) REFERENCES rounds (id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS rounds (
       id TEXT PRIMARY KEY,
       preset_id TEXT NOT NULL,
@@ -5455,6 +6169,76 @@ function initializeDatabase() {
       status TEXT NOT NULL,
       created_at TEXT NOT NULL,
       closed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS prediction_markets (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL,
+      desk TEXT NOT NULL,
+      probability INTEGER NOT NULL,
+      evidence INTEGER NOT NULL,
+      hype INTEGER NOT NULL,
+      yes_pool REAL NOT NULL DEFAULT 0,
+      no_pool REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL,
+      resolution TEXT,
+      created_at TEXT NOT NULL,
+      published_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      resolved_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS prediction_market_portfolios (
+      user_id TEXT PRIMARY KEY,
+      cash REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS prediction_market_positions (
+      market_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      yes_shares REAL NOT NULL DEFAULT 0,
+      no_shares REAL NOT NULL DEFAULT 0,
+      final_yes_shares REAL,
+      final_no_shares REAL,
+      final_payout REAL,
+      settled_at TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (market_id, user_id),
+      FOREIGN KEY (market_id) REFERENCES prediction_markets (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS prediction_market_trades (
+      id TEXT PRIMARY KEY,
+      market_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      side TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      unit_price REAL NOT NULL,
+      total_cost REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (market_id) REFERENCES prediction_markets (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS prediction_market_work (
+      user_id TEXT NOT NULL,
+      work_date TEXT NOT NULL,
+      task_id TEXT NOT NULL,
+      choice_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      payout REAL NOT NULL,
+      accuracy_bonus REAL NOT NULL DEFAULT 0,
+      was_correct INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, work_date),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS case_files (
@@ -5521,11 +6305,37 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_case_files_round ON case_files (round_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_user ON case_files (user_id);
     CREATE INDEX IF NOT EXISTS idx_case_choices_case ON case_choices (case_file_id);
+    CREATE INDEX IF NOT EXISTS idx_restaurant_state_user ON restaurant_state (user_id, key);
+    CREATE INDEX IF NOT EXISTS idx_lingering_effects_user ON lingering_effects (user_id, expires_round_number);
+    CREATE INDEX IF NOT EXISTS idx_prediction_markets_status ON prediction_markets (status, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_prediction_market_positions_user ON prediction_market_positions (user_id, market_id);
+    CREATE INDEX IF NOT EXISTS idx_prediction_market_trades_market ON prediction_market_trades (market_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_prediction_market_work_user ON prediction_market_work (user_id, work_date);
   `);
+
+  ensureUserAvatarColumn();
+  ensurePredictionMarketColumns();
 
   const settingsCount = db.prepare(`SELECT COUNT(*) AS count FROM settings`).get().count;
   if (settingsCount === 0) {
     seedDatabase();
+  }
+}
+
+function ensureUserAvatarColumn() {
+  const columns = db.prepare(`PRAGMA table_info(users)`).all().map((row) => row.name);
+  if (!columns.includes("avatar_id")) {
+    db.exec(`ALTER TABLE users ADD COLUMN avatar_id TEXT`);
+  }
+}
+
+function ensurePredictionMarketColumns() {
+  const columns = db.prepare(`PRAGMA table_info(prediction_markets)`).all().map((row) => row.name);
+  if (!columns.includes("yes_pool")) {
+    db.exec(`ALTER TABLE prediction_markets ADD COLUMN yes_pool REAL NOT NULL DEFAULT 0`);
+  }
+  if (!columns.includes("no_pool")) {
+    db.exec(`ALTER TABLE prediction_markets ADD COLUMN no_pool REAL NOT NULL DEFAULT 0`);
   }
 }
 
@@ -5544,11 +6354,18 @@ function seedDatabase() {
 
 function clearAllTables() {
   db.exec(`
+    DELETE FROM prediction_market_work;
+    DELETE FROM prediction_market_trades;
+    DELETE FROM prediction_market_positions;
+    DELETE FROM prediction_market_portfolios;
     DELETE FROM case_choices;
     DELETE FROM case_files;
     DELETE FROM response_staff_effects;
     DELETE FROM responses;
     DELETE FROM rounds;
+    DELETE FROM prediction_markets;
+    DELETE FROM lingering_effects;
+    DELETE FROM restaurant_state;
     DELETE FROM manager_flags;
     DELETE FROM staff_state;
     DELETE FROM users;
@@ -5558,18 +6375,38 @@ function clearAllTables() {
 }
 
 function buildBootstrapPayload(session) {
+  const leaderboards = computeLeaderboards();
   return {
     user: session?.userId ? serializeUser(session.userId) : null,
     isAdmin: Boolean(session?.isAdmin),
+    avatarOptions: getAvatarCatalog(),
     game: getGameState(),
     rules: {
       salesGoal: getSalesGoal()
     },
     currentRound: getCurrentRound(session),
     rounds: getRecentRounds(8, session),
-    leaderboard: computeLeaderboard(),
+    leaderboard: leaderboards.overall.entries,
+    leaderboards,
+    predictionMarkets: getPredictionMarketFeed(),
     presets: session?.isAdmin ? getPresetLibrary() : null,
     admin: session?.isAdmin ? buildAdminPayload() : null
+  };
+}
+
+function buildPredictionMarketPayload(session) {
+  const viewerRole = session?.isAdmin ? "teacher" : session?.userId ? "student" : "guest";
+  const portfolio = session?.userId && !session?.isAdmin
+    ? serializePredictionPortfolio(session.userId)
+    : null;
+
+  return {
+    viewerRole,
+    canTrade: viewerRole === "student",
+    portfolio,
+    workBoard: buildPredictionWorkBoard(session),
+    markets: getPredictionMarketFeed(session),
+    updatedAt: new Date().toISOString()
   };
 }
 
@@ -5612,7 +6449,9 @@ function getGameState() {
 }
 
 function getPresetLibrary() {
-  return GLOBAL_EVENT_TEMPLATES.map((preset) => ({
+  return GLOBAL_EVENT_TEMPLATES.map((entry) => {
+    const preset = hydratePreset(entry);
+    return {
     id: preset.id,
     category: preset.category,
     pressure: preset.pressure,
@@ -5620,11 +6459,522 @@ function getPresetLibrary() {
     body: preset.body,
     rootNodeId: preset.rootNodeId,
     openingConsultants: Object.keys(getNodeDefinition(preset, preset.rootNodeId)?.consultants || {})
-  }));
+    };
+  });
 }
 
 function getScenarioPreset(presetId) {
-  return GLOBAL_EVENT_TEMPLATES.find((preset) => preset.id === presetId) || null;
+  const preset = GLOBAL_EVENT_TEMPLATES.find((entry) => entry.id === presetId) || null;
+  return hydratePreset(preset);
+}
+
+function getPredictionMarketById(marketId) {
+  return db.prepare(
+    `SELECT id, title, description, category, desk, probability, evidence, hype, yes_pool, no_pool, status, resolution,
+            created_at, published_at, updated_at, resolved_at
+     FROM prediction_markets
+     WHERE id = ?`
+  ).get(marketId);
+}
+
+function listPredictionMarkets(limit = 18) {
+  return db.prepare(
+    `SELECT id, title, description, category, desk, probability, evidence, hype, yes_pool, no_pool, status, resolution,
+            created_at, published_at, updated_at, resolved_at
+     FROM prediction_markets
+     ORDER BY
+       CASE status
+         WHEN 'active' THEN 0
+         WHEN 'resolved' THEN 1
+         ELSE 2
+       END,
+       datetime(updated_at) DESC,
+       rowid DESC
+     LIMIT ?`
+  ).all(limit);
+}
+
+function getPredictionMarketFeed(session, limit = 12) {
+  const viewerUserId = session?.userId && !session?.isAdmin ? session.userId : null;
+  const markets = db.prepare(
+    `SELECT id, title, description, category, desk, probability, evidence, hype, yes_pool, no_pool, status, resolution,
+            created_at, published_at, updated_at, resolved_at
+     FROM prediction_markets
+     WHERE status IN ('active', 'resolved')
+     ORDER BY
+       CASE status
+         WHEN 'active' THEN 0
+         WHEN 'resolved' THEN 1
+         ELSE 2
+       END,
+       datetime(updated_at) DESC,
+       rowid DESC
+     LIMIT ?`
+  ).all(limit);
+
+  if (!viewerUserId) {
+    return markets.map((row) => serializePredictionMarket(row));
+  }
+
+  const positions = db.prepare(
+    `SELECT market_id, yes_shares, no_shares, final_yes_shares, final_no_shares, final_payout, settled_at
+     FROM prediction_market_positions
+     WHERE user_id = ?`
+  ).all(viewerUserId);
+  const positionsByMarket = new Map(positions.map((row) => [row.market_id, row]));
+
+  return markets.map((row) => serializePredictionMarket(row, positionsByMarket.get(row.id) || null));
+}
+
+function calculatePredictionMarketProbability(row) {
+  if (row.status === "resolved") {
+    return row.resolution === "yes" ? 100 : row.resolution === "no" ? 0 : clampPercent(row.probability);
+  }
+  const yesPool = Math.max(0.001, Number(row.yes_pool || 0));
+  const noPool = Math.max(0.001, Number(row.no_pool || 0));
+  return clampPercent((yesPool / (yesPool + noPool)) * 100);
+}
+
+function serializePredictionMarket(row, position = null) {
+  const currentProbability = calculatePredictionMarketProbability(row);
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    desk: row.desk,
+    probability: clampPercent(row.probability),
+    currentProbability,
+    evidence: clampPercent(row.evidence),
+    hype: clampPercent(row.hype),
+    yesPool: roundNumber(row.yes_pool, 2),
+    noPool: roundNumber(row.no_pool, 2),
+    totalPool: roundNumber(Number(row.yes_pool || 0) + Number(row.no_pool || 0), 2),
+    status: row.status,
+    resolution: row.resolution || null,
+    yesShares: roundNumber(position?.yes_shares, 2),
+    noShares: roundNumber(position?.no_shares, 2),
+    finalHoldings: position?.settled_at
+      ? {
+          yesShares: roundNumber(position.final_yes_shares, 2),
+          noShares: roundNumber(position.final_no_shares, 2),
+          payout: roundNumber(position.final_payout, 2)
+        }
+      : null,
+    createdAt: row.created_at,
+    publishedAt: row.published_at,
+    updatedAt: row.updated_at,
+    resolvedAt: row.resolved_at || null
+  };
+}
+
+function createPredictionMarket(input) {
+  const title = toShortText(input.title, "", 120);
+  const description = toShortText(input.description, "", 280);
+  const category = toShortText(input.category, "Classroom Question", 48);
+  const desk = toShortText(input.desk, "Class Market", 48);
+  const probability = Math.round(Number(input.probability));
+  const evidence = Math.round(Number(input.evidence));
+  const hype = Math.round(Number(input.hype));
+
+  if (!title) {
+    throw new Error("Write a market question for students to trade.");
+  }
+  if (!description) {
+    throw new Error("Add a little context so students know why the market exists.");
+  }
+  if (!Number.isFinite(probability) || probability < 5 || probability > 95) {
+    throw new Error("Opening probability must be between 5 and 95.");
+  }
+  if (!Number.isFinite(evidence) || evidence < 0 || evidence > 100) {
+    throw new Error("Evidence level must be between 0 and 100.");
+  }
+  if (!Number.isFinite(hype) || hype < 0 || hype > 100) {
+    throw new Error("Hype level must be between 0 and 100.");
+  }
+
+  const now = new Date().toISOString();
+  const yesPool = roundNumber((probability / 100) * PREDICTION_MARKET_SEED_LIQUIDITY, 2);
+  const noPool = roundNumber(PREDICTION_MARKET_SEED_LIQUIDITY - yesPool, 2);
+  db.prepare(
+    `INSERT INTO prediction_markets
+     (id, title, description, category, desk, probability, evidence, hype, yes_pool, no_pool, status, resolution, created_at, published_at, updated_at, resolved_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NULL, ?, ?, ?, NULL)`
+  ).run(
+    crypto.randomUUID(),
+    title,
+    description,
+    category,
+    desk,
+    probability,
+    evidence,
+    hype,
+    yesPool,
+    noPool,
+    now,
+    now,
+    now
+  );
+}
+
+function resolvePredictionMarket(marketId, resolution) {
+  const market = getPredictionMarketById(marketId);
+  if (!market) {
+    throw new Error("Prediction market not found.");
+  }
+  if (market.status !== "active") {
+    throw new Error("Only active prediction markets can be resolved.");
+  }
+  if (!["yes", "no"].includes(resolution)) {
+    throw new Error("Resolution must be YES or NO.");
+  }
+
+  const now = new Date().toISOString();
+  db.prepare(
+    `UPDATE prediction_markets
+     SET status = 'resolved',
+         resolution = ?,
+         updated_at = ?,
+         resolved_at = ?
+     WHERE id = ?`
+  ).run(resolution, now, now, marketId);
+  settlePredictionMarketPositions(marketId, resolution, now);
+}
+
+function archivePredictionMarket(marketId) {
+  const market = getPredictionMarketById(marketId);
+  if (!market) {
+    throw new Error("Prediction market not found.");
+  }
+  if (market.status === "active") {
+    const openInterest = db.prepare(
+      `SELECT COUNT(*) AS count
+       FROM prediction_market_positions
+       WHERE market_id = ? AND (yes_shares > 0 OR no_shares > 0)`
+    ).get(marketId).count;
+    if (openInterest > 0) {
+      throw new Error("Resolve this market before archiving it so student positions can settle cleanly.");
+    }
+  }
+
+  db.prepare(
+    `UPDATE prediction_markets
+     SET status = 'archived',
+         updated_at = ?
+     WHERE id = ?`
+  ).run(new Date().toISOString(), marketId);
+}
+
+function initializePredictionPortfolio(userId) {
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT OR REPLACE INTO prediction_market_portfolios (user_id, cash, created_at, updated_at)
+     VALUES (?, ?, COALESCE((SELECT created_at FROM prediction_market_portfolios WHERE user_id = ?), ?), ?)`
+  ).run(userId, PREDICTION_MARKET_START_CASH, userId, now, now);
+}
+
+function ensurePredictionPortfolio(userId) {
+  const existing = db.prepare(
+    `SELECT user_id, cash, created_at, updated_at
+     FROM prediction_market_portfolios
+     WHERE user_id = ?`
+  ).get(userId);
+  if (existing) {
+    return existing;
+  }
+  initializePredictionPortfolio(userId);
+  return db.prepare(
+    `SELECT user_id, cash, created_at, updated_at
+     FROM prediction_market_portfolios
+     WHERE user_id = ?`
+  ).get(userId);
+}
+
+function serializePredictionPortfolio(userId) {
+  const portfolio = ensurePredictionPortfolio(userId);
+  return {
+    cash: roundNumber(portfolio?.cash, 2)
+  };
+}
+
+function getPredictionMarketWorkDate(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: PREDICTION_MARKET_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value || "0000";
+  const month = parts.find((part) => part.type === "month")?.value || "00";
+  const day = parts.find((part) => part.type === "day")?.value || "00";
+  return `${year}-${month}-${day}`;
+}
+
+function getPredictionMarketWorkSeed(workDate) {
+  return workDate
+    .replace(/-/g, "")
+    .split("")
+    .reduce((sum, digit, index) => sum + Number(digit) * (index + 1), 0);
+}
+
+function getPredictionMarketWorkTasks(workDate = getPredictionMarketWorkDate()) {
+  const start = getPredictionMarketWorkSeed(workDate) % PREDICTION_MARKET_WORK_TEMPLATES.length;
+  const picked = [];
+
+  for (let offset = 0; picked.length < 3; offset += 1) {
+    const candidate = PREDICTION_MARKET_WORK_TEMPLATES[(start + offset) % PREDICTION_MARKET_WORK_TEMPLATES.length];
+    if (!picked.some((task) => task.id === candidate.id)) {
+      picked.push(candidate);
+    }
+  }
+
+  return picked;
+}
+
+function serializePredictionWorkTask(task) {
+  return {
+    id: task.id,
+    type: task.type,
+    title: task.title,
+    description: task.description,
+    prompt: task.prompt,
+    basePay: roundNumber(task.basePay, 2),
+    bonusPay: roundNumber(task.bonusPay, 2),
+    maxPay: roundNumber(task.basePay + task.bonusPay, 2),
+    artKey: task.artKey || null,
+    choices: task.choices.map((choice) => ({
+      id: choice.id,
+      label: choice.label
+    }))
+  };
+}
+
+function getPredictionWorkSubmission(userId, workDate = getPredictionMarketWorkDate()) {
+  return db.prepare(
+    `SELECT user_id, work_date, task_id, choice_id, title, payout, accuracy_bonus, was_correct, created_at
+     FROM prediction_market_work
+     WHERE user_id = ? AND work_date = ?`
+  ).get(userId, workDate);
+}
+
+function buildPredictionWorkBoard(session) {
+  const workDate = getPredictionMarketWorkDate();
+  if (!session?.userId || session?.isAdmin) {
+    return {
+      available: false,
+      canWork: false,
+      workDate,
+      tasks: [],
+      completedTask: null
+    };
+  }
+
+  const tasks = getPredictionMarketWorkTasks(workDate);
+  const submission = getPredictionWorkSubmission(session.userId, workDate);
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const completedTask = submission
+    ? (() => {
+        const task = taskById.get(submission.task_id) || null;
+        const selectedChoice = task?.choices.find((choice) => choice.id === submission.choice_id) || null;
+        return {
+          taskId: submission.task_id,
+          title: submission.title,
+          type: task?.type || "Work",
+          payout: roundNumber(submission.payout, 2),
+          accuracyBonus: roundNumber(submission.accuracy_bonus, 2),
+          wasCorrect: Boolean(submission.was_correct),
+          selectedChoiceLabel: selectedChoice?.label || null,
+          submittedAt: submission.created_at
+        };
+      })()
+    : null;
+
+  return {
+    available: true,
+    canWork: !submission,
+    workDate,
+    tasks: tasks.map(serializePredictionWorkTask),
+    completedTask
+  };
+}
+
+function getPredictionPosition(marketId, userId) {
+  return db.prepare(
+    `SELECT market_id, user_id, yes_shares, no_shares, final_yes_shares, final_no_shares, final_payout, settled_at, updated_at
+     FROM prediction_market_positions
+     WHERE market_id = ? AND user_id = ?`
+  ).get(marketId, userId);
+}
+
+function ensurePredictionPosition(marketId, userId) {
+  const existing = getPredictionPosition(marketId, userId);
+  if (existing) {
+    return existing;
+  }
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO prediction_market_positions
+     (market_id, user_id, yes_shares, no_shares, final_yes_shares, final_no_shares, final_payout, settled_at, updated_at)
+     VALUES (?, ?, 0, 0, NULL, NULL, NULL, NULL, ?)`
+  ).run(marketId, userId, now);
+  return getPredictionPosition(marketId, userId);
+}
+
+function getPredictionMarketUnitPrice(market, side) {
+  const yesProbability = calculatePredictionMarketProbability(market) / 100;
+  return side === "yes" ? yesProbability : 1 - yesProbability;
+}
+
+function updatePredictionPortfolioCash(userId, nextCash, now) {
+  db.prepare(
+    `UPDATE prediction_market_portfolios
+     SET cash = ?, updated_at = ?
+     WHERE user_id = ?`
+  ).run(roundNumber(nextCash, 2), now, userId);
+}
+
+function updatePredictionPositionShares(marketId, userId, yesShares, noShares, now) {
+  db.prepare(
+    `UPDATE prediction_market_positions
+     SET yes_shares = ?, no_shares = ?, updated_at = ?
+     WHERE market_id = ? AND user_id = ?`
+  ).run(roundNumber(yesShares, 2), roundNumber(noShares, 2), now, marketId, userId);
+}
+
+function executePredictionTrade(userId, input) {
+  const marketId = String(input.marketId || "");
+  const tradeKey = String(input.trade || "");
+  const quantity = Math.max(1, Math.min(20, Math.round(Number(input.quantity || 5))));
+  const market = getPredictionMarketById(marketId);
+
+  if (!market || market.status !== "active") {
+    throw new Error("That market is not open for trading.");
+  }
+
+  const [direction, side] = tradeKey.split("-");
+  if (!["buy", "sell"].includes(direction) || !["yes", "no"].includes(side)) {
+    throw new Error("Unknown trade type.");
+  }
+
+  const portfolio = ensurePredictionPortfolio(userId);
+  const position = ensurePredictionPosition(marketId, userId);
+  const unitPrice = getPredictionMarketUnitPrice(market, side);
+  const totalCost = roundNumber(unitPrice * quantity, 2);
+  const yesShares = Number(position.yes_shares || 0);
+  const noShares = Number(position.no_shares || 0);
+  const nextYesShares = side === "yes"
+    ? yesShares + (direction === "buy" ? quantity : -quantity)
+    : yesShares;
+  const nextNoShares = side === "no"
+    ? noShares + (direction === "buy" ? quantity : -quantity)
+    : noShares;
+
+  if (direction === "buy" && totalCost > Number(portfolio.cash || 0) + 0.001) {
+    throw new Error("Not enough cash for that trade.");
+  }
+  if (side === "yes" && nextYesShares < -0.001) {
+    throw new Error("You do not own enough YES shares to sell that amount.");
+  }
+  if (side === "no" && nextNoShares < -0.001) {
+    throw new Error("You do not own enough NO shares to sell that amount.");
+  }
+
+  const now = new Date().toISOString();
+  const nextCash = direction === "buy"
+    ? Number(portfolio.cash || 0) - totalCost
+    : Number(portfolio.cash || 0) + totalCost;
+  const yesPool = Number(market.yes_pool || 0) + (side === "yes" ? (direction === "buy" ? quantity : -quantity) : 0);
+  const noPool = Number(market.no_pool || 0) + (side === "no" ? (direction === "buy" ? quantity : -quantity) : 0);
+
+  if (yesPool <= 0 || noPool <= 0) {
+    throw new Error("That trade would break market liquidity. Try a smaller move.");
+  }
+
+  updatePredictionPortfolioCash(userId, nextCash, now);
+  updatePredictionPositionShares(marketId, userId, nextYesShares, nextNoShares, now);
+  db.prepare(
+    `UPDATE prediction_markets
+     SET yes_pool = ?, no_pool = ?, updated_at = ?
+     WHERE id = ?`
+  ).run(roundNumber(yesPool, 2), roundNumber(noPool, 2), now, marketId);
+  db.prepare(
+    `INSERT INTO prediction_market_trades
+     (id, market_id, user_id, direction, side, quantity, unit_price, total_cost, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(crypto.randomUUID(), marketId, userId, direction, side, quantity, roundNumber(unitPrice, 4), totalCost, now);
+}
+
+function executePredictionWork(userId, input) {
+  const workDate = getPredictionMarketWorkDate();
+  if (getPredictionWorkSubmission(userId, workDate)) {
+    throw new Error("You already completed today’s off-market work.");
+  }
+
+  const taskId = String(input.taskId || "");
+  const choiceId = String(input.choiceId || "");
+  const task = getPredictionMarketWorkTasks(workDate).find((entry) => entry.id === taskId);
+  if (!task) {
+    throw new Error("That work opportunity is no longer available.");
+  }
+
+  const choice = task.choices.find((entry) => entry.id === choiceId);
+  if (!choice) {
+    throw new Error("Choose one answer to turn in that work task.");
+  }
+
+  const accuracyBonus = choice.correct ? Number(task.bonusPay || 0) : 0;
+  const payout = roundNumber(Number(task.basePay || 0) + accuracyBonus, 2);
+  const now = new Date().toISOString();
+  const portfolio = ensurePredictionPortfolio(userId);
+
+  updatePredictionPortfolioCash(userId, Number(portfolio.cash || 0) + payout, now);
+  db.prepare(
+    `INSERT INTO prediction_market_work
+     (user_id, work_date, task_id, choice_id, title, payout, accuracy_bonus, was_correct, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    userId,
+    workDate,
+    task.id,
+    choice.id,
+    task.title,
+    payout,
+    roundNumber(accuracyBonus, 2),
+    choice.correct ? 1 : 0,
+    now
+  );
+}
+
+function settlePredictionMarketPositions(marketId, resolution, now) {
+  const positions = db.prepare(
+    `SELECT user_id, yes_shares, no_shares
+     FROM prediction_market_positions
+     WHERE market_id = ? AND settled_at IS NULL AND (yes_shares > 0 OR no_shares > 0)`
+  ).all(marketId);
+
+  positions.forEach((position) => {
+    const payout = roundNumber(
+      Number(position.yes_shares || 0) * (resolution === "yes" ? 1 : 0)
+      + Number(position.no_shares || 0) * (resolution === "no" ? 1 : 0),
+      2
+    );
+    const portfolio = ensurePredictionPortfolio(position.user_id);
+    updatePredictionPortfolioCash(position.user_id, Number(portfolio.cash || 0) + payout, now);
+    db.prepare(
+      `UPDATE prediction_market_positions
+       SET final_yes_shares = ?, final_no_shares = ?, final_payout = ?, yes_shares = 0, no_shares = 0, settled_at = ?, updated_at = ?
+       WHERE market_id = ? AND user_id = ?`
+    ).run(
+      roundNumber(position.yes_shares, 2),
+      roundNumber(position.no_shares, 2),
+      payout,
+      now,
+      now,
+      marketId,
+      position.user_id
+    );
+  });
 }
 
 function getRoundPreset(row) {
@@ -5637,7 +6987,7 @@ function getRoundPreset(row) {
 
 function getUserById(userId) {
   return db.prepare(
-    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, created_at
+    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, created_at
      FROM users
      WHERE id = ?`
   ).get(userId);
@@ -5645,14 +6995,169 @@ function getUserById(userId) {
 
 function getUserByUsername(username) {
   return db.prepare(
-    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, created_at
+    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, created_at
      FROM users
      WHERE username = ?`
   ).get(username);
 }
 
+function getAvatarCatalog() {
+  if (avatarCatalogCache) {
+    return avatarCatalogCache;
+  }
+
+  try {
+    const raw = fs.readFileSync(AVATAR_MANIFEST_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    avatarCatalogCache = Array.isArray(parsed)
+      ? parsed
+          .filter((entry) => entry && typeof entry.id === "string" && typeof entry.path === "string")
+          .map((entry) => ({
+            id: entry.id,
+            path: entry.path
+          }))
+      : [];
+  } catch (error) {
+    avatarCatalogCache = [];
+  }
+
+  return avatarCatalogCache;
+}
+
+function getAvatarById(avatarId) {
+  const resolvedId = LEGACY_AVATAR_ALIASES[avatarId] || avatarId;
+  return getAvatarCatalog().find((entry) => entry.id === resolvedId) || null;
+}
+
+function getResolvedAvatar(avatarId) {
+  const catalog = getAvatarCatalog();
+  if (!catalog.length) {
+    return null;
+  }
+  return getAvatarById(avatarId) || catalog[0];
+}
+
 function getStaffMember(staffId) {
   return STAFF_MEMBERS.find((member) => member.id === staffId) || null;
+}
+
+function getRelationshipTypeMeta(type) {
+  return RELATIONSHIP_TYPES[type] || { label: "History", tone: "volatile", intensity: 2 };
+}
+
+function getRelationshipBetween(fromId, toId) {
+  return STAFF_RELATIONSHIPS.find((entry) => entry.from === fromId && entry.to === toId) || null;
+}
+
+function getStaffRelationships(staffId) {
+  return STAFF_RELATIONSHIPS
+    .filter((entry) => entry.from === staffId)
+    .map((entry) => {
+      const counterpart = getStaffMember(entry.to);
+      const meta = getRelationshipTypeMeta(entry.type);
+      return {
+        ...entry,
+        label: meta.label,
+        tone: meta.tone,
+        intensity: meta.intensity,
+        counterpartName: counterpart?.name || entry.to,
+        counterpartTitle: counterpart?.title || "",
+        summary: `${counterpart?.name || entry.to}: ${meta.label}`
+      };
+    })
+    .sort((a, b) => b.intensity - a.intensity);
+}
+
+function pickRelationshipEntry(staffId, context = {}, preferredIds = []) {
+  const prioritizedIds = [
+    ...preferredIds,
+    ...[...(context?.visitedConsultants || [])].reverse()
+  ].filter((id, index, list) => id && id !== staffId && list.indexOf(id) === index);
+  const relationships = getStaffRelationships(staffId);
+
+  for (const counterpartId of prioritizedIds) {
+    const hit = relationships.find((entry) => entry.to === counterpartId);
+    if (hit) {
+      return hit;
+    }
+  }
+
+  return relationships[0] || null;
+}
+
+function buildRelationshipPromptBeat(userId, staffId, context, nodeId) {
+  const user = serializeUser(userId);
+  const stepNumber = getSyntheticStepNumber(nodeId) || Number(context?.stepIndex || 1);
+  if (!user || stepNumber < 2) {
+    return null;
+  }
+
+  const relationship = pickRelationshipEntry(staffId, context);
+  if (!relationship) {
+    return null;
+  }
+
+  const counterpartState = user.staff.find((member) => member.id === relationship.to);
+  const warmth = counterpartState
+    ? counterpartState.trust >= 70
+      ? "and the trust is high enough to matter"
+      : counterpartState.trust < 45
+        ? "and that relationship is running on fumes"
+        : "and the relationship is still unstable"
+    : "and the room can feel it";
+
+  return {
+    ...relationship,
+    stepNumber,
+    prompt: `Under the surface, ${relationship.counterpartName} is part of this step too. ${relationship.note} Right now that dynamic is ${warmth}.`
+  };
+}
+
+function hydratePreset(preset) {
+  if (!preset) {
+    return null;
+  }
+
+  return {
+    ...preset,
+    headline: rewriteStaffNames(preset.headline),
+    body: rewriteStaffNames(preset.body),
+    nodes: Object.fromEntries(
+      Object.entries(preset.nodes || {}).map(([nodeId, node]) => [
+        nodeId,
+        {
+          ...node,
+          title: rewriteStaffNames(node.title),
+          body: rewriteStaffNames(node.body),
+          consultants: Object.fromEntries(
+            Object.entries(node.consultants || {}).map(([consultantId, consultant]) => [
+              consultantId,
+              {
+                ...consultant,
+                prompt: rewriteStaffNames(consultant.prompt),
+                options: (consultant.options || []).map((option) => ({
+                  ...option,
+                  label: rewriteStaffNames(option.label),
+                  outcome: rewriteStaffNames(option.outcome)
+                }))
+              }
+            ])
+          )
+        }
+      ])
+    )
+  };
+}
+
+function rewriteStaffNames(text) {
+  if (typeof text !== "string" || !text) {
+    return text;
+  }
+
+  return Object.entries(LEGACY_STAFF_NAME_MAP).reduce((current, [legacyName, staffId]) => {
+    const replacement = getStaffMember(staffId)?.name || legacyName;
+    return current.replace(new RegExp(`\\b${legacyName}\\b`, "g"), replacement);
+  }, text);
 }
 
 function getManagerFlags(userId) {
@@ -5740,7 +7245,10 @@ function getCaseChoices(caseFileId) {
 }
 
 function getNodeDefinition(preset, nodeId) {
-  return preset?.nodes?.[nodeId] || null;
+  if (preset?.nodes?.[nodeId]) {
+    return preset.nodes[nodeId];
+  }
+  return buildSyntheticNodeDefinition(preset, nodeId);
 }
 
 function getNodeConsultantDefinition(node, consultantId) {
@@ -5778,7 +7286,7 @@ function summarizeCaseChoices(choices) {
   );
 }
 
-function getMaxChainSteps(preset, nodeId, visited = new Set()) {
+function getAuthoredChainDepth(preset, nodeId, visited = new Set()) {
   if (!preset || !nodeId || visited.has(nodeId)) {
     return 1;
   }
@@ -5803,7 +7311,141 @@ function getMaxChainSteps(preset, nodeId, visited = new Set()) {
   const nextVisited = new Set(visited);
   nextVisited.add(nodeId);
 
-  return 1 + Math.max(...nextNodeIds.map((nextNodeId) => getMaxChainSteps(preset, nextNodeId, nextVisited)));
+  return 1 + Math.max(...nextNodeIds.map((nextNodeId) => getAuthoredChainDepth(preset, nextNodeId, nextVisited)));
+}
+
+function getCaseTotalSteps(preset) {
+  return Math.max(MIN_CASE_STEPS, getAuthoredChainDepth(preset, preset?.rootNodeId));
+}
+
+function isSyntheticNodeId(nodeId) {
+  return typeof nodeId === "string" && nodeId.startsWith("aftershock-step-");
+}
+
+function getSyntheticStepNumber(nodeId) {
+  if (!isSyntheticNodeId(nodeId)) {
+    return null;
+  }
+  const match = /aftershock-step-(\d+)/.exec(nodeId);
+  return match ? Number(match[1]) : null;
+}
+
+function buildSyntheticNodeId(stepNumber) {
+  return `aftershock-step-${stepNumber}`;
+}
+
+function buildSyntheticNodeDefinition(preset, nodeId) {
+  const stepNumber = getSyntheticStepNumber(nodeId);
+  if (!stepNumber || stepNumber < 2 || stepNumber > MIN_CASE_STEPS) {
+    return null;
+  }
+
+  const stage = getSyntheticStageMeta(stepNumber);
+  const consultants = Object.fromEntries(
+    STAFF_MEMBERS.map((staff) => [
+      staff.id,
+      buildSyntheticConsultantDefinition(staff, stepNumber)
+    ])
+  );
+
+  return {
+    title: `${stage.title} · Step ${stepNumber}`,
+    body: `${stage.body} This is the part of the shift where Feast Haven either steadies itself or starts leaking points everywhere.`,
+    consultants
+  };
+}
+
+function getSyntheticStageMeta(stepNumber) {
+  const map = {
+    2: {
+      title: "First Ripple",
+      body: "The first choice solved the immediate flare-up, but the rest of the room is still reacting."
+    },
+    3: {
+      title: "Service Strain",
+      body: "Now the pressure moves into handoffs, timing, and whether the team really trusts the direction you set."
+    },
+    4: {
+      title: "Floor Aftershock",
+      body: "The situation is no longer isolated. Other employees are adjusting to the call, and the guest experience is starting to shift."
+    },
+    5: {
+      title: "Team Fallout",
+      body: "By this point, small leadership choices are turning into culture signals the whole shift can feel."
+    },
+    6: {
+      title: "Final Push",
+      body: "This is the closing management call. The way you land it will shape the revenue hit, the guest story, and how the team leaves the shift."
+    }
+  };
+  return map[stepNumber] || map[6];
+}
+
+function buildSyntheticConsultantDefinition(staff, stepNumber) {
+  const followThroughNodeId = stepNumber < MIN_CASE_STEPS ? buildSyntheticNodeId(stepNumber + 1) : null;
+  const roleLabel = staff.title.toLowerCase();
+
+  return {
+    prompt: `${staff.name}, your ${roleLabel}, thinks the issue is now about ${getSyntheticConsultantFocus(staff, stepNumber)}.`,
+    options: [
+      buildSyntheticOption(staff, stepNumber, "steady", followThroughNodeId),
+      buildSyntheticOption(staff, stepNumber, "back", followThroughNodeId),
+      buildSyntheticOption(staff, stepNumber, "reset", followThroughNodeId)
+    ]
+  };
+}
+
+function getSyntheticConsultantFocus(staff, stepNumber) {
+  if (staff.id === "tasha" || staff.id === "luis" || staff.id === "priya") {
+    return stepNumber >= 5 ? "ticket control, kitchen discipline, and whether the back line still believes your pace" : "whether the kitchen can execute the plan without breaking";
+  }
+  if (staff.id === "elena" || staff.id === "devon") {
+    return stepNumber >= 5 ? "guest pacing, wait-list trust, and how the room remembers the shift" : "the first impression, timing, and calming the room";
+  }
+  if (staff.id === "marcus") {
+    return "cleanup, resets, and all the hidden work everyone notices when it fails";
+  }
+  return "guest confidence, handoffs, and whether the floor actually follows through";
+}
+
+function buildSyntheticOption(staff, stepNumber, variant, nextNodeId) {
+  const packEffects = (sales, satisfaction, reputation, morale, trust) => ({
+    sales,
+    satisfaction,
+    reputation,
+    staff: {
+      [staff.id]: {
+        morale,
+        trust
+      }
+    }
+  });
+  const baseByVariant = {
+    steady: {
+      label: `Let ${staff.name} steady the shift and protect the guest experience.`,
+      outcome: `${staff.name} focuses the team on calm follow-through and keeps the room from spiraling.`,
+      effects: packEffects(2 + Math.max(0, stepNumber - 3), 2, 2, 2, 2)
+    },
+    back: {
+      label: `Back ${staff.name}'s read publicly and give them room to execute it.`,
+      outcome: `${staff.name} gets a visible vote of confidence, which can create momentum if the trust is there.`,
+      effects: packEffects(3 + Math.max(0, stepNumber - 4), 1, 1, 1, 3)
+    },
+    reset: {
+      label: `Use ${staff.name}'s feedback to reset the standard for the rest of the shift.`,
+      outcome: `You turn ${staff.name}'s feedback into a clearer operational standard before the next mistake compounds.`,
+      effects: packEffects(1 + Math.max(0, stepNumber - 4), 1, 3, 2, 2)
+    }
+  };
+
+  const chosen = baseByVariant[variant];
+  return {
+    id: `synthetic-${stepNumber}-${staff.id}-${variant}`,
+    label: chosen.label,
+    outcome: chosen.outcome,
+    nextNodeId,
+    effects: chosen.effects
+  };
 }
 
 function toShortText(value, fallback, maxLength = 220) {
@@ -5814,10 +7456,197 @@ function toShortText(value, fallback, maxLength = 220) {
 function seedStudentStaff(userId) {
   db.prepare(`DELETE FROM staff_state WHERE user_id = ?`).run(userId);
   db.prepare(`DELETE FROM manager_flags WHERE user_id = ?`).run(userId);
+  db.prepare(`DELETE FROM restaurant_state WHERE user_id = ?`).run(userId);
+  db.prepare(`DELETE FROM lingering_effects WHERE user_id = ?`).run(userId);
   STAFF_MEMBERS.forEach((staff) => {
     db.prepare(
       `INSERT INTO staff_state (user_id, staff_id, morale, trust) VALUES (?, ?, ?, ?)`
     ).run(userId, staff.id, staff.defaultMorale, staff.defaultTrust);
+  });
+  RESTAURANT_STATE_ORDER.forEach((key) => {
+    db.prepare(
+      `INSERT INTO restaurant_state (user_id, key, value) VALUES (?, ?, ?)`
+    ).run(userId, key, RESTAURANT_STATE_DEFS[key].defaultValue);
+  });
+}
+
+function getRestaurantStateMap(userId) {
+  const rows = db.prepare(
+    `SELECT key, value FROM restaurant_state WHERE user_id = ?`
+  ).all(userId);
+  const rowMap = new Map(rows.map((row) => [row.key, clampPercent(row.value)]));
+  return Object.fromEntries(
+    RESTAURANT_STATE_ORDER.map((key) => [
+      key,
+      rowMap.has(key) ? rowMap.get(key) : RESTAURANT_STATE_DEFS[key].defaultValue
+    ])
+  );
+}
+
+function getRestaurantStateStatus(key, value) {
+  const definition = RESTAURANT_STATE_DEFS[key];
+  const numeric = clampPercent(value);
+  if (!definition) {
+    return { label: "Stable", tone: "muted" };
+  }
+
+  if (!definition.goodHigh) {
+    if (numeric <= 25) {
+      return { label: "Fresh", tone: "success" };
+    }
+    if (numeric <= 40) {
+      return { label: "Manageable", tone: "open" };
+    }
+    if (numeric <= 55) {
+      return { label: "Warming", tone: "muted" };
+    }
+    if (numeric <= 70) {
+      return { label: "Strained", tone: "warning" };
+    }
+    return { label: "Overloaded", tone: "danger" };
+  }
+
+  if (numeric >= 80) {
+    return { label: "Strong", tone: "success" };
+  }
+  if (numeric >= 65) {
+    return { label: "Stable", tone: "open" };
+  }
+  if (numeric >= 50) {
+    return { label: "Watch", tone: "muted" };
+  }
+  if (numeric >= 35) {
+    return { label: "Fragile", tone: "warning" };
+  }
+  return { label: "Critical", tone: "danger" };
+}
+
+function serializeRestaurantState(userId) {
+  const state = getRestaurantStateMap(userId);
+  return RESTAURANT_STATE_ORDER.map((key) => {
+    const value = state[key];
+    const definition = RESTAURANT_STATE_DEFS[key];
+    const status = getRestaurantStateStatus(key, value);
+    return {
+      key,
+      label: definition.label,
+      summary: definition.summary,
+      value,
+      tone: status.tone,
+      statusLabel: status.label,
+      goodHigh: definition.goodHigh
+    };
+  });
+}
+
+function applyRestaurantStateChanges(userId, changes = {}) {
+  const current = getRestaurantStateMap(userId);
+  Object.entries(changes).forEach(([key, delta]) => {
+    if (!Object.prototype.hasOwnProperty.call(RESTAURANT_STATE_DEFS, key)) {
+      return;
+    }
+    if (!Number(delta)) {
+      return;
+    }
+    const nextValue = clampPercent((current[key] ?? RESTAURANT_STATE_DEFS[key].defaultValue) + Number(delta));
+    current[key] = nextValue;
+    db.prepare(
+      `INSERT INTO restaurant_state (user_id, key, value) VALUES (?, ?, ?)
+       ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value`
+    ).run(userId, key, nextValue);
+  });
+  return current;
+}
+
+function pruneExpiredLingeringEffects(nextRoundNumber) {
+  db.prepare(
+    `DELETE FROM lingering_effects
+     WHERE expires_round_number < ?`
+  ).run(nextRoundNumber);
+}
+
+function getVisibleLingeringEffects(userId, targetRoundNumber, limit = 6) {
+  const rows = db.prepare(
+    `SELECT id, effect_key, title, summary, tone, target_staff_id, intensity,
+            source_round_number, expires_round_number, created_at
+     FROM lingering_effects
+     WHERE user_id = ?
+       AND expires_round_number >= ?
+       AND source_round_number <= ?
+     ORDER BY intensity DESC, datetime(created_at) DESC, rowid DESC
+     LIMIT ?`
+  ).all(userId, targetRoundNumber, targetRoundNumber, limit);
+
+  return rows.map((row) => {
+    const targetStaff = row.target_staff_id ? getStaffMember(row.target_staff_id) : null;
+    return {
+      id: row.id,
+      effectKey: row.effect_key,
+      title: row.title,
+      summary: row.summary,
+      tone: row.tone,
+      targetStaffId: row.target_staff_id || null,
+      targetStaffName: targetStaff?.name || null,
+      intensity: Number(row.intensity || 0),
+      sourceRoundNumber: Number(row.source_round_number || 0),
+      expiresRoundNumber: Number(row.expires_round_number || 0),
+      roundsRemaining: Math.max(0, Number(row.expires_round_number || 0) - Number(targetRoundNumber || 0) + 1)
+    };
+  });
+}
+
+function getActiveLingeringEffectsForRound(userId, roundNumber, limit = 6) {
+  const rows = db.prepare(
+    `SELECT id, effect_key, title, summary, tone, target_staff_id, intensity,
+            source_round_number, expires_round_number, created_at
+     FROM lingering_effects
+     WHERE user_id = ?
+       AND source_round_number < ?
+       AND expires_round_number >= ?
+     ORDER BY intensity DESC, datetime(created_at) DESC, rowid DESC
+     LIMIT ?`
+  ).all(userId, roundNumber, roundNumber, limit);
+
+  return rows.map((row) => ({
+    id: row.id,
+    effectKey: row.effect_key,
+    title: row.title,
+    summary: row.summary,
+    tone: row.tone,
+    targetStaffId: row.target_staff_id || null,
+    intensity: Number(row.intensity || 0),
+    sourceRoundNumber: Number(row.source_round_number || 0),
+    expiresRoundNumber: Number(row.expires_round_number || 0)
+  }));
+}
+
+function storeLingeringEffects(userId, round, effects = []) {
+  effects.forEach((effect) => {
+    const durationRounds = Math.max(1, Math.round(Number(effect.durationRounds || 2)));
+    db.prepare(
+      `DELETE FROM lingering_effects
+       WHERE user_id = ? AND effect_key = ? AND COALESCE(target_staff_id, '') = COALESCE(?, '')`
+    ).run(userId, effect.effectKey, effect.targetStaffId || null);
+
+    db.prepare(
+      `INSERT INTO lingering_effects
+       (id, user_id, effect_key, title, summary, tone, target_staff_id, intensity,
+        source_round_id, source_round_number, expires_round_number, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      crypto.randomUUID(),
+      userId,
+      effect.effectKey,
+      effect.title,
+      effect.summary,
+      effect.tone || "muted",
+      effect.targetStaffId || null,
+      Math.max(1, Math.round(Number(effect.intensity || 1))),
+      round.id,
+      Number(round.round_number || round.roundNumber || 0),
+      Number(round.round_number || round.roundNumber || 0) + durationRounds,
+      new Date().toISOString()
+    );
   });
 }
 
@@ -5826,6 +7655,7 @@ function serializeUser(userId) {
   if (!user) {
     return null;
   }
+  const avatar = getResolvedAvatar(user.avatar_id);
 
   const staffRows = db.prepare(
     `SELECT staff_id, morale, trust FROM staff_state WHERE user_id = ?`
@@ -5833,28 +7663,48 @@ function serializeUser(userId) {
   const staffMap = new Map(staffRows.map((row) => [row.staff_id, row]));
   const staff = STAFF_MEMBERS.map((member) => {
     const current = staffMap.get(member.id);
+    const morale = clampPercent(current?.morale ?? member.defaultMorale);
+    const trust = clampPercent(current?.trust ?? member.defaultTrust);
     return {
       id: member.id,
       name: member.name,
       title: member.title,
       summary: member.summary,
       tension: member.tension,
-      morale: clampPercent(current?.morale ?? member.defaultMorale),
-      trust: clampPercent(current?.trust ?? member.defaultTrust)
+      morale,
+      trust,
+      relationships: getStaffRelationships(member.id).slice(0, 3).map((entry) => ({
+        counterpartId: entry.to,
+        counterpartName: entry.counterpartName,
+        counterpartTitle: entry.counterpartTitle,
+        type: entry.type,
+        label: entry.label,
+        tone: entry.tone,
+        intensity: entry.intensity,
+        note: entry.note
+      })),
+      trustBand: getTrustBand(trust),
+      trustEffectLabel: describeTrustEffect(trust)
     };
   });
 
   const avgMorale = roundNumber(staff.reduce((sum, member) => sum + member.morale, 0) / staff.length, 1);
   const avgTrust = roundNumber(staff.reduce((sum, member) => sum + member.trust, 0) / staff.length, 1);
   const teamHealth = roundNumber((user.satisfaction + user.reputation + avgMorale + avgTrust) / 4, 1);
+  const restaurantState = serializeRestaurantState(userId);
+  const restaurantStateMap = Object.fromEntries(restaurantState.map((entry) => [entry.key, entry.value]));
   const lossState = buildLossState(staff);
   const aggregateScore = computeAggregateScore(user.sales, avgMorale, avgTrust);
+  const scoreTier = getScoreTier(aggregateScore);
   const decoratedStaff = staff.map((member) => ({
     ...member,
     hasQuit: Boolean(lossState && lossState.staffId === member.id)
   }));
   const lowestMorale = Math.min(...staff.map((member) => member.morale));
   const currentRoundId = getGameState().currentRoundId;
+  const currentRound = currentRoundId ? getRoundById(currentRoundId) : null;
+  const effectRoundNumber = currentRound?.round_number || (getGameState().roundNumber + 1);
+  const lingeringEffects = getVisibleLingeringEffects(userId, effectRoundNumber, 6);
   const currentResponse = currentRoundId ? getResponseForRound(currentRoundId, userId) : null;
   const managerFlags = getManagerFlags(userId);
 
@@ -5882,7 +7732,7 @@ function serializeUser(userId) {
   const warnings = [];
   if (lossState) {
     warnings.push(lossState.message);
-    warnings.push("This dealership is out of the competition until the teacher resets standings.");
+    warnings.push("This restaurant is out of the competition until the teacher resets standings.");
   } else if (lowestMorale < 35) {
     const atRisk = staff.filter((member) => member.morale < 35).map((member) => member.name).join(", ");
     warnings.push(`${atRisk} is close to burnout. Future decisions may trigger hidden sales penalties.`);
@@ -5890,11 +7740,25 @@ function serializeUser(userId) {
   if (!lossState && avgTrust < 50) {
     warnings.push("Team trust in your leadership is shaky. Future customer situations may be harder to stabilize.");
   }
+  if (restaurantStateMap.guest_confidence < 45) {
+    warnings.push("Guest confidence is fragile. The next service mistake will land harder than usual.");
+  }
+  if (restaurantStateMap.kitchen_stability < 45) {
+    warnings.push("Kitchen stability is slipping. Execution problems are more likely to compound.");
+  }
+  if (restaurantStateMap.staff_burnout > 65) {
+    warnings.push("Staff burnout is high. Hard-tone decisions will cost more morale than normal.");
+  }
+  if (restaurantStateMap.supply_control < 45) {
+    warnings.push("Supply control is shaky. Specials and inventory pressure are now riskier.");
+  }
 
   return {
     id: user.id,
     username: user.username,
     displayName: user.display_name,
+    avatarId: avatar?.id || null,
+    avatarPath: avatar?.path || null,
     sales: roundNumber(user.sales, 0),
     satisfaction: clampPercent(user.satisfaction),
     reputation: clampPercent(user.reputation),
@@ -5902,6 +7766,9 @@ function serializeUser(userId) {
     avgTrust,
     teamHealth,
     aggregateScore,
+    scoreTier,
+    restaurantState,
+    lingeringEffects,
     isEliminated: Boolean(lossState),
     lossState,
     staff: decoratedStaff,
@@ -5912,11 +7779,52 @@ function serializeUser(userId) {
   };
 }
 
-function computeLeaderboard() {
-  return db.prepare(
+function getDurationMs(start, end) {
+  const startMs = start ? new Date(start).getTime() : NaN;
+  const endMs = end ? new Date(end).getTime() : NaN;
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+    return null;
+  }
+  return Math.max(0, endMs - startMs);
+}
+
+function computeCultureScore(entry) {
+  return roundNumber(
+    entry.avgMorale * 0.45
+      + entry.avgTrust * 0.35
+      + entry.teamHealth * 0.2,
+    1
+  );
+}
+
+function mapLeaderboardEntry(entry, rank, boardScore = entry.aggregateScore) {
+  return {
+    rank,
+    id: entry.id,
+    displayName: entry.displayName,
+    username: entry.username,
+    avatarId: entry.avatarId,
+    avatarPath: entry.avatarPath,
+    sales: entry.sales,
+    aggregateScore: entry.aggregateScore,
+    boardScore,
+    scoreTier: entry.scoreTier,
+    satisfaction: entry.satisfaction,
+    reputation: entry.reputation,
+    avgMorale: entry.avgMorale,
+    avgTrust: entry.avgTrust,
+    teamHealth: entry.teamHealth,
+    isEliminated: entry.isEliminated,
+    lossState: entry.lossState
+  };
+}
+
+function computeLeaderboards() {
+  const students = db.prepare(
     `SELECT id FROM users ORDER BY display_name COLLATE NOCASE ASC`
-  ).all().map((row) => serializeUser(row.id))
-    .filter(Boolean)
+  ).all().map((row) => serializeUser(row.id)).filter(Boolean);
+
+  const overall = [...students]
     .sort((a, b) => {
       if (Number(a.isEliminated) !== Number(b.isEliminated)) {
         return Number(a.isEliminated) - Number(b.isEliminated);
@@ -5932,32 +7840,171 @@ function computeLeaderboard() {
       }
       return b.reputation - a.reputation;
     })
-    .map((entry, index) => ({
-      rank: index + 1,
-      id: entry.id,
-      displayName: entry.displayName,
-      username: entry.username,
-      sales: entry.sales,
-      aggregateScore: entry.aggregateScore,
-      satisfaction: entry.satisfaction,
-      reputation: entry.reputation,
-      avgMorale: entry.avgMorale,
-      avgTrust: entry.avgTrust,
-      teamHealth: entry.teamHealth,
-      isEliminated: entry.isEliminated,
-      lossState: entry.lossState
-    }));
+    .map((entry, index) => mapLeaderboardEntry(entry, index + 1, entry.aggregateScore));
+
+  const revenue = [...students]
+    .sort((a, b) => {
+      if (Number(a.isEliminated) !== Number(b.isEliminated)) {
+        return Number(a.isEliminated) - Number(b.isEliminated);
+      }
+      if (b.sales !== a.sales) {
+        return b.sales - a.sales;
+      }
+      if (b.aggregateScore !== a.aggregateScore) {
+        return b.aggregateScore - a.aggregateScore;
+      }
+      return b.teamHealth - a.teamHealth;
+    })
+    .map((entry, index) => mapLeaderboardEntry(entry, index + 1, entry.sales));
+
+  const culture = [...students]
+    .sort((a, b) => {
+      if (Number(a.isEliminated) !== Number(b.isEliminated)) {
+        return Number(a.isEliminated) - Number(b.isEliminated);
+      }
+      const cultureDelta = computeCultureScore(b) - computeCultureScore(a);
+      if (cultureDelta !== 0) {
+        return cultureDelta;
+      }
+      if (b.avgMorale !== a.avgMorale) {
+        return b.avgMorale - a.avgMorale;
+      }
+      if (b.avgTrust !== a.avgTrust) {
+        return b.avgTrust - a.avgTrust;
+      }
+      return b.teamHealth - a.teamHealth;
+    })
+    .map((entry, index) => mapLeaderboardEntry(entry, index + 1, computeCultureScore(entry)));
+
+  return {
+    overall: {
+      id: "overall",
+      title: "Overall Leaders",
+      subtitle: "Weighted manager score",
+      entries: overall
+    },
+    revenue: {
+      id: "revenue",
+      title: "Revenue Leaders",
+      subtitle: "Top-line growth",
+      entries: revenue
+    },
+    culture: {
+      id: "culture",
+      title: "Culture Leaders",
+      subtitle: "Morale, trust, and team health",
+      entries: culture
+    }
+  };
+}
+
+function computeLeaderboard() {
+  return computeLeaderboards().overall.entries;
+}
+
+function getUserTimingStats(userId) {
+  const rows = db.prepare(
+    `SELECT r.created_at, p.submitted_at
+     FROM responses p
+     JOIN rounds r ON r.id = p.round_id
+     WHERE p.user_id = ?
+     ORDER BY datetime(p.submitted_at) DESC, p.rowid DESC`
+  ).all(userId);
+  const durations = rows
+    .map((row) => getDurationMs(row.created_at, row.submitted_at))
+    .filter((value) => Number.isFinite(value));
+
+  if (!durations.length) {
+    return {
+      completedEventCount: 0,
+      averageResolutionMs: null,
+      fastestResolutionMs: null,
+      slowestResolutionMs: null,
+      latestResolutionMs: null,
+      previousResolutionMs: null,
+      improvementMs: null
+    };
+  }
+
+  const total = durations.reduce((sum, value) => sum + value, 0);
+  return {
+    completedEventCount: durations.length,
+    averageResolutionMs: Math.round(total / durations.length),
+    fastestResolutionMs: Math.min(...durations),
+    slowestResolutionMs: Math.max(...durations),
+    latestResolutionMs: durations[0],
+    previousResolutionMs: durations[1] ?? null,
+    improvementMs: durations.length > 1 ? durations[1] - durations[0] : null
+  };
+}
+
+function buildTeacherTimingAnalytics(students) {
+  const rankedByAverage = students
+    .filter((student) => Number.isFinite(student.timingStats?.averageResolutionMs))
+    .sort((a, b) => {
+      const delta = a.timingStats.averageResolutionMs - b.timingStats.averageResolutionMs;
+      if (delta !== 0) {
+        return delta;
+      }
+      return (a.rank || 999) - (b.rank || 999);
+    });
+
+  const rankedByImprovement = students
+    .filter((student) => Number.isFinite(student.timingStats?.improvementMs) && student.timingStats.improvementMs > 0)
+    .sort((a, b) => {
+      const delta = b.timingStats.improvementMs - a.timingStats.improvementMs;
+      if (delta !== 0) {
+        return delta;
+      }
+      return (a.rank || 999) - (b.rank || 999);
+    });
+
+  const mapPaceStudent = (student, extra = {}) => {
+    if (!student) {
+      return null;
+    }
+    return {
+      studentId: student.id,
+      studentName: student.displayName,
+      avatarPath: student.avatarPath,
+      averageResolutionMs: student.timingStats?.averageResolutionMs ?? null,
+      fastestResolutionMs: student.timingStats?.fastestResolutionMs ?? null,
+      slowestResolutionMs: student.timingStats?.slowestResolutionMs ?? null,
+      latestResolutionMs: student.timingStats?.latestResolutionMs ?? null,
+      previousResolutionMs: student.timingStats?.previousResolutionMs ?? null,
+      improvementMs: student.timingStats?.improvementMs ?? null,
+      completedEventCount: student.timingStats?.completedEventCount ?? 0,
+      ...extra
+    };
+  };
+
+  const fastestResponder = mapPaceStudent(rankedByAverage[0]);
+  const slowestResponder = mapPaceStudent(rankedByAverage[rankedByAverage.length - 1]);
+  const mostImprovedResponder = mapPaceStudent(rankedByImprovement[0], {
+    paceGainMs: rankedByImprovement[0]?.timingStats?.improvementMs ?? null
+  });
+
+  return {
+    fastestResponder,
+    slowestResponder,
+    mostImprovedResponder
+  };
 }
 
 function buildAdminPayload() {
   const settings = getSettings();
-  const leaderboard = computeLeaderboard();
+  const leaderboards = computeLeaderboards();
+  const leaderboard = leaderboards.overall.entries;
+  const currentRound = getCurrentRound(null);
+  const currentRoundStart = currentRound?.createdAt || null;
+  const now = new Date().toISOString();
   const detailedStudents = leaderboard.map((entry) => {
     const detail = serializeUser(entry.id) || {};
     return {
       ...detail,
       rank: entry.rank,
       responseStats: getUserResponseStats(entry.id),
+      timingStats: getUserTimingStats(entry.id),
       lowestMorale: Math.min(...(detail.staff || []).map((member) => member.morale)),
       lowestTrust: Math.min(...(detail.staff || []).map((member) => member.trust)),
       atRiskCount: (detail.staff || []).filter((member) => member.morale < 40 || member.trust < 40).length
@@ -5986,10 +8033,21 @@ function buildAdminPayload() {
       ...entry,
       award: null,
       managerProfile: detail?.managerProfile || null,
+      timingStats: detail?.timingStats || null,
       respondedToCurrentRound: responded,
       progressLabel: progressState.label,
       progressTone: progressState.tone,
-      joinedAt: getUserById(entry.id)?.created_at || null
+      joinedAt: getUserById(entry.id)?.created_at || null,
+      currentRoundTiming: currentRoundStart
+        ? {
+            state: responded ? "completed" : caseFile ? "in_progress" : "waiting",
+            elapsedMs: responded
+              ? getDurationMs(currentRoundStart, getResponseForRound(currentRoundId, entry.id)?.submittedAt)
+              : caseFile
+                ? getDurationMs(currentRoundStart, now)
+                : null
+          }
+        : null
     };
   });
   const awards = assignStudentAwards(detailedStudents);
@@ -5997,6 +8055,7 @@ function buildAdminPayload() {
   students.forEach((student) => {
     student.award = awardMap.get(student.id) || null;
   });
+  const timingAnalytics = buildTeacherTimingAnalytics(students);
 
   const averageSales = students.length
     ? roundNumber(students.reduce((sum, student) => sum + student.sales, 0) / students.length, 1)
@@ -6004,10 +8063,16 @@ function buildAdminPayload() {
   const averageMorale = students.length
     ? roundNumber(students.reduce((sum, student) => sum + student.avgMorale, 0) / students.length, 1)
     : 0;
+  const averageResponseDurations = students
+    .map((student) => student.timingStats?.averageResolutionMs)
+    .filter((value) => Number.isFinite(value));
+  const averageResponseMs = averageResponseDurations.length
+    ? Math.round(averageResponseDurations.reduce((sum, value) => sum + value, 0) / averageResponseDurations.length)
+    : null;
 
   const recentResponses = db.prepare(
     `SELECT p.id, p.option_label, p.sales_delta, p.satisfaction_delta, p.reputation_delta, p.submitted_at,
-            u.display_name, u.username, r.round_number, r.headline
+            u.display_name, u.username, r.round_number, r.headline, r.created_at
      FROM responses p
      JOIN users u ON u.id = p.user_id
      JOIN rounds r ON r.id = p.round_id
@@ -6023,7 +8088,8 @@ function buildAdminPayload() {
     salesDelta: row.sales_delta,
     satisfactionDelta: row.satisfaction_delta,
     reputationDelta: row.reputation_delta,
-    submittedAt: row.submitted_at
+    submittedAt: row.submitted_at,
+    responseDurationMs: getDurationMs(row.created_at, row.submitted_at)
   }));
 
   return {
@@ -6035,12 +8101,16 @@ function buildAdminPayload() {
       studentCount: students.length,
       averageSales,
       averageMorale,
+      averageResponseMs,
       activeResponses: getCurrentRound(null)?.responseCount || 0,
       topStudent: leaderboard[0] || null
     },
     students,
     awards,
-    recentResponses
+    recentResponses,
+    leaderboards,
+    analytics: timingAnalytics,
+    predictionMarkets: listPredictionMarkets().map(serializePredictionMarket)
   };
 }
 
@@ -6102,6 +8172,7 @@ function assignStudentAwards(students) {
 
     const [award] = availableAwards.splice(bestIndex, 1);
     assignments.push({
+      awardId: award.id,
       studentId: student.id,
       studentName: student.displayName,
       title: award.title,
@@ -6121,7 +8192,7 @@ function buildAwardLibrary() {
       title: "The Rainmaker",
       subtitle: "Top-line revenue driver",
       score: (student) => student.sales * 10 + student.aggregateScore,
-      reason: (student) => `Generated ${formatAwardRevenue(student.sales)} and kept the dealership moving financially.`
+      reason: (student) => `Generated ${formatAwardRevenue(student.sales)} and kept the restaurant moving financially.`
     },
     {
       id: "culture_builder",
@@ -6142,14 +8213,14 @@ function buildAwardLibrary() {
       title: "Customer Whisperer",
       subtitle: "Best customer-facing instincts",
       score: (student) => student.satisfaction * 6 + student.responseStats.positiveSatisfactionCount * 8 + student.responseStats.positiveReputationCount * 4,
-      reason: (student) => `Customer satisfaction stayed at ${formatAwardPercent(student.satisfaction)} and your choices consistently landed well with the public-facing side of the dealership.`
+      reason: (student) => `Guest satisfaction stayed at ${formatAwardPercent(student.satisfaction)} and your choices consistently landed well with the front-of-house side of the restaurant.`
     },
     {
       id: "reputation_shield",
       title: "Reputation Shield",
-      subtitle: "Protected the dealership name",
+      subtitle: "Protected the restaurant name",
       score: (student) => student.reputation * 7 + student.responseStats.totalReputationDelta * 5,
-      reason: (student) => `Closed with ${formatAwardPercent(student.reputation)} reputation and kept the store's image steadier than most.`
+      reason: (student) => `Closed with ${formatAwardPercent(student.reputation)} reputation and kept the restaurant's image steadier than most.`
     },
     {
       id: "balanced_boss",
@@ -6163,7 +8234,7 @@ function buildAwardLibrary() {
       title: "Systems Builder",
       subtitle: "Process-first manager",
       score: (student) => (student.managerProfile?.title === "Systems Builder" ? 500 : 0) + student.reputation * 4 + student.avgTrust * 2,
-      reason: (student) => `Your dealership read like a process-driven shop that values structure and follow-through.`
+      reason: (student) => `Your restaurant read like a process-driven operation that values structure and follow-through.`
     },
     {
       id: "people_first",
@@ -6191,7 +8262,7 @@ function buildAwardLibrary() {
       title: "Resilience Engine",
       subtitle: "Survived the roughest culture drag",
       score: (student) => (!student.isEliminated ? 300 : 0) + (100 - Math.min(student.lowestMorale, student.lowestTrust)) * 4 + student.aggregateScore,
-      reason: (student) => `Kept the dealership alive even with low points like ${formatAwardPercent(student.lowestMorale)} morale / ${formatAwardPercent(student.lowestTrust)} trust at the floor.`
+      reason: (student) => `Kept the restaurant alive even with low points like ${formatAwardPercent(student.lowestMorale)} morale / ${formatAwardPercent(student.lowestTrust)} trust on the floor.`
     },
     {
       id: "steady_hand",
@@ -6202,24 +8273,24 @@ function buildAwardLibrary() {
     },
     {
       id: "showroom_anchor",
-      title: "Showroom Anchor",
-      subtitle: "Held the floor together",
+      title: "Dining Room Anchor",
+      subtitle: "Held the room together",
       score: (student) => student.avgTrust * 3 + student.avgMorale * 3 + student.responseStats.positiveReputationCount * 10,
-      reason: (student) => `Your dealership felt like it had an adult in charge when the room got weird.`
+      reason: (student) => `Your restaurant felt like it had an adult in charge when the room got weird.`
     },
     {
       id: "profit_protector",
       title: "Profit Protector",
       subtitle: "Defended the bottom line",
       score: (student) => student.aggregateScore * 5 + student.responseStats.totalSalesDelta * 4 - student.responseStats.negativeSalesCount * 5,
-      reason: (student) => `Protected the financial side of the dealership better than most, finishing at ${formatAwardScore(student.aggregateScore)} overall score.`
+      reason: (student) => `Protected the financial side of the restaurant better than most, finishing at ${formatAwardScore(student.aggregateScore)} overall score.`
     },
     {
       id: "comeback_manager",
       title: "Comeback Manager",
       subtitle: "Recovered from shaky moments",
       score: (student) => (!student.isEliminated ? 200 : 0) + student.atRiskCount * 20 + student.responseStats.positiveSalesCount * 12 + student.teamHealth * 2,
-      reason: (student) => `Worked through visible danger signs and still kept the dealership functional by the end.`
+      reason: (student) => `Worked through visible danger signs and still kept the restaurant functional by the end.`
     },
     {
       id: "hard_lesson",
@@ -6228,7 +8299,7 @@ function buildAwardLibrary() {
       score: (student) => (student.isEliminated ? 800 : 0) + (100 - student.lowestTrust) * 3 + (100 - student.lowestMorale) * 3,
       reason: (student) => student.isEliminated
         ? `${student.lossState?.name || "A staff member"} quitting made this the clearest lesson in how fast culture can break.`
-        : `Came closest to the edge without fully losing the dealership, which made the management lesson impossible to miss.`
+        : `Came closest to the edge without fully losing the restaurant, which made the management lesson impossible to miss.`
     }
   ];
 }
@@ -6259,13 +8330,18 @@ function getRoundById(roundId) {
   ).get(roundId);
 }
 
+function isSupportedRound(row) {
+  const preset = getRoundPreset(row);
+  return Boolean(preset && GLOBAL_EVENT_TEMPLATES.some((entry) => entry.id === preset.id));
+}
+
 function getCurrentRound(session) {
   const currentRoundId = getGameState().currentRoundId;
   if (!currentRoundId) {
     return null;
   }
   const round = getRoundById(currentRoundId);
-  if (!round) {
+  if (!round || !isSupportedRound(round)) {
     return null;
   }
   return serializeRound(round, session);
@@ -6278,7 +8354,37 @@ function getRecentRounds(limit = 8, session) {
      FROM rounds
      ORDER BY round_number DESC, datetime(created_at) DESC
      LIMIT ?`
-  ).all(limit).map((row) => serializeRound(row, session));
+  ).all(Math.max(limit * 3, limit))
+    .filter((row) => isSupportedRound(row))
+    .slice(0, limit)
+    .map((row) => serializeRound(row, session));
+}
+
+function getRoundTimingStats(roundId, roundCreatedAt) {
+  const rows = db.prepare(
+    `SELECT submitted_at
+     FROM responses
+     WHERE round_id = ?
+     ORDER BY datetime(submitted_at) ASC, rowid ASC`
+  ).all(roundId);
+  const durations = rows
+    .map((row) => getDurationMs(roundCreatedAt, row.submitted_at))
+    .filter((value) => Number.isFinite(value));
+
+  if (!durations.length) {
+    return {
+      averageResponseMs: null,
+      fastestResponseMs: null,
+      slowestResponseMs: null
+    };
+  }
+
+  const total = durations.reduce((sum, value) => sum + value, 0);
+  return {
+    averageResponseMs: Math.round(total / durations.length),
+    fastestResponseMs: Math.min(...durations),
+    slowestResponseMs: Math.max(...durations)
+  };
 }
 
 function serializeRound(row, session) {
@@ -6306,6 +8412,7 @@ function serializeRound(row, session) {
     responseCount,
     totalStudents,
     responseRate: totalStudents ? Math.round((responseCount / totalStudents) * 100) : 0,
+    timingStats: getRoundTimingStats(row.id, row.created_at),
     topChoiceLabel: null,
     consultants: isAdmin ? Object.keys(getNodeDefinition(preset, preset?.rootNodeId)?.consultants || {}) : undefined,
     userResponse: currentUserResponse,
@@ -6321,6 +8428,9 @@ function serializeCaseFile(caseFile, round, preset) {
   const node = getNodeDefinition(preset, caseFile.current_node_id);
   const selectedConsultant = caseFile.selected_consultant_id ? getStaffMember(caseFile.selected_consultant_id) : null;
   const consultantDefinition = selectedConsultant ? getNodeConsultantDefinition(node, selectedConsultant.id) : null;
+  const relationshipBeat = selectedConsultant
+    ? buildRelationshipPromptBeat(caseFile.user_id, selectedConsultant.id, context, caseFile.current_node_id)
+    : null;
   const rawChoices = getCaseChoices(caseFile.id);
   const cumulativeImpact = summarizeCaseChoices(rawChoices);
   const choiceLog = rawChoices.map((choice) => ({
@@ -6363,7 +8473,8 @@ function serializeCaseFile(caseFile, round, preset) {
       ? {
           id: selectedConsultant.id,
           name: selectedConsultant.name,
-          title: selectedConsultant.title
+          title: selectedConsultant.title,
+          relationshipBeat: relationshipBeat
         }
       : null,
     actionOptions: caseFile.current_phase === "action"
@@ -6381,7 +8492,7 @@ function serializeCaseFile(caseFile, round, preset) {
       satisfactionDelta: roundNumber(cumulativeImpact.satisfactionDelta, 0),
       reputationDelta: roundNumber(cumulativeImpact.reputationDelta, 0)
     },
-    totalSteps: Math.max(Number(context.stepIndex || 1), getMaxChainSteps(preset, preset?.rootNodeId || caseFile.current_node_id))
+    totalSteps: Math.max(Number(context.stepIndex || 1), getCaseTotalSteps(preset))
   };
 }
 
@@ -6535,6 +8646,7 @@ function publishRound(presetId, customHeadline, customBody) {
   const roundId = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   const nextRoundNumber = game.roundNumber + 1;
+  pruneExpiredLingeringEffects(nextRoundNumber);
 
   db.prepare(
     `INSERT INTO rounds
@@ -6569,11 +8681,11 @@ function submitResponse(userId, optionId) {
 
   const lossState = getUserLossState(userId);
   if (lossState) {
-    throw new Error(`${lossState.name} already quit your dealership. You are out of the game until standings are reset.`);
+    throw new Error(`${lossState.name} already quit your restaurant. You are out of the game until standings are reset.`);
   }
 
   if (!game.currentRoundId) {
-    throw new Error("There is no active dealership situation right now.");
+    throw new Error("There is no active restaurant situation right now.");
   }
 
   if (getResponseForRound(game.currentRoundId, userId)) {
@@ -6587,7 +8699,7 @@ function submitResponse(userId, optionId) {
   const preset = getRoundPreset(round);
   const caseFile = ensureCaseFile(round.id, userId);
   if (!preset || !caseFile || caseFile.status !== "active") {
-    throw new Error("Your dealership does not have an active case for this event.");
+    throw new Error("Your restaurant does not have an active case for this event.");
   }
 
   if (caseFile.current_phase === "consultant") {
@@ -6674,7 +8786,9 @@ function chooseAction(caseFile, round, preset, actionId) {
       ...round,
       category: round.category,
       pressure: round.pressure,
-      staff_focus_json: JSON.stringify([consultantId])
+      staff_focus_json: JSON.stringify([consultantId]),
+      current_node_id: caseFile.current_node_id,
+      context_json: JSON.stringify(context)
     },
     option,
     baseEffects
@@ -6685,12 +8799,12 @@ function chooseAction(caseFile, round, preset, actionId) {
   const resolvedOutcome = lossAfterAction
     ? {
         ...dynamicOutcome,
-        note: `${dynamicOutcome.note} ${lossAfterAction.message} Your dealership is out of the game.`.trim()
+        note: `${dynamicOutcome.note} ${lossAfterAction.message} Your restaurant is out of the game.`.trim()
       }
     : dynamicOutcome;
 
-  const nextNodeId = option.nextNodeId || null;
   const nextStep = Number(context.stepIndex || 1) + 1;
+  const nextNodeId = option.nextNodeId || (nextStep <= MIN_CASE_STEPS ? buildSyntheticNodeId(nextStep) : null);
   const nextContext = {
     ...context,
     selectedConsultantId: null,
@@ -6709,6 +8823,26 @@ function chooseAction(caseFile, round, preset, actionId) {
       ? Array.from(new Set([...(context.visitedNodes || []), nextNodeId]))
       : context.visitedNodes || []
   };
+  const priorImpact = summarizeCaseChoices(getCaseChoices(caseFile.id));
+  const cumulativeImpact = {
+    salesDelta: Number(priorImpact.salesDelta || 0) + Number(resolvedOutcome.salesDelta || 0),
+    satisfactionDelta: Number(priorImpact.satisfactionDelta || 0) + Number(resolvedOutcome.satisfactionDelta || 0),
+    reputationDelta: Number(priorImpact.reputationDelta || 0) + Number(resolvedOutcome.reputationDelta || 0)
+  };
+  const futureConsequences = (!nextNodeId || lossAfterAction)
+    ? buildFutureConsequences(
+        serializeUser(caseFile.user_id),
+        round,
+        dynamicOutcome.profile || {},
+        consultantId ? [consultantId] : focusedStaffIdsFromRound(round),
+        resolvedOutcome,
+        staffEffects,
+        cumulativeImpact
+      )
+    : null;
+  if (futureConsequences?.note) {
+    resolvedOutcome.note = `${resolvedOutcome.note} ${futureConsequences.note}`.trim();
+  }
 
   db.prepare(
     `INSERT INTO case_choices
@@ -6740,7 +8874,8 @@ function chooseAction(caseFile, round, preset, actionId) {
         lossState: lossAfterAction
       },
       staffEffects,
-      "lost"
+      "lost",
+      futureConsequences
     );
     return;
   }
@@ -6760,7 +8895,7 @@ function chooseAction(caseFile, round, preset, actionId) {
     return;
   }
 
-  resolveCaseFile(caseFile, round, option, resolvedOutcome, nextContext, staffEffects);
+  resolveCaseFile(caseFile, round, option, resolvedOutcome, nextContext, staffEffects, "resolved", futureConsequences);
 }
 
 function applyDealershipOutcome(userId, dynamicOutcome, staffEffects) {
@@ -6792,7 +8927,7 @@ function applyDealershipOutcome(userId, dynamicOutcome, staffEffects) {
   return getUserLossState(userId);
 }
 
-function resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, staffEffects, status = "resolved") {
+function resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, staffEffects, status = "resolved", futureConsequences = null) {
   const now = new Date().toISOString();
   db.prepare(
     `UPDATE case_files
@@ -6828,6 +8963,513 @@ function resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, s
        VALUES (?, ?, ?, ?)`
     ).run(responseId, staffId, Math.round(Number(deltas.morale || 0)), Math.round(Number(deltas.trust || 0)));
   });
+
+  if (futureConsequences?.stateChanges) {
+    applyRestaurantStateChanges(caseFile.user_id, futureConsequences.stateChanges);
+  }
+  if (futureConsequences?.lingeringEffects?.length) {
+    storeLingeringEffects(caseFile.user_id, round, futureConsequences.lingeringEffects);
+  }
+}
+
+function getRoundSearchText(round) {
+  return `${round?.category || ""} ${round?.headline || ""} ${round?.body || ""}`.toLowerCase();
+}
+
+function focusedStaffIdsFromRound(round) {
+  const parsed = parseJsonValue(round?.staff_focus_json, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function isKitchenFocusedRound(round, focusedStaffIds = []) {
+  const search = getRoundSearchText(round);
+  return focusedStaffIds.some((staffId) => KITCHEN_STAFF_IDS.has(staffId))
+    || /kitchen|line|chef|cook|dish|ticket|burger|sauce|prep|wing/.test(search);
+}
+
+function isSupplySensitiveRound(round) {
+  return /supply|ingredient|silverware|fork|knife|spoon|special|stock|order|inventory|sauce/.test(getRoundSearchText(round));
+}
+
+function isBrandSensitiveRound(round) {
+  return /reputation|viral|tiktok|social|gossip|public|brand|food heaven|rival/.test(getRoundSearchText(round));
+}
+
+function isGuestSensitiveRound(round, focusedStaffIds = []) {
+  const search = getRoundSearchText(round);
+  return focusedStaffIds.some((staffId) => FLOOR_STAFF_IDS.has(staffId))
+    || /guest|customer|table|host|wait|service|dining|dog|complaint/.test(search);
+}
+
+function buildRestaurantStateInfluence(state, profile, round, focusedStaffIds, staffEffects) {
+  const trustCareScore = Number(profile.customerCare || 0) + Number(profile.transparency || 0) + Number(profile.fairness || 0);
+  const kitchenScore = Number(profile.process || 0) + Number(profile.quality || 0) + Number(profile.discipline || 0);
+  const toneScore = Number(profile.speed || 0) + Number(profile.forcefulness || 0) + Number(profile.publicAccountability || 0);
+  const careScore = Number(profile.realisticWorkload || 0) + Number(profile.respect || 0) + Number(profile.fairness || 0);
+  const processScore = Number(profile.process || 0) + Number(profile.discipline || 0);
+  const notes = [];
+  let salesDelta = 0;
+  let satisfactionDelta = 0;
+  let reputationDelta = 0;
+
+  if (state.guest_confidence >= 78 && trustCareScore >= 4) {
+    satisfactionDelta += 1;
+    reputationDelta += 1;
+    notes.push("Guests came into this event already believing in the restaurant, so visible care carried extra weight.");
+  } else if (state.guest_confidence < 45) {
+    if (trustCareScore >= 4) {
+      reputationDelta += 1;
+      notes.push("Guest confidence was shaky, but the way you handled the moment helped steady it.");
+    } else {
+      satisfactionDelta -= 2;
+      reputationDelta -= 1;
+      notes.push("Guest confidence was already fragile, so the room judged this more harshly than normal.");
+    }
+  }
+
+  if (isKitchenFocusedRound(round, focusedStaffIds)) {
+    if (state.kitchen_stability >= 78 && kitchenScore >= 4) {
+      salesDelta += 1;
+      reputationDelta += 1;
+      notes.push("A stable kitchen turned the decision into cleaner execution on the line.");
+    } else if (state.kitchen_stability < 45) {
+      if (kitchenScore >= 4) {
+        reputationDelta += 1;
+        notes.push("The kitchen was already unstable, but the structured call kept it from sliding further.");
+      } else {
+        salesDelta -= 2;
+        reputationDelta -= 1;
+        notes.push("Kitchen instability kept the restaurant from fully cashing in on this choice.");
+      }
+    }
+  }
+
+  if (state.staff_burnout >= 65) {
+    focusedStaffIds.forEach((staffId) => {
+      const current = staffEffects[staffId] || { morale: 0, trust: 0 };
+      staffEffects[staffId] = {
+        morale: current.morale - 1,
+        trust: current.trust - (toneScore >= 3 ? 1 : 0)
+      };
+    });
+    salesDelta -= 1;
+    notes.push("The team is already running hot, so this shift paid an extra burnout tax.");
+  } else if (state.staff_burnout <= 30 && careScore >= 3) {
+    satisfactionDelta += 1;
+    notes.push("Because burnout is under control, the team had more emotional room to execute the call well.");
+  }
+
+  if (isSupplySensitiveRound(round)) {
+    if (state.supply_control >= 75 && processScore >= 4) {
+      salesDelta += 1;
+      notes.push("Strong supply control kept a small operational problem from becoming a service collapse.");
+    } else if (state.supply_control < 45) {
+      if (processScore >= 4) {
+        reputationDelta += 1;
+        notes.push("Supply control is shaky, but the structured response stopped the scramble from looking worse.");
+      } else {
+        salesDelta -= 2;
+        reputationDelta -= 1;
+        notes.push("Weak supply control made this event more expensive than it should have been.");
+      }
+    }
+  }
+
+  if (isBrandSensitiveRound(round) || Number(profile.creativity || 0) + Number(profile.transparency || 0) >= 4) {
+    if (state.brand_heat >= 70) {
+      if (Number(profile.transparency || 0) + Number(profile.customerCare || 0) >= 3) {
+        salesDelta += 1;
+        reputationDelta += 1;
+        notes.push("Feast Haven already had attention on it, and the visible response translated into extra momentum.");
+      } else {
+        reputationDelta -= 1;
+        notes.push("Brand heat amplified the scrutiny around this move instead of helping it.");
+      }
+    } else if (state.brand_heat < 40 && isBrandSensitiveRound(round) && Number(profile.creativity || 0) >= 2) {
+      salesDelta -= 1;
+      notes.push("The restaurant did not have enough positive buzz to give the bold move much lift.");
+    }
+  }
+
+  return {
+    salesDelta,
+    satisfactionDelta,
+    reputationDelta,
+    notes
+  };
+}
+
+function buildLingeringEffectInfluence(activeEffects, profile, round, focusedStaffIds, staffEffects) {
+  const trustCareScore = Number(profile.customerCare || 0) + Number(profile.transparency || 0) + Number(profile.fairness || 0);
+  const kitchenScore = Number(profile.process || 0) + Number(profile.quality || 0) + Number(profile.discipline || 0);
+  const processScore = Number(profile.process || 0) + Number(profile.discipline || 0);
+  const peopleScore = Number(profile.respect || 0) + Number(profile.fairness || 0) + Number(profile.transparency || 0);
+  const toneScore = Number(profile.speed || 0) + Number(profile.forcefulness || 0) + Number(profile.publicAccountability || 0);
+  const recognitionScore = Number(profile.recognition || 0) + Number(profile.respect || 0) + Number(profile.fairness || 0);
+  const notes = [];
+  let salesDelta = 0;
+  let satisfactionDelta = 0;
+  let reputationDelta = 0;
+  let applied = 0;
+
+  for (const effect of activeEffects) {
+    if (applied >= 2) {
+      break;
+    }
+
+    let matched = false;
+    switch (effect.effectKey) {
+      case "guest-goodwill":
+        if (isGuestSensitiveRound(round, focusedStaffIds) && trustCareScore >= 3) {
+          satisfactionDelta += 1;
+          reputationDelta += 1;
+          notes.push("Guests were still carrying goodwill from an earlier call, so the room stayed more forgiving here.");
+          matched = true;
+        }
+        break;
+      case "guest-doubt":
+        if (isGuestSensitiveRound(round, focusedStaffIds)) {
+          if (trustCareScore >= 4) {
+            reputationDelta += 1;
+            notes.push("You chipped away at earlier guest doubt by handling this one more carefully.");
+          } else {
+            satisfactionDelta -= 1;
+            reputationDelta -= 1;
+            notes.push("Old guest doubt leaked back into this event and made the room less patient.");
+          }
+          matched = true;
+        }
+        break;
+      case "kitchen-locked-in":
+        if (isKitchenFocusedRound(round, focusedStaffIds) && kitchenScore >= 3) {
+          salesDelta += 1;
+          reputationDelta += 1;
+          notes.push("A steadier kitchen foundation helped this decision travel cleanly through the line.");
+          matched = true;
+        }
+        break;
+      case "kitchen-friction":
+        if (isKitchenFocusedRound(round, focusedStaffIds)) {
+          if (kitchenScore >= 4 && peopleScore >= 3) {
+            reputationDelta += 1;
+            notes.push("You worked around existing kitchen friction instead of feeding it.");
+          } else {
+            salesDelta -= 1;
+            reputationDelta -= 1;
+            notes.push("Kitchen friction from an earlier shift made this problem harder to contain.");
+          }
+          matched = true;
+        }
+        break;
+      case "supply-scramble":
+        if (isSupplySensitiveRound(round)) {
+          if (processScore >= 4) {
+            reputationDelta += 1;
+            notes.push("A disciplined response kept the earlier supply scramble from fully repeating itself.");
+          } else {
+            salesDelta -= 1;
+            reputationDelta -= 1;
+            notes.push("The earlier supply scramble was still hanging over this event.");
+          }
+          matched = true;
+        }
+        break;
+      case "brand-buzz":
+        if (isBrandSensitiveRound(round) || Number(profile.creativity || 0) >= 2) {
+          if (Number(profile.transparency || 0) + Number(profile.customerCare || 0) >= 3) {
+            salesDelta += 1;
+            reputationDelta += 1;
+            notes.push("Earlier buzz kept attention on the restaurant, and this time it helped.");
+          } else {
+            reputationDelta -= 1;
+            notes.push("Earlier buzz made this decision feel even more public than it already was.");
+          }
+          matched = true;
+        }
+        break;
+      case "staff-frustration":
+        if (effect.targetStaffId && focusedStaffIds.includes(effect.targetStaffId)) {
+          const current = staffEffects[effect.targetStaffId] || { morale: 0, trust: 0 };
+          if (peopleScore >= 4) {
+            staffEffects[effect.targetStaffId] = {
+              morale: current.morale,
+              trust: current.trust + 1
+            };
+            notes.push(`${getStaffMember(effect.targetStaffId)?.name || "A staff member"} was still frustrated from earlier, but the fairer tone helped calm it.`);
+          } else if (toneScore >= 3) {
+            staffEffects[effect.targetStaffId] = {
+              morale: current.morale - 1,
+              trust: current.trust - 1
+            };
+            notes.push(`${getStaffMember(effect.targetStaffId)?.name || "A staff member"} was already carrying frustration, so this landed worse than it would have fresh.`);
+          }
+          matched = true;
+        }
+        break;
+      case "staff-backed":
+        if (effect.targetStaffId && focusedStaffIds.includes(effect.targetStaffId) && recognitionScore >= 3) {
+          const current = staffEffects[effect.targetStaffId] || { morale: 0, trust: 0 };
+          staffEffects[effect.targetStaffId] = {
+            morale: current.morale + 1,
+            trust: current.trust + 1
+          };
+          salesDelta += 1;
+          notes.push(`${getStaffMember(effect.targetStaffId)?.name || "A staff member"} still felt backed from earlier, which gave this call a little extra lift.`);
+          matched = true;
+        }
+        break;
+      case "rival-pressure":
+        if (isBrandSensitiveRound(round) || isGuestSensitiveRound(round, focusedStaffIds)) {
+          if (recognitionScore >= 3) {
+            salesDelta += 1;
+            notes.push("The rival pressure sharpened the room just enough to help this decision.");
+          } else {
+            reputationDelta -= 1;
+            notes.push("The rival-restaurant pressure made the staff more reactive than focused.");
+          }
+          matched = true;
+        }
+        break;
+      default:
+        break;
+    }
+
+    if (matched) {
+      applied += 1;
+    }
+  }
+
+  return {
+    salesDelta,
+    satisfactionDelta,
+    reputationDelta,
+    notes
+  };
+}
+
+function getFutureConsequenceResolutionTone(outcomeTotals, focusedStaffIds, staffEffects) {
+  let score = 0;
+
+  if (Number(outcomeTotals.satisfactionDelta || 0) >= 5) {
+    score += 2;
+  } else if (Number(outcomeTotals.satisfactionDelta || 0) <= -4) {
+    score -= 2;
+  }
+
+  if (Number(outcomeTotals.reputationDelta || 0) >= 10) {
+    score += 2;
+  } else if (Number(outcomeTotals.reputationDelta || 0) <= -6) {
+    score -= 2;
+  }
+
+  if (Number(outcomeTotals.salesDelta || 0) >= 60) {
+    score += 1;
+  } else if (Number(outcomeTotals.salesDelta || 0) <= -15) {
+    score -= 1;
+  }
+
+  const focusedStaffTotal = focusedStaffIds.reduce((sum, staffId) => {
+    const effect = staffEffects[staffId] || {};
+    return sum + Number(effect.morale || 0) + Number(effect.trust || 0);
+  }, 0);
+
+  if (focusedStaffTotal >= 3) {
+    score += 1;
+  } else if (focusedStaffTotal <= -3) {
+    score -= 1;
+  }
+
+  if (score >= 4) {
+    return "positive";
+  }
+  if (score <= -4) {
+    return "negative";
+  }
+  return "mixed";
+}
+
+function applyPresetConsequenceProfile(round, resolutionTone, addState, addEffect) {
+  const presetId = String(round?.presetId || round?.preset_id || "").trim();
+  const profile = PRESET_CONSEQUENCE_PROFILES[presetId];
+  if (!profile) {
+    return;
+  }
+
+  const toneKey = resolutionTone === "positive"
+    ? "positive"
+    : resolutionTone === "negative"
+      ? "negative"
+      : "mixed";
+  const statePack = profile[`${toneKey}State`] || {};
+  const effectPack = profile[`${toneKey}Effects`] || [];
+
+  Object.entries(statePack).forEach(([key, delta]) => addState(key, delta));
+  effectPack.forEach((effect) => addEffect(effect));
+}
+
+function buildFutureConsequences(user, round, profile, focusedStaffIds, dynamicOutcome, staffEffects, cumulativeImpact = null) {
+  const trustCareScore = Number(profile.customerCare || 0) + Number(profile.transparency || 0) + Number(profile.fairness || 0);
+  const kitchenScore = Number(profile.process || 0) + Number(profile.quality || 0) + Number(profile.respect || 0);
+  const toneScore = Number(profile.speed || 0) + Number(profile.forcefulness || 0) + Number(profile.publicAccountability || 0);
+  const careScore = Number(profile.realisticWorkload || 0) + Number(profile.respect || 0) + Number(profile.fairness || 0);
+  const processScore = Number(profile.process || 0) + Number(profile.discipline || 0);
+  const recognitionScore = Number(profile.recognition || 0) + Number(profile.respect || 0) + Number(profile.fairness || 0);
+  const outcomeTotals = cumulativeImpact || dynamicOutcome;
+  const resolutionTone = getFutureConsequenceResolutionTone(outcomeTotals, focusedStaffIds, staffEffects);
+  const stateChanges = {};
+  const effects = [];
+
+  const addState = (key, delta) => {
+    stateChanges[key] = (stateChanges[key] || 0) + Number(delta || 0);
+  };
+  const addEffect = (effect) => {
+    if (!effect?.effectKey) {
+      return;
+    }
+    effects.push({
+      durationRounds: 2,
+      ...effect
+    });
+  };
+
+  if (resolutionTone === "positive" && trustCareScore >= 4 && Number(outcomeTotals.satisfactionDelta || 0) >= 0) {
+    addState("guest_confidence", 4);
+    addEffect({
+      effectKey: "guest-goodwill",
+      title: "Guests are giving Feast Haven more grace",
+      summary: "The room is carrying a little more goodwill into the next service problem.",
+      tone: "positive",
+      intensity: 3
+    });
+  } else if (resolutionTone === "negative" && (Number(outcomeTotals.satisfactionDelta || 0) < 0 || trustCareScore < 2)) {
+    addState("guest_confidence", -4);
+    addEffect({
+      effectKey: "guest-doubt",
+      title: "Guests are quicker to doubt the room",
+      summary: "The next guest-facing problem will start with less patience than usual.",
+      tone: "negative",
+      intensity: 3
+    });
+  }
+
+  if (isKitchenFocusedRound(round, focusedStaffIds)) {
+    if (resolutionTone === "positive" && kitchenScore >= 4 && Number(outcomeTotals.reputationDelta || 0) >= 0) {
+      addState("kitchen_stability", 4);
+      addEffect({
+        effectKey: "kitchen-locked-in",
+        title: "The kitchen reset is holding",
+        summary: "Back-of-house execution is steadier going into the next rush.",
+        tone: "positive",
+        intensity: 3
+      });
+    } else if (resolutionTone === "negative" || (resolutionTone === "mixed" && kitchenScore < 2)) {
+      addState("kitchen_stability", -5);
+      addEffect({
+        effectKey: "kitchen-friction",
+        title: "Kitchen tension is still hanging around",
+        summary: "The next kitchen-heavy event will feel loaded faster.",
+        tone: "negative",
+        intensity: 4
+      });
+    }
+  }
+
+  if (careScore >= 4 && toneScore < 3) {
+    addState("staff_burnout", -4);
+  } else if (toneScore >= 4 || focusedStaffIds.some((staffId) => ((staffEffects[staffId]?.morale || 0) + (staffEffects[staffId]?.trust || 0)) <= -2)) {
+    addState("staff_burnout", 5);
+  }
+
+  if (isSupplySensitiveRound(round)) {
+    if (resolutionTone === "positive" && processScore >= 4) {
+      addState("supply_control", 4);
+    } else if (resolutionTone === "negative" || (resolutionTone === "mixed" && processScore < 2)) {
+      addState("supply_control", -6);
+      addEffect({
+        effectKey: "supply-scramble",
+        title: "Supply control still feels shaky",
+        summary: "Inventory-related problems will be more sensitive for the next couple of rounds.",
+        tone: "negative",
+        intensity: 4
+      });
+    }
+  }
+
+  if (isBrandSensitiveRound(round)) {
+    if (Number(profile.creativity || 0) + Number(profile.transparency || 0) >= 3) {
+      addState("brand_heat", 5);
+      addEffect({
+        effectKey: "brand-buzz",
+        title: "The restaurant is carrying extra buzz",
+        summary: "Attention around Feast Haven is higher, for better or worse.",
+        tone: "neutral",
+        intensity: 3
+      });
+    } else {
+      addState("brand_heat", 2);
+    }
+  }
+
+  if (/food heaven|rival/.test(getRoundSearchText(round))) {
+    addEffect({
+      effectKey: "rival-pressure",
+      title: "The rival restaurant is in everyone's head",
+      summary: "Staff are more reactive to comparisons and competitive pressure.",
+      tone: "warning",
+      intensity: 3
+    });
+  }
+
+  const strongestNegativeFocused = focusedStaffIds
+    .map((staffId) => ({
+      staffId,
+      total: Number(staffEffects[staffId]?.morale || 0) + Number(staffEffects[staffId]?.trust || 0)
+    }))
+    .sort((a, b) => a.total - b.total)[0];
+  if (strongestNegativeFocused && strongestNegativeFocused.total <= -3) {
+    const staff = getStaffMember(strongestNegativeFocused.staffId);
+    addEffect({
+      effectKey: "staff-frustration",
+      title: `${staff?.name || "A staff member"} is still carrying this shift`,
+      summary: `${staff?.name || "They"} will react more strongly if the next event presses the same sore spot.`,
+      tone: "negative",
+      targetStaffId: strongestNegativeFocused.staffId,
+      intensity: 4
+    });
+  }
+
+  const strongestPositiveFocused = focusedStaffIds
+    .map((staffId) => ({
+      staffId,
+      total: Number(staffEffects[staffId]?.morale || 0) + Number(staffEffects[staffId]?.trust || 0)
+    }))
+    .sort((a, b) => b.total - a.total)[0];
+  if (strongestPositiveFocused && strongestPositiveFocused.total >= 4 && recognitionScore >= 3) {
+    const staff = getStaffMember(strongestPositiveFocused.staffId);
+    addEffect({
+      effectKey: "staff-backed",
+      title: `${staff?.name || "A staff member"} feels backed by management`,
+      summary: `${staff?.name || "They"} will give your next related decision a little more lift.`,
+      tone: "positive",
+      targetStaffId: strongestPositiveFocused.staffId,
+      intensity: 3
+    });
+  }
+
+  applyPresetConsequenceProfile(round, resolutionTone, addState, addEffect);
+
+  const dedupedEffects = effects
+    .filter((effect, index, all) => all.findIndex((entry) => entry.effectKey === effect.effectKey && entry.targetStaffId === effect.targetStaffId) === index)
+    .sort((a, b) => Number(b.intensity || 0) - Number(a.intensity || 0))
+    .slice(0, 3);
+
+  return {
+    stateChanges,
+    lingeringEffects: dedupedEffects,
+    note: dedupedEffects.length
+      ? `Carryover into future events: ${dedupedEffects.map((effect) => effect.title).join("; ")}.`
+      : ""
+  };
 }
 
 function evaluateDynamicOutcome(userId, round, option, baseEffects) {
@@ -6835,10 +9477,13 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   const user = serializeUser(userId);
   const flags = getManagerFlags(userId);
   const recentRows = getRecentDecisionRows(userId, 5);
+  const roundContext = parseJsonValue(round.context_json, {});
+  const restaurantState = getRestaurantStateMap(userId);
   const focusedStaffIds = Array.isArray(parseJsonValue(round.staff_focus_json, []))
     ? parseJsonValue(round.staff_focus_json, [])
     : [];
   const staffEffects = {};
+  const alignmentByStaff = {};
   const noteParts = [];
   const flagChanges = buildFlagChanges(profile);
 
@@ -6849,6 +9494,7 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   user.staff.forEach((staffMember) => {
     const role = getStaffMember(staffMember.id);
     const alignment = computePreferenceAlignment(role?.preferences || {}, profile);
+    alignmentByStaff[staffMember.id] = alignment;
     const isFocused = focusedStaffIds.includes(staffMember.id);
     const adjustment = convertAlignmentToStaffAdjustment(alignment, staffMember, profile, isFocused);
     if (adjustment.morale !== 0 || adjustment.trust !== 0) {
@@ -6857,6 +9503,18 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   });
 
   noteParts.push(describeDecisionFrame(round, profile));
+
+  const stateInfluence = buildRestaurantStateInfluence(
+    restaurantState,
+    profile,
+    round,
+    focusedStaffIds,
+    staffEffects
+  );
+  salesDelta += stateInfluence.salesDelta;
+  satisfactionDelta += stateInfluence.satisfactionDelta;
+  reputationDelta += stateInfluence.reputationDelta;
+  noteParts.push(...stateInfluence.notes);
 
   if (user.avgMorale > 82 && user.avgTrust > 78) {
     salesDelta += 2;
@@ -6867,7 +9525,7 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   if (user.staff.some((staff) => staff.morale < 35)) {
     salesDelta -= 3;
     reputationDelta -= 2;
-    noteParts.push("A low-morale employee slowed execution behind the scenes, so the dealership could not fully capitalize on your choice.");
+    noteParts.push("A low-morale employee slowed execution behind the scenes, so the restaurant could not fully capitalize on your choice.");
   }
 
   if (user.avgTrust < 50 && profile.customerCare >= 2) {
@@ -6875,12 +9533,74 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
     noteParts.push("Even though the decision sounded right, weak trust in leadership made the follow-through feel inconsistent.");
   }
 
+  focusedStaffIds.forEach((staffId) => {
+    const focusedStaff = user.staff.find((member) => member.id === staffId);
+    if (!focusedStaff) {
+      return;
+    }
+    const alignment = Number(alignmentByStaff[staffId] || 0);
+    if (focusedStaff.trust >= 85 && alignment >= 8) {
+      salesDelta += 1;
+      reputationDelta += 1;
+      noteParts.push(`${focusedStaff.name}'s trust in you gave this call extra follow-through on the floor.`);
+      return;
+    }
+    if (focusedStaff.trust < 55 && alignment >= 8) {
+      salesDelta -= 1;
+      noteParts.push(`${focusedStaff.name} did not fully buy into the call, so the execution landed softer than it should have.`);
+      return;
+    }
+    if (focusedStaff.trust < 40 && alignment <= -8) {
+      salesDelta -= 1;
+      reputationDelta -= 1;
+      noteParts.push(`${focusedStaff.name}'s trust was already fractured, so the bad fit with this choice hurt more than usual.`);
+    }
+  });
+
+  const relationshipSpillover = buildRelationshipSpillover(
+    user,
+    focusedStaffIds,
+    profile,
+    roundContext,
+    round.current_node_id
+  );
+  if (relationshipSpillover) {
+    const focusedCurrent = staffEffects[relationshipSpillover.focusedStaffId] || { morale: 0, trust: 0 };
+    staffEffects[relationshipSpillover.focusedStaffId] = {
+      morale: focusedCurrent.morale + relationshipSpillover.focusedAdjustment.morale,
+      trust: focusedCurrent.trust + relationshipSpillover.focusedAdjustment.trust
+    };
+
+    const counterpartCurrent = staffEffects[relationshipSpillover.counterpartStaffId] || { morale: 0, trust: 0 };
+    staffEffects[relationshipSpillover.counterpartStaffId] = {
+      morale: counterpartCurrent.morale + relationshipSpillover.counterpartAdjustment.morale,
+      trust: counterpartCurrent.trust + relationshipSpillover.counterpartAdjustment.trust
+    };
+
+    salesDelta += relationshipSpillover.salesDelta;
+    satisfactionDelta += relationshipSpillover.satisfactionDelta;
+    reputationDelta += relationshipSpillover.reputationDelta;
+    noteParts.push(relationshipSpillover.note);
+  }
+
+  const lingeringInfluence = buildLingeringEffectInfluence(
+    getActiveLingeringEffectsForRound(userId, Number(round.round_number || round.roundNumber || 0), 6),
+    profile,
+    round,
+    focusedStaffIds,
+    staffEffects
+  );
+  salesDelta += lingeringInfluence.salesDelta;
+  satisfactionDelta += lingeringInfluence.satisfactionDelta;
+  reputationDelta += lingeringInfluence.reputationDelta;
+  noteParts.push(...lingeringInfluence.notes);
+
   if ((flags.system_discipline || 0) >= 3 && profile.process + profile.discipline + profile.transparency >= 4) {
     reputationDelta += 2;
     if (["Financial Control", "Compensation", "Scheduling", "Budget Call"].includes(round.category)) {
       salesDelta += 1;
     }
-    noteParts.push("The systems you have been building made this decision easier for the dealership to execute cleanly.");
+    noteParts.push("The systems you have been building made this decision easier for the restaurant to execute cleanly.");
   }
 
   if ((flags.customer_trust || 0) >= 3 && profile.customerCare >= 2) {
@@ -6893,7 +9613,7 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
     salesDelta += 1;
     satisfactionDelta -= 2;
     reputationDelta -= 2;
-    noteParts.push("The dealership is getting faster at rushing decisions, which helped the immediate result but quietly weakened consistency.");
+    noteParts.push("The restaurant is getting faster at rushing decisions, which helped the immediate result but quietly weakened consistency.");
   }
 
   if ((flags.team_resentment || 0) >= 3 && profile.publicAccountability + profile.forcefulness >= 3) {
@@ -6907,7 +9627,7 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   if ((flags.creative_confidence || 0) >= 3 && ["Promotion", "Budget Call"].includes(round.category) && profile.creativity >= 2) {
     salesDelta += 2;
     satisfactionDelta += 1;
-    noteParts.push("Your dealership has become more confident at executing visible ideas, so the creative move generated extra lift.");
+    noteParts.push("Your restaurant has become more confident at executing visible ideas, so the creative move generated extra lift.");
   }
 
   if (isResultsFirstStreak(recentRows) && profile.speed + profile.forcefulness >= 3) {
@@ -6936,7 +9656,7 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
   if (rewardBonus !== 0) {
     salesDelta += rewardBonus;
     if (rewardBonus > 0) {
-      noteParts.push(`Strong morale and dealership reputation created a +$${rewardBonus}k reward bonus on this outcome.`);
+      noteParts.push(`Strong morale and restaurant reputation created a +$${rewardBonus}k reward bonus on this outcome.`);
     } else {
       noteParts.push(`Weak morale and reputation shaved $${Math.abs(rewardBonus)}k off the result before it hit the board.`);
     }
@@ -6958,9 +9678,139 @@ function evaluateDynamicOutcome(userId, round, option, baseEffects) {
     reputationDelta: Math.round(reputationDelta),
     staffEffects,
     flagChanges,
+    profile,
     note: noteParts.length
       ? noteParts.join(" ")
-      : "The result was shaped by the current culture of your dealership, not just the button you clicked."
+      : "The result was shaped by the current culture of your restaurant, not just the button you clicked."
+  };
+}
+
+function buildRelationshipSpillover(user, focusedStaffIds, profile, context, nodeId) {
+  const stepNumber = getSyntheticStepNumber(nodeId) || Number(context?.stepIndex || 1);
+  if (!user || stepNumber < 2 || !focusedStaffIds?.length) {
+    return null;
+  }
+
+  const candidates = focusedStaffIds
+    .map((staffId) => {
+      const focusedStaff = user.staff.find((member) => member.id === staffId);
+      const relationship = pickRelationshipEntry(staffId, context);
+      const counterpart = relationship ? user.staff.find((member) => member.id === relationship.to) : null;
+      if (!focusedStaff || !relationship || !counterpart) {
+        return null;
+      }
+      return evaluateRelationshipSpilloverEntry(focusedStaff, counterpart, relationship, profile, stepNumber);
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.weight - a.weight);
+
+  return candidates[0] || null;
+}
+
+function evaluateRelationshipSpilloverEntry(focusedStaff, counterpart, relationship, profile, stepNumber) {
+  const peopleScore = Number(profile.respect || 0) + Number(profile.fairness || 0) + Number(profile.transparency || 0) + Number(profile.customerCare || 0);
+  const structureScore = Number(profile.process || 0) + Number(profile.discipline || 0) + Number(profile.realisticWorkload || 0);
+  const hardToneScore = Number(profile.speed || 0) + Number(profile.forcefulness || 0) + Number(profile.publicAccountability || 0);
+  const spotlightScore = Number(profile.recognition || 0) + Number(profile.creativity || 0) + Number(profile.autonomy || 0);
+  const depthBoost = stepNumber >= 5 ? 2 : stepNumber >= 4 ? 1 : 0;
+
+  let focusedAdj = { morale: 0, trust: 0 };
+  let counterpartAdj = { morale: 0, trust: 0 };
+  let sales = 0;
+  let satisfaction = 0;
+  let reputation = 0;
+  let note = "";
+
+  switch (relationship.tone) {
+    case "supportive":
+      if (peopleScore + structureScore >= 5) {
+        counterpartAdj.trust += relationship.intensity >= 4 ? 2 : 1;
+        counterpartAdj.morale += depthBoost ? 1 : 0;
+        focusedAdj.trust += 1;
+        if (focusedStaff.trust >= 70) {
+          sales += 1;
+        }
+        note = `${focusedStaff.name}'s connection with ${counterpart.name} helped the call travel farther through the shift than it normally would.`;
+      } else if (hardToneScore >= 4) {
+        counterpartAdj.trust -= 1;
+        if (depthBoost) {
+          counterpartAdj.morale -= 1;
+        }
+        note = `${counterpart.name} took the harder tone poorly because their bond with ${focusedStaff.name} made the decision feel more personal.`;
+      }
+      break;
+    case "competitive":
+      if (peopleScore + structureScore >= 5) {
+        counterpartAdj.trust += 1;
+        focusedAdj.trust += 1;
+        if (depthBoost) {
+          reputation += 1;
+        }
+        note = `You turned the rivalry between ${focusedStaff.name} and ${counterpart.name} into something more constructive for this step.`;
+      } else if (spotlightScore + hardToneScore >= 4) {
+        counterpartAdj.morale -= 1;
+        counterpartAdj.trust -= 1;
+        focusedAdj.trust += 1;
+        note = `${counterpart.name} read the decision as another scorecard in the rivalry, which made the follow-through touchier.`;
+      }
+      break;
+    case "conflict":
+      if (peopleScore + structureScore >= 6 && Number(profile.publicAccountability || 0) < 2) {
+        counterpartAdj.trust += 1;
+        if (depthBoost) {
+          satisfaction += 1;
+        }
+        note = `Because you handled the tension carefully, ${counterpart.name} did not escalate the existing friction with ${focusedStaff.name}.`;
+      } else if (hardToneScore >= 3) {
+        counterpartAdj.morale -= 1 + (depthBoost ? 1 : 0);
+        counterpartAdj.trust -= relationship.intensity >= 4 ? 2 : 1;
+        if (counterpart.trust < 45) {
+          counterpartAdj.trust -= 1;
+        }
+        if (depthBoost) {
+          reputation -= 1;
+        }
+        note = `The existing friction between ${focusedStaff.name} and ${counterpart.name} made the decision hit harder than the surface numbers suggest.`;
+      }
+      break;
+    case "volatile":
+      if (peopleScore >= 4 && Number(profile.publicAccountability || 0) < 2 && Number(profile.forcefulness || 0) < 2) {
+        focusedAdj.trust += 1;
+        counterpartAdj.trust += 1;
+        if (stepNumber >= 4) {
+          satisfaction += 1;
+        }
+        note = `You gave a volatile relationship just enough structure to avoid another emotional swing this step.`;
+      } else if (hardToneScore >= 3 || Number(profile.publicAccountability || 0) >= 2) {
+        counterpartAdj.trust -= 2;
+        counterpartAdj.morale -= 1;
+        if (stepNumber >= 4) {
+          reputation -= 1;
+        }
+        note = `${relationship.counterpartName}'s history with ${focusedStaff.name} made the decision feel loaded, so the room absorbed extra damage.`;
+      }
+      break;
+    default:
+      break;
+  }
+
+  const weight = Math.abs(focusedAdj.morale) + Math.abs(focusedAdj.trust)
+    + Math.abs(counterpartAdj.morale) + Math.abs(counterpartAdj.trust)
+    + Math.abs(sales) + Math.abs(satisfaction) + Math.abs(reputation);
+  if (!weight) {
+    return null;
+  }
+
+  return {
+    focusedStaffId: focusedStaff.id,
+    counterpartStaffId: counterpart.id,
+    focusedAdjustment: focusedAdj,
+    counterpartAdjustment: counterpartAdj,
+    salesDelta: sales,
+    satisfactionDelta: satisfaction,
+    reputationDelta: reputation,
+    note,
+    weight
   };
 }
 
@@ -7067,6 +9917,7 @@ function computeRevenueDelta(baseEffects, profile) {
 function computeRevenueRewardBonus(user, outcome) {
   const { profile, baseEffects, salesDelta, satisfactionDelta, reputationDelta } = outcome;
   let bonus = 0;
+  const scoreTier = getScoreTier(user.aggregateScore);
 
   if (user.avgMorale >= 80) {
     bonus += 2;
@@ -7094,6 +9945,14 @@ function computeRevenueRewardBonus(user, outcome) {
     bonus += 1;
   }
 
+  if (scoreTier.level >= 5 && salesDelta >= 4 && satisfactionDelta >= 0 && reputationDelta >= 0) {
+    bonus += 1;
+  }
+
+  if (scoreTier.level <= 2 && (salesDelta < 0 || reputationDelta < 0)) {
+    bonus -= 1;
+  }
+
   if (Number(baseEffects.sales || 0) < 0 && (satisfactionDelta < 0 || reputationDelta < 0)) {
     bonus = Math.min(bonus, 0);
   }
@@ -7110,6 +9969,7 @@ function computePreferenceAlignment(preferences, profile) {
 function convertAlignmentToStaffAdjustment(alignment, staffMember, profile, isFocused) {
   let morale = 0;
   let trust = 0;
+  const currentTrust = Number(staffMember.trust || 0);
 
   if (alignment >= 16) {
     morale += isFocused ? 3 : 2;
@@ -7137,6 +9997,28 @@ function convertAlignmentToStaffAdjustment(alignment, staffMember, profile, isFo
   }
   if (profile.publicAccountability >= 2 && isFocused) {
     trust -= 1;
+  }
+
+  if (isFocused) {
+    if (currentTrust >= 85) {
+      if (alignment >= 8) {
+        morale += 1;
+        trust += 1;
+      } else if (alignment <= -8) {
+        trust += 1;
+      }
+    } else if (currentTrust < 55) {
+      if (alignment >= 8) {
+        trust -= 1;
+        if (currentTrust < 40) {
+          morale -= 1;
+        }
+      }
+      if (alignment <= -8) {
+        morale -= 1;
+        trust -= currentTrust < 40 ? 2 : 1;
+      }
+    }
   }
 
   return { morale, trust };
@@ -7185,7 +10067,7 @@ function describeTopStaffReaction(staffState, staffEffects) {
   const { staff, delta } = strongest;
   const total = (delta.morale || 0) + (delta.trust || 0);
   if (total >= 4) {
-    return `${staff.name} felt especially backed by this choice, which strengthened the dealership's internal follow-through.`;
+    return `${staff.name} felt especially backed by this choice, which strengthened the restaurant's internal follow-through.`;
   }
   if (total <= -4) {
     return `${staff.name} took this decision personally, and that reaction changed how smoothly the result played out.`;
@@ -7195,7 +10077,7 @@ function describeTopStaffReaction(staffState, staffEffects) {
 
 function describeDecisionFrame(round, profile) {
   if (profile.process + profile.discipline + profile.transparency >= 6) {
-    return `This was a structure-first response in a ${round.category.toLowerCase()} situation, so the dealership treated it like a policy signal, not just a one-time fix.`;
+    return `This was a structure-first response in a ${round.category.toLowerCase()} situation, so the restaurant treated it like a policy signal, not just a one-time fix.`;
   }
   if (profile.customerCare + profile.fairness >= 5) {
     return `This was a relationship-first response, which changed how both staff and customers interpreted your priorities.`;
@@ -7204,7 +10086,7 @@ function describeDecisionFrame(round, profile) {
     return `This was a momentum-first response, so the immediate result came quickly but the long-tail consequences mattered more.`;
   }
   if (profile.creativity + profile.autonomy >= 4) {
-    return `This response gave the dealership permission to move more boldly, which can help if the team is ready to execute it.`;
+    return `This response gave the restaurant permission to move more boldly, which can help if the team is ready to execute it.`;
   }
   return `The decision landed as a measured management call rather than a simple right-or-wrong answer.`;
 }
@@ -7217,7 +10099,7 @@ function describeCultureState(user, flags) {
     return "Because trust in leadership is fragile, the team watched your tone and consistency as closely as the decision itself.";
   }
   if ((flags.system_discipline || 0) >= 3) {
-    return "The dealership is starting to behave like it has real operating standards, which changes how future problems compound.";
+    return "The restaurant is starting to behave like it has real operating standards, which changes how future problems compound.";
   }
   if ((flags.speed_pressure || 0) >= 3) {
     return "The store is starting to expect fast answers from you, which helps urgency but can make sloppy habits easier to normalize.";
@@ -7284,6 +10166,69 @@ function computeAggregateScore(sales, avgMorale, avgTrust) {
   );
 }
 
+function getScoreTier(score) {
+  const numericScore = Number(score || 0);
+  const tiers = [...SCORE_TIERS].sort((a, b) => a.minScore - b.minScore);
+  let current = tiers[0];
+  let next = null;
+
+  tiers.forEach((tier, index) => {
+    if (numericScore >= tier.minScore) {
+      current = tier;
+      next = tiers[index + 1] || null;
+    }
+  });
+
+  const progressMin = current.minScore;
+  const progressMax = next ? next.minScore : Math.max(current.minScore + 20, numericScore);
+  const progress = next
+    ? clampPercent(((numericScore - progressMin) / Math.max(1, progressMax - progressMin)) * 100)
+    : 100;
+
+  return {
+    level: current.level,
+    label: current.label,
+    tone: current.tone,
+    progress,
+    nextLabel: next?.label || null,
+    nextMinScore: next?.minScore ?? null
+  };
+}
+
+function getTrustBand(trust) {
+  const value = Number(trust || 0);
+  if (value >= 85) {
+    return { label: "Locked In", tone: "success" };
+  }
+  if (value >= 70) {
+    return { label: "Strong", tone: "open" };
+  }
+  if (value >= 55) {
+    return { label: "Usable", tone: "muted" };
+  }
+  if (value >= 40) {
+    return { label: "Fragile", tone: "warning" };
+  }
+  return { label: "Fractured", tone: "danger" };
+}
+
+function describeTrustEffect(trust) {
+  const value = Number(trust || 0);
+  if (value >= 85) {
+    return "High trust: this employee amplifies good calls and absorbs more pressure before turning on you.";
+  }
+  if (value >= 70) {
+    return "Solid trust: this employee usually gives your decisions a little extra lift.";
+  }
+  if (value >= 55) {
+    return "Middle trust: this employee will go with you, but not without reservation.";
+  }
+  if (value >= 40) {
+    return "Low trust: even good decisions can land weakly with this employee.";
+  }
+  return "Broken trust: bad calls hit harder here, and even good ones struggle to recover cleanly.";
+}
+
 function scoreToFlagDelta(score) {
   if (score >= 5) {
     return 2;
@@ -7330,7 +10275,7 @@ function buildManagerProfile(flags) {
   if (discipline >= 3) {
     return {
       title: "Systems Builder",
-      summary: "Your choices are teaching the dealership to rely on process and follow-through."
+      summary: "Your choices are teaching the restaurant to rely on process and follow-through."
     };
   }
   if (customerTrust >= 3) {
@@ -7348,7 +10293,7 @@ function buildManagerProfile(flags) {
   if (speed >= 3 && resentment < 3) {
     return {
       title: "Fast-Moving Closer",
-      summary: "You lean toward decisive, results-driven calls that keep the dealership moving."
+      summary: "You lean toward decisive, results-driven calls that keep the restaurant moving."
     };
   }
   if (resentment >= 3) {
@@ -7359,7 +10304,7 @@ function buildManagerProfile(flags) {
   }
   return {
     title: "Developing Manager",
-    summary: "Your leadership style is still taking shape as the dealership responds to your pattern of choices."
+    summary: "Your leadership style is still taking shape as the restaurant responds to your pattern of choices."
   };
 }
 
@@ -7375,13 +10320,21 @@ function resetSimulation(scope) {
   db.prepare(`DELETE FROM response_staff_effects`).run();
   db.prepare(`DELETE FROM responses`).run();
   db.prepare(`DELETE FROM rounds`).run();
+  db.prepare(`DELETE FROM prediction_market_work`).run();
+  db.prepare(`DELETE FROM prediction_market_trades`).run();
+  db.prepare(`DELETE FROM prediction_market_positions`).run();
+  db.prepare(`DELETE FROM prediction_market_portfolios`).run();
+  db.prepare(`DELETE FROM prediction_markets`).run();
 
   if (scope === "results") {
     db.prepare(
       `UPDATE users SET sales = ?, satisfaction = ?, reputation = ?`
     ).run(DEFAULT_STUDENT_STATE.sales, DEFAULT_STUDENT_STATE.satisfaction, DEFAULT_STUDENT_STATE.reputation);
     const users = db.prepare(`SELECT id FROM users`).all();
-    users.forEach((user) => seedStudentStaff(user.id));
+    users.forEach((user) => {
+      initializePredictionPortfolio(user.id);
+      seedStudentStaff(user.id);
+    });
     return;
   }
 

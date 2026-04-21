@@ -35,8 +35,14 @@
 
 .report-logo {
   display: block;
-  width: min(100%, 420px);
+  width: min(100%, 440px);
   height: auto;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.28));
+}
+
+.report-wordmark {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.95;
 }
 
 .report-copy {

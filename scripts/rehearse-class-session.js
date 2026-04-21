@@ -1,15 +1,25 @@
 const http = require("http");
 
+const HOST = process.env.HOST || "127.0.0.1";
+const PORT = Number(process.env.PORT || 3000);
+const TEACHER_USERNAME = process.env.TEACHER_USERNAME || "teacher";
+const TEACHER_PASSWORD = process.env.TEACHER_PASSWORD || "showroom";
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function requestJson({ path, method = "GET", payload = null, cookie = "" }) {
   return new Promise((resolve, reject) => {
     const body = payload ? JSON.stringify(payload) : "";
     const req = http.request(
       {
-        hostname: "127.0.0.1",
-        port: 3000,
+        hostname: HOST,
+        port: PORT,
         path,
         method,
         headers: {
+          Accept: "application/json",
           ...(body
             ? {
                 "Content-Type": "application/json",
@@ -29,13 +39,19 @@ function requestJson({ path, method = "GET", payload = null, cookie = "" }) {
           try {
             parsed = raw ? JSON.parse(raw) : null;
           } catch (error) {
-            reject(new Error(`Could not parse JSON from ${method} ${path}: ${raw.slice(0, 200)}`));
+            reject(new Error(`Could not parse JSON from ${method} ${path}: ${raw.slice(0, 240)}`));
             return;
           }
+
+          const nextCookieHeader = Array.isArray(res.headers["set-cookie"])
+            ? res.headers["set-cookie"][0]
+            : res.headers["set-cookie"];
+          const nextCookie = nextCookieHeader ? String(nextCookieHeader).split(";")[0] : cookie;
+
           resolve({
             status: res.statusCode,
             body: parsed,
-            cookie: res.headers["set-cookie"]?.[0] || cookie
+            cookie: nextCookie
           });
         });
       }
@@ -55,134 +71,295 @@ function expect(condition, message) {
   }
 }
 
-async function main() {
+function buildStudents(avatarOptions) {
   const stamp = Date.now();
-  const students = [
+  return [
     {
-      displayName: "Rehearsal Alpha",
-      username: `rehearsal_alpha_${stamp}`,
-      password: "class123"
+      key: "steady",
+      displayName: "Rehearsal Steady",
+      username: `rehearsal_steady_${stamp}`,
+      password: "class123",
+      pauseMs: 140,
+      avatarId: avatarOptions[0]?.id || null
     },
     {
-      displayName: "Rehearsal Bravo",
-      username: `rehearsal_bravo_${stamp}`,
-      password: "class123"
+      key: "bold",
+      displayName: "Rehearsal Bold",
+      username: `rehearsal_bold_${stamp}`,
+      password: "class123",
+      pauseMs: 260,
+      avatarId: avatarOptions[1]?.id || avatarOptions[0]?.id || null
+    },
+    {
+      key: "balanced",
+      displayName: "Rehearsal Balanced",
+      username: `rehearsal_balanced_${stamp}`,
+      password: "class123",
+      pauseMs: 380,
+      avatarId: avatarOptions[2]?.id || avatarOptions[0]?.id || null
     }
   ];
+}
 
-  const studentSessions = [];
-  for (const student of students) {
-    const response = await requestJson({
-      path: "/api/register",
-      method: "POST",
-      payload: student
-    });
-    expect(response.status === 201, `Expected student registration to succeed for ${student.username}`);
-    studentSessions.push({ ...student, cookie: response.cookie, user: response.body.user });
+function chooseFromList(items, studentKey, stepIndex) {
+  if (!Array.isArray(items) || !items.length) {
+    return null;
   }
+
+  if (studentKey === "bold") {
+    return items[items.length - 1];
+  }
+  if (studentKey === "balanced") {
+    return items[stepIndex % items.length];
+  }
+  return items[0];
+}
+
+function chooseOptionId(studentCase, studentKey) {
+  expect(studentCase, "Student case disappeared mid-rehearsal.");
+
+  if (studentCase.currentPhase === "consultant") {
+    const consultant = chooseFromList(studentCase.availableConsultants, studentKey, studentCase.stepIndex || 1);
+    expect(consultant?.id, `No consultant option was available for ${studentKey}.`);
+    return consultant.id;
+  }
+
+  if (studentCase.currentPhase === "action") {
+    const option = chooseFromList(studentCase.actionOptions, studentKey, studentCase.stepIndex || 1);
+    expect(option?.id, `No action option was available for ${studentKey}.`);
+    return option.id;
+  }
+
+  throw new Error(`Unknown case phase: ${studentCase.currentPhase}`);
+}
+
+function pickPreset(presets) {
+  const preferredOrder = [
+    "open-close-kitchen-feud",
+    "wrong-orders-handwriting",
+    "viral-gossip-backfire",
+    "food-heaven-rivalry"
+  ];
+
+  for (const presetId of preferredOrder) {
+    const match = (presets || []).find((entry) => entry.id === presetId);
+    if (match) {
+      return match;
+    }
+  }
+
+  return (presets || [])[0] || null;
+}
+
+async function runStudentFlow(student) {
+  let snapshot = student.bootstrap;
+  let turnsTaken = 0;
+
+  for (let guard = 0; guard < 24; guard += 1) {
+    const round = snapshot.currentRound;
+    expect(round, `No current round was available for ${student.username}.`);
+
+    if (round.userResponse) {
+      return {
+        username: student.username,
+        displayName: student.displayName,
+        turnsTaken,
+        responseId: round.userResponse.id,
+        optionLabel: round.userResponse.optionLabel,
+        salesDelta: round.userResponse.salesDelta,
+        satisfactionDelta: round.userResponse.satisfactionDelta,
+        reputationDelta: round.userResponse.reputationDelta
+      };
+    }
+
+    const studentCase = round.studentCase;
+    const beforePhase = studentCase?.currentPhase || null;
+    const beforeStep = studentCase?.stepIndex || null;
+    const optionId = chooseOptionId(studentCase, student.key);
+
+    const response = await requestJson({
+      path: "/api/respond",
+      method: "POST",
+      cookie: student.cookie,
+      payload: { optionId }
+    });
+
+    expect(response.status === 200, `Response submission failed for ${student.username} at ${beforePhase}.`);
+    snapshot = response.body;
+    turnsTaken += 1;
+    await sleep(student.pauseMs);
+
+    const updatedRound = snapshot.currentRound;
+    expect(updatedRound, `Current round disappeared after a response for ${student.username}.`);
+
+    if (updatedRound.userResponse) {
+      continue;
+    }
+
+    const updatedCase = updatedRound.studentCase;
+    expect(updatedCase, `Student case disappeared after a response for ${student.username}.`);
+    expect(
+      updatedCase.currentPhase !== beforePhase || updatedCase.stepIndex !== beforeStep,
+      `Case progress did not change for ${student.username} after sending ${optionId}.`
+    );
+  }
+
+  throw new Error(`Rehearsal flow did not resolve for ${student.username} within the guard limit.`);
+}
+
+function verifyLeaderboards(teacherBootstrap, students) {
+  const leaderboards = teacherBootstrap.body?.leaderboards || {};
+  const overall = leaderboards.overall?.entries || [];
+  const revenue = leaderboards.revenue?.entries || [];
+  const culture = leaderboards.culture?.entries || [];
+
+  expect(overall.length === students.length, "Overall leaderboard did not include every rehearsal student.");
+  expect(revenue.length === students.length, "Revenue leaderboard did not include every rehearsal student.");
+  expect(culture.length === students.length, "Culture leaderboard did not include every rehearsal student.");
+
+  students.forEach((student) => {
+    expect(
+      overall.some((entry) => entry.username === student.username),
+      `Overall leaderboard is missing ${student.username}.`
+    );
+  });
+}
+
+async function main() {
+  console.log(`Running Feast Haven rehearsal against http://${HOST}:${PORT}`);
 
   const teacherLogin = await requestJson({
     path: "/api/admin/login",
     method: "POST",
-    payload: { username: "teacher", password: "market-open" }
+    payload: {
+      username: TEACHER_USERNAME,
+      password: TEACHER_PASSWORD
+    }
   });
   expect(teacherLogin.status === 200, "Teacher login failed.");
   const teacherCookie = teacherLogin.cookie;
 
-  const openMarket = await requestJson({
-    path: "/api/admin/market",
+  const resetResponse = await requestJson({
+    path: "/api/admin/reset",
+    method: "POST",
+    cookie: teacherCookie,
+    payload: { scope: "full" }
+  });
+  expect(resetResponse.status === 200, "Full reset failed.");
+
+  const openSession = await requestJson({
+    path: "/api/admin/session",
     method: "POST",
     cookie: teacherCookie,
     payload: { isOpen: true }
   });
-  expect(openMarket.status === 200, "Opening the market failed.");
-  expect(openMarket.body.market.isOpen === true, "Market did not report as open.");
-
-  const alphaBuy = await requestJson({
-    path: "/api/trade",
-    method: "POST",
-    cookie: studentSessions[0].cookie,
-    payload: { ticker: "HHS", side: "buy", shares: 40 }
-  });
-  expect(alphaBuy.status === 200, "Alpha buy order failed.");
-
-  const bravoBuyOne = await requestJson({
-    path: "/api/trade",
-    method: "POST",
-    cookie: studentSessions[1].cookie,
-    payload: { ticker: "MC", side: "buy", shares: 10 }
-  });
-  expect(bravoBuyOne.status === 200, "Bravo first buy order failed.");
-
-  const bravoBuyTwo = await requestJson({
-    path: "/api/trade",
-    method: "POST",
-    cookie: studentSessions[1].cookie,
-    payload: { ticker: "WW", side: "buy", shares: 20 }
-  });
-  expect(bravoBuyTwo.status === 200, "Bravo second buy order failed.");
-
-  const eventPublish = await requestJson({
-    path: "/api/admin/event",
-    method: "POST",
-    cookie: teacherCookie,
-    payload: {
-      headline: "Rehearsal market shake-up",
-      body: "A practice event jolts the fake market so we can validate the classroom flow end to end.",
-      effects: [
-        { ticker: "HHS", percentChange: 12 },
-        { ticker: "MC", percentChange: -6 },
-        { ticker: "WW", percentChange: 4 }
-      ]
-    }
-  });
-  expect(eventPublish.status === 200, "Teacher event publishing failed.");
-  expect(eventPublish.body.events[0]?.headline === "Rehearsal market shake-up", "Latest event did not appear in feed.");
-
-  const closeMarket = await requestJson({
-    path: "/api/admin/market",
-    method: "POST",
-    cookie: teacherCookie,
-    payload: { isOpen: false }
-  });
-  expect(closeMarket.status === 200, "Closing the market failed.");
-  expect(closeMarket.body.market.isOpen === false, "Market did not report as closed.");
-
-  const blockedTrade = await requestJson({
-    path: "/api/trade",
-    method: "POST",
-    cookie: studentSessions[0].cookie,
-    payload: { ticker: "HHS", side: "buy", shares: 1 }
-  });
-  expect(blockedTrade.status === 400, "Trade after market close should have been blocked.");
+  expect(openSession.status === 200, "Opening the class session failed.");
+  expect(openSession.body.game?.isOpen === true, "Class session did not report as open.");
 
   const teacherBootstrap = await requestJson({
     path: "/api/bootstrap",
+    method: "GET",
     cookie: teacherCookie
   });
   expect(teacherBootstrap.status === 200, "Teacher bootstrap fetch failed.");
 
-  const leaderboard = teacherBootstrap.body.leaderboard || [];
-  const alphaEntry = leaderboard.find((entry) => entry.username === students[0].username);
-  const bravoEntry = leaderboard.find((entry) => entry.username === students[1].username);
+  const selectedPreset = pickPreset(teacherBootstrap.body.presets || []);
+  expect(selectedPreset, "No Feast Haven scenario presets were available.");
 
-  expect(alphaEntry, "Alpha student missing from leaderboard.");
-  expect(bravoEntry, "Bravo student missing from leaderboard.");
-  expect(alphaEntry.positionsCount >= 1, "Alpha should have at least one active position.");
-  expect(bravoEntry.positionsCount >= 2, "Bravo should have two active positions.");
-
-  const tradeFeed = teacherBootstrap.body.admin?.recentTrades || [];
+  const publishResponse = await requestJson({
+    path: "/api/admin/round/publish",
+    method: "POST",
+    cookie: teacherCookie,
+    payload: {
+      presetId: selectedPreset.id
+    }
+  });
+  expect(publishResponse.status === 200, "Publishing a rehearsal round failed.");
   expect(
-    tradeFeed.some((trade) => trade.username === students[0].username) &&
-      tradeFeed.some((trade) => trade.username === students[1].username),
-    "Recent trade feed did not include both rehearsal students."
+    publishResponse.body.currentRound?.presetId === selectedPreset.id,
+    "Published round did not match the chosen preset."
   );
 
-  console.log("Rehearsal complete.");
-  console.log(`Students created: ${students.map((student) => student.username).join(", ")}`);
-  console.log(`Leaderboard entries verified: ${alphaEntry.rank}, ${bravoEntry.rank}`);
-  console.log(`Latest event: ${teacherBootstrap.body.events[0]?.headline}`);
-  console.log(`Blocked trade after close: ${blockedTrade.body?.error || "yes"}`);
+  const students = [];
+  for (const student of buildStudents(teacherBootstrap.body.avatarOptions || [])) {
+    const registerResponse = await requestJson({
+      path: "/api/register",
+      method: "POST",
+      payload: {
+        displayName: student.displayName,
+        username: student.username,
+        password: student.password,
+        ...(student.avatarId ? { avatarId: student.avatarId } : {})
+      }
+    });
+
+    expect(registerResponse.status === 201, `Student registration failed for ${student.username}.`);
+    students.push({
+      ...student,
+      cookie: registerResponse.cookie,
+      bootstrap: registerResponse.body
+    });
+  }
+
+  const flowResults = [];
+  for (const student of students) {
+    const result = await runStudentFlow(student);
+    flowResults.push(result);
+  }
+
+  const teacherAfterPlay = await requestJson({
+    path: "/api/bootstrap",
+    method: "GET",
+    cookie: teacherCookie
+  });
+  expect(teacherAfterPlay.status === 200, "Teacher bootstrap fetch after rehearsal failed.");
+
+  const currentRound = teacherAfterPlay.body.currentRound;
+  expect(currentRound, "Teacher dashboard no longer had an active round after rehearsal.");
+  expect(currentRound.responseCount === students.length, "Not every rehearsal student completed the round.");
+  expect(currentRound.responseRate === 100, "Response rate did not reach 100% after rehearsal.");
+  expect(
+    Number.isFinite(currentRound.timingStats?.averageResponseMs),
+    "Round timing stats did not populate after rehearsal."
+  );
+
+  const admin = teacherAfterPlay.body.admin;
+  expect(admin, "Teacher admin payload was missing after rehearsal.");
+  expect(admin.metrics?.studentCount === students.length, "Teacher metrics student count was incorrect.");
+  expect(admin.recentResponses?.length >= students.length, "Recent responses did not capture the rehearsal runs.");
+  expect(admin.analytics?.fastestResponder, "Fastest responder analytics did not populate.");
+  expect(admin.analytics?.slowestResponder, "Slowest responder analytics did not populate.");
+  expect(admin.students?.length === students.length, "Teacher student roster length was incorrect after rehearsal.");
+
+  students.forEach((student) => {
+    const teacherStudent = admin.students.find((entry) => entry.username === student.username);
+    expect(teacherStudent, `Teacher dashboard is missing ${student.username}.`);
+    expect(
+      Number.isFinite(teacherStudent.timingStats?.averageResolutionMs),
+      `Timing stats did not populate for ${student.username}.`
+    );
+    expect(
+      teacherStudent.currentRoundTiming?.state === "completed",
+      `${student.username} did not show as completed in the teacher timing panel.`
+    );
+  });
+
+  verifyLeaderboards(teacherAfterPlay, students);
+
+  console.log("Feast Haven rehearsal complete.");
+  console.log(`Scenario: ${currentRound.headline}`);
+  console.log(`Students: ${students.map((student) => student.username).join(", ")}`);
+  flowResults.forEach((result) => {
+    console.log(
+      `- ${result.displayName}: ${result.turnsTaken} submissions, ${result.optionLabel}, deltas ${result.salesDelta}/${result.satisfactionDelta}/${result.reputationDelta}`
+    );
+  });
+  console.log(
+    `Round timing avg: ${currentRound.timingStats.averageResponseMs} ms | fastest: ${admin.analytics.fastestResponder?.studentName || "n/a"} | slowest: ${admin.analytics.slowestResponder?.studentName || "n/a"}`
+  );
+  console.log(
+    `Leaderboards verified: overall ${teacherAfterPlay.body.leaderboards.overall.entries.length}, revenue ${teacherAfterPlay.body.leaderboards.revenue.entries.length}, culture ${teacherAfterPlay.body.leaderboards.culture.entries.length}`
+  );
 }
 
 main().catch((error) => {

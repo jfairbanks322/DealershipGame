@@ -1,11 +1,12 @@
 {
-  "name": "classroom-stock-sim",
+  "name": "feast-haven-manager",
   "version": "1.0.0",
-  "description": "Classroom stock market simulation game with teacher-controlled events.",
+  "description": "Classroom restaurant management simulation with teacher-launched events and persistent student progress.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "rehearse:class": "node scripts/rehearse-class-session.js"
   },
   "engines": {
     "node": "24.x"

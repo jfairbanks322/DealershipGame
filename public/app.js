@@ -6,89 +6,157 @@ const state = {
       presetId: "",
       headline: "",
       body: ""
-    }
+    },
+    marketPublishPopup: null,
+    selectedAvatarId: null
   }
 };
 
 const STAFF_DIRECTORY = {
   jake: {
-    name: "Jake",
-    title: "Floor Sales",
-    avatar: "/assets/staff/jake.png",
-    accent: "sales",
-    badge: "Closer"
+    name: "Adrian",
+    title: "Waiter",
+    avatar: "/assets/staff/adrian.png",
+    accent: "waiter",
+    badge: "Floor Lead"
   },
   nina: {
-    name: "Nina",
-    title: "Online Sales",
-    avatar: "/assets/staff/nina.png",
-    accent: "online",
-    badge: "CRM"
+    name: "Celia",
+    title: "Waitress",
+    avatar: "/assets/staff/celia.png",
+    accent: "waitress",
+    badge: "Section Ace"
   },
   marcus: {
-    name: "Marcus",
-    title: "Accounting",
-    avatar: "/assets/staff/marcus.png",
-    accent: "accounting",
-    badge: "Numbers"
+    name: "Omar",
+    title: "Busser",
+    avatar: "/assets/staff/omar.png",
+    accent: "busser",
+    badge: "Reset Crew"
   },
   tasha: {
-    name: "Tasha",
-    title: "Service Bay",
-    avatar: "/assets/staff/tasha.png",
-    accent: "service",
-    badge: "Shop"
+    name: "Chef Renata",
+    title: "Head Chef",
+    avatar: "/assets/staff/chef-renata.png",
+    accent: "chef",
+    badge: "Expo"
   },
   elena: {
-    name: "Elena",
-    title: "Marketing",
-    avatar: "/assets/staff/elena.png",
-    accent: "marketing",
-    badge: "Brand"
+    name: "Marisol",
+    title: "Hostess",
+    avatar: "/assets/staff/marisol.png",
+    accent: "hostess",
+    badge: "Front Door"
+  },
+  luis: {
+    name: "Theo",
+    title: "Line Cook",
+    avatar: "/assets/staff/theo.png",
+    accent: "line",
+    badge: "Grill"
+  },
+  priya: {
+    name: "Imani",
+    title: "Line Cook",
+    avatar: "/assets/staff/imani.png",
+    accent: "line",
+    badge: "Saute"
+  },
+  devon: {
+    name: "Parker",
+    title: "Host + Wait",
+    avatar: "/assets/staff/parker.png",
+    accent: "hybrid",
+    badge: "Flex"
   }
 };
 
 const EVENT_ART_DIRECTORY = {
-  "rotting-return": {
-    image: "/assets/trunk.png",
-    alt: "A blue car with a foul-smelling trunk open"
+  "open-close-kitchen-feud": {
+    image: "/assets/feast-haven/events/open-close-kitchen-feud.png",
+    alt: "Feast Haven opening staff staring at a trashed kitchen after a rough close"
   },
-  "minivan-bet-meltdown": {
-    image: "/assets/minivan.png",
-    alt: "A minivan overflowing with cash"
+  "hard-burger-ticket-war": {
+    image: "/assets/feast-haven/events/hard-burger-ticket-war.png",
+    alt: "Servers and kitchen staff arguing over a ruined burger and unreadable tickets"
   },
-  "ex-husband-drama": {
-    image: "/assets/exhusband.png",
-    alt: "A smug man in sunglasses holding up a peace sign"
+  "viral-gossip-backfire": {
+    image: "/assets/feast-haven/events/viral-gossip-backfire.png",
+    alt: "A hostess filming restaurant drama on her phone while staff argue behind her"
   },
-  "tiktok-sunroof": {
-    image: "/assets/sunroof.png",
-    alt: "A blue car with someone's legs sticking out of a shattered sunroof"
+  "emotional-support-date": {
+    image: "/assets/feast-haven/events/emotional-support-date.png",
+    alt: "A badly behaved dog causing chaos at a white-tablecloth restaurant table"
   },
-  "sleep-detox-breakdown": {
-    image: "/assets/marcusdetox.png",
-    alt: "An exhausted accountant holding a coffee cup"
+  "buffalo-breakdown": {
+    image: "/assets/feast-haven/events/buffalo-breakdown.png",
+    alt: "Feast Haven kitchen staff panicking after running out of buffalo sauce midweek"
   },
-  "church-flyer-disaster": {
-    image: "/assets/churchlady.png",
-    alt: "A shocked church lady holding an offensive ad flyer"
+  "busser-flirt-slowdown": {
+    image: "/assets/feast-haven/events/busser-flirt-slowdown.png",
+    alt: "A busser charming guests while jealous coworkers watch from a messy service area"
   },
-  "gym-ego-spiral": {
-    image: "/assets/gym.png",
-    alt: "Jake flexing with oversized confidence after getting obsessed with the gym"
+  "chef-mad-scientist-menu": {
+    image: "/assets/feast-haven/events/chef-mad-scientist-menu.png",
+    alt: "Chef Renata proudly presenting wild experimental dishes while the staff look stressed"
   },
-  "airpods-ultimatum": {
-    image: "/assets/airpods.png",
-    alt: "An angry Tasha pulling at her hair after losing her AirPods"
+  "silverware-collapse": {
+    image: "/assets/feast-haven/events/silverware-collapse.png",
+    alt: "Restaurant staff trying to serve a dining room with only a handful of silverware"
   },
-  "closet-side-hustle": {
-    image: "/assets/clothes.png",
-    alt: "A dealership website listing both cars and expensive used clothes"
+  "dirty-dishes-war": {
+    image: "/assets/feast-haven/events/dirty-dishes-war.png",
+    alt: "Kitchen, dish, and floor staff in a full blame spiral over grimy plates"
   },
-  "daycare-breakdown": {
-    image: "/assets/marcuskids.png",
-    alt: "Marcus's sister's kids running wildly through the dealership"
+  "food-heaven-rivalry": {
+    image: "/assets/feast-haven/events/food-heaven-rivalry.png",
+    alt: "Feast Haven staff glaring across the street at the glowing Food Heaven opening"
   }
+};
+
+const SCORE_TIER_BADGES = {
+  1: "/assets/feast-haven/badges/badge-crossed-utensils.png",
+  2: "/assets/feast-haven/badges/badge-service-blades.png",
+  3: "/assets/feast-haven/badges/badge-cloche-banner.png",
+  4: "/assets/feast-haven/badges/badge-chef-hat.png",
+  5: "/assets/feast-haven/badges/badge-cloche-laurels.png",
+  6: "/assets/feast-haven/badges/badge-royal-service.png"
+};
+
+const TRUST_BADGE_BY_TONE = {
+  danger: "/assets/feast-haven/trust-badges/trust-low.png",
+  warning: "/assets/feast-haven/trust-badges/trust-low.png",
+  muted: "/assets/feast-haven/trust-badges/trust-guarded.png",
+  open: "/assets/feast-haven/trust-badges/trust-guarded.png",
+  success: "/assets/feast-haven/trust-badges/trust-high.png"
+};
+
+const CASE_STAGE_META = {
+  1: { label: "Opening Issue", icon: "/assets/feast-haven/case-stage-icons/stage-1-opening-issue.png" },
+  2: { label: "First Response", icon: "/assets/feast-haven/case-stage-icons/stage-2-first-response.png" },
+  3: { label: "Escalation", icon: "/assets/feast-haven/case-stage-icons/stage-3-escalation.png" },
+  4: { label: "Internal Fallout", icon: "/assets/feast-haven/case-stage-icons/stage-4-internal-fallout.png" },
+  5: { label: "Public Consequence", icon: "/assets/feast-haven/case-stage-icons/stage-5-public-consequence.png" },
+  6: { label: "Final Resolution", icon: "/assets/feast-haven/case-stage-icons/stage-6-final-resolution.png" }
+};
+
+const AWARD_ICON_BY_ID = {
+  rainmaker: "/assets/feast-haven/award-icons/award-revenue-bag.png",
+  profit_protector: "/assets/feast-haven/award-icons/award-revenue-bag.png",
+  culture_builder: "/assets/feast-haven/award-icons/award-team-lineup.png",
+  people_first: "/assets/feast-haven/award-icons/award-team-lineup.png",
+  showroom_anchor: "/assets/feast-haven/award-icons/award-team-lineup.png",
+  trusted_leader: "/assets/feast-haven/award-icons/award-trust-heartshield.png",
+  customer_whisperer: "/assets/feast-haven/award-icons/award-trust-heartshield.png",
+  reputation_shield: "/assets/feast-haven/award-icons/award-trust-heartshield.png",
+  balanced_boss: "/assets/feast-haven/award-icons/award-balance-scales.png",
+  systems_builder: "/assets/feast-haven/award-icons/award-balance-scales.png",
+  steady_hand: "/assets/feast-haven/award-icons/award-balance-scales.png",
+  comeback_manager: "/assets/feast-haven/award-icons/award-phoenix-cup.png",
+  resilience_engine: "/assets/feast-haven/award-icons/award-phoenix-cup.png",
+  hard_lesson: "/assets/feast-haven/award-icons/award-phoenix-cup.png",
+  growth_promoter: "/assets/feast-haven/award-icons/award-chef-cup.png",
+  fast_closer: "/assets/feast-haven/award-icons/award-chef-cup.png"
 };
 
 const refs = {
@@ -108,6 +176,14 @@ const refs = {
   scenarioForm: document.getElementById("scenario-form"),
   presetSelect: document.getElementById("preset-select"),
   scenarioPreview: document.getElementById("scenario-preview"),
+  predictionMarketForm: document.getElementById("prediction-market-form"),
+  predictionMarketList: document.getElementById("prediction-market-list"),
+  studentAvatarPicker: document.getElementById("student-avatar-picker"),
+  studentAvatarInput: document.getElementById("student-avatar-id"),
+  marketPublishPopup: document.getElementById("market-publish-popup"),
+  marketPublishTitle: document.getElementById("market-publish-title"),
+  marketPublishDetail: document.getElementById("market-publish-detail"),
+  marketPublishMeta: document.getElementById("market-publish-meta"),
   studentRoster: document.getElementById("student-roster"),
   teacherFeed: document.getElementById("teacher-feed"),
   leaderboard: document.getElementById("leaderboard"),
@@ -126,6 +202,14 @@ refs.teacherSettingsForm.addEventListener("submit", handleTeacherSettingsSubmit)
 refs.scenarioForm.addEventListener("submit", handleScenarioSubmit);
 refs.scenarioForm.addEventListener("input", handleScenarioDraftChange);
 refs.scenarioForm.addEventListener("change", handleScenarioDraftChange);
+refs.registerForm.addEventListener("click", handleRegisterFormClick);
+if (refs.predictionMarketForm) {
+  refs.predictionMarketForm.addEventListener("submit", handlePredictionMarketSubmit);
+}
+document.addEventListener("click", handleDocumentClick);
+if (refs.predictionMarketList) {
+  refs.predictionMarketList.addEventListener("click", handlePredictionMarketListClick);
+}
 refs.teacherControls.addEventListener("click", handleTeacherControlsClick);
 refs.studentRoundPanel.addEventListener("click", handleStudentRoundClick);
 refs.studentRoster.addEventListener("click", handleStudentRosterClick);
@@ -147,6 +231,7 @@ async function bootstrap(showErrors = true) {
     }
     state.data = await response.json();
     syncScenarioDraft();
+    syncAvatarSelection();
     render();
   } catch (error) {
     if (showErrors) {
@@ -176,6 +261,26 @@ function syncScenarioDraft() {
   const stillExists = state.data.presets.some((preset) => preset.id === state.ui.scenarioDraft.presetId);
   if (!stillExists) {
     state.ui.scenarioDraft.presetId = state.data.presets[0].id;
+  }
+}
+
+function syncAvatarSelection() {
+  const options = state.data?.avatarOptions || [];
+  if (!options.length) {
+    state.ui.selectedAvatarId = null;
+    if (refs.studentAvatarInput) {
+      refs.studentAvatarInput.value = "";
+    }
+    return;
+  }
+
+  const stillExists = options.some((option) => option.id === state.ui.selectedAvatarId);
+  if (!stillExists) {
+    state.ui.selectedAvatarId = options[0].id;
+  }
+
+  if (refs.studentAvatarInput) {
+    refs.studentAvatarInput.value = state.ui.selectedAvatarId || "";
   }
 }
 
@@ -209,6 +314,9 @@ async function handleAuth(event, endpoint) {
     const ok = await postJson(endpoint, payload);
     if (ok) {
       form.reset();
+      if (endpoint === "/api/register") {
+        state.ui.selectedAvatarId = null;
+      }
     }
   } finally {
     setAuthPending(false);
@@ -249,6 +357,16 @@ function handleScenarioDraftChange() {
     body: String(refs.scenarioForm.elements.body.value || "")
   };
   renderScenarioPreview();
+}
+
+function handleRegisterFormClick(event) {
+  const avatarButton = event.target.closest("[data-avatar-option]");
+  if (!avatarButton) {
+    return;
+  }
+
+  state.ui.selectedAvatarId = String(avatarButton.dataset.avatarOption || "");
+  renderRegisterAvatarPicker();
 }
 
 async function handleScenarioSubmit(event) {
@@ -301,6 +419,60 @@ async function handleTeacherControlsClick(event) {
     if (window.confirm("Delete all student accounts and reset the whole simulation?")) {
       await postJson("/api/admin/reset", { scope: "full" });
     }
+  }
+}
+
+async function handlePredictionMarketSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const payload = Object.fromEntries(new FormData(form).entries());
+  payload.probability = Number(payload.probability);
+  payload.evidence = Number(payload.evidence);
+  payload.hype = Number(payload.hype);
+
+  const ok = await postJson("/api/admin/prediction-markets/create", payload);
+  if (ok) {
+    form.reset();
+    form.elements.probability.value = "50";
+    form.elements.evidence.value = "55";
+    form.elements.hype.value = "35";
+    state.ui.marketPublishPopup = {
+      title: payload.title,
+      description: payload.description,
+      desk: payload.desk || "Class market",
+      category: payload.category || "Classroom question",
+      probability: payload.probability,
+      evidence: payload.evidence,
+      hype: payload.hype
+    };
+    renderMarketPublishPopup();
+  }
+}
+
+function handleDocumentClick(event) {
+  if (!event.target.closest("[data-market-publish-close]")) {
+    return;
+  }
+
+  state.ui.marketPublishPopup = null;
+  renderMarketPublishPopup();
+}
+
+async function handlePredictionMarketListClick(event) {
+  const resolveButton = event.target.closest("button[data-resolve-market]");
+  if (resolveButton) {
+    await postJson("/api/admin/prediction-markets/resolve", {
+      marketId: resolveButton.dataset.resolveMarket,
+      resolution: resolveButton.dataset.resolution
+    });
+    return;
+  }
+
+  const archiveButton = event.target.closest("button[data-archive-market]");
+  if (archiveButton) {
+    await postJson("/api/admin/prediction-markets/archive", {
+      marketId: archiveButton.dataset.archiveMarket
+    });
   }
 }
 
@@ -403,7 +575,30 @@ function render() {
   renderTeacherView();
   renderLeaderboard();
   renderRoundFeed();
+  renderMarketPublishPopup();
   updateAutomationHooks();
+}
+
+function renderMarketPublishPopup() {
+  if (!refs.marketPublishPopup) {
+    return;
+  }
+
+  const popup = state.ui.marketPublishPopup;
+  refs.marketPublishPopup.classList.toggle("hidden", !popup);
+  if (!popup) {
+    return;
+  }
+
+  refs.marketPublishTitle.textContent = popup.title;
+  refs.marketPublishDetail.textContent = popup.description;
+  refs.marketPublishMeta.innerHTML = [
+    `<span class="tag subtle">${escapeHtml(popup.desk)}</span>`,
+    `<span class="tag subtle">${escapeHtml(popup.category)}</span>`,
+    `<span class="tag subtle">Opening YES ${escapeHtml(String(popup.probability))}%</span>`,
+    `<span class="tag subtle">Evidence ${escapeHtml(String(popup.evidence))}</span>`,
+    `<span class="tag subtle">Hype ${escapeHtml(String(popup.hype))}</span>`
+  ].join("");
 }
 
 function renderAuthSection() {
@@ -413,9 +608,39 @@ function renderAuthSection() {
   }
 
   refs.authSection.classList.remove("hidden");
+  renderRegisterAvatarPicker();
+}
+
+function renderRegisterAvatarPicker() {
+  const options = state.data?.avatarOptions || [];
+  if (!refs.studentAvatarPicker) {
+    return;
+  }
+
+  refs.studentAvatarInput.value = state.ui.selectedAvatarId || "";
+  refs.studentAvatarPicker.innerHTML = options.length
+    ? options.map((option) => renderAvatarOption(option, option.id === state.ui.selectedAvatarId)).join("")
+    : `<div class="empty-state">Manager portraits will appear here once the Feast Haven library is available.</div>`;
+}
+
+function renderAvatarOption(option, isSelected) {
+  return `
+    <button
+      class="avatar-option ${isSelected ? "avatar-option-selected" : ""}"
+      type="button"
+      data-avatar-option="${escapeHtml(option.id)}"
+      aria-pressed="${isSelected ? "true" : "false"}"
+    >
+      <img class="avatar-option-image" src="${escapeHtml(option.path)}" alt="Manager portrait ${escapeHtml(option.id)}" />
+    </button>
+  `;
 }
 
 function renderMarketStatus() {
+  if (!refs.marketStatusPanel) {
+    return;
+  }
+
   const { game, leaderboard, rules, currentRound } = state.data;
   refs.marketStatusPanel.innerHTML = `
     <div class="status-stack">
@@ -444,8 +669,8 @@ function renderMarketStatus() {
       <p class="note">
         ${game.isOpen
           ? currentRound
-            ? "Students are working through a shared dealership event, but each case can branch differently."
-            : "Session is open. Launch a global dealership event when you want the next chain to begin."
+            ? "Students are working through a shared restaurant event, but each case can branch differently."
+            : "Session is open. Launch a global restaurant event when you want the next chain to begin."
           : "Open the class session before students can make management decisions."}
       </p>
     </div>
@@ -467,21 +692,25 @@ function renderSessionBar() {
         : "Session is open and waiting for the next global event."
       : "Session is closed. Open it when class begins."
     : user.isEliminated
-      ? `${user.lossState?.name || "A staff member"} quit. Your dealership is out until the teacher resets standings.`
+      ? `${user.lossState?.name || "A staff member"} quit. Your restaurant is out until the teacher resets standings.`
       : game.isOpen
         ? currentRound
           ? currentRound.studentCase?.status === "resolved"
             ? "You resolved the current event chain. Watch the leaderboard and wait for the next global event."
-            : "A global dealership event is live. Your choices will branch your dealership's case."
+            : "A global restaurant event is live. Your choices will branch your restaurant's case."
           : "Your teacher has the session open. Wait for the next global event."
         : "Your teacher has not opened the class session yet.";
 
   refs.sessionBar.classList.remove("hidden");
   refs.sessionBar.innerHTML = `
-    <div>
-      <strong>${isAdmin ? "Teacher controls unlocked" : `Welcome back, ${escapeHtml(user.displayName)}`}</strong>
-      <span>${message}</span>
-    </div>
+    ${
+      isAdmin
+        ? `<div>
+            <strong>Teacher controls unlocked</strong>
+            <span>${message}</span>
+          </div>`
+        : renderPlayerIdentity(user.displayName, message, user.avatarPath, "player-avatar-large")
+    }
     <button class="subtle" id="logout-button">Logout</button>
   `;
 
@@ -496,13 +725,20 @@ function renderStudentView() {
   }
 
   refs.studentView.classList.remove("hidden");
-  refs.studentNameHeading.textContent = `${user.displayName}'s Dealership`;
+  refs.studentNameHeading.textContent = `${user.displayName}'s Feast Haven`;
   const leaderboardEntry = state.data.leaderboard.find((entry) => entry.id === user.id) || null;
 
   refs.studentSummary.innerHTML = `
+    <div class="summary-profile">
+      <img class="player-avatar player-avatar-hero" src="${escapeHtml(user.avatarPath || "")}" alt="${escapeHtml(user.displayName)} avatar" />
+      <div>
+        <strong>${escapeHtml(user.displayName)}</strong>
+        <div class="subtext">@${escapeHtml(user.username)} · ${escapeHtml(user.managerProfile.title)}</div>
+      </div>
+    </div>
     <div class="summary-grid">
       <article class="hero-stat">
-        <span class="eyebrow">${user.isEliminated ? "Final Score" : "Dealership Score"}</span>
+        <span class="eyebrow">${user.isEliminated ? "Final Score" : "Restaurant Score"}</span>
         <strong>${formatScore(user.aggregateScore)}</strong>
         <div class="stat-subline">
           <span>${user.isEliminated ? "Eliminated" : leaderboardEntry ? `Rank #${leaderboardEntry.rank}` : "Not ranked yet"}</span>
@@ -515,15 +751,18 @@ function renderStudentView() {
         <div class="mini-stat"><span>Reputation</span><strong>${formatPercent(user.reputation)}</strong></div>
         <div class="mini-stat"><span>Avg Morale</span><strong>${formatPercent(user.avgMorale)}</strong></div>
         <div class="mini-stat"><span>Avg Trust</span><strong>${formatPercent(user.avgTrust)}</strong></div>
+        <div class="mini-stat mini-stat-badge"><span>Score Tier</span>${renderScoreTierBadge(user.scoreTier)}</div>
         <div class="mini-stat"><span>Manager Style</span><strong>${escapeHtml(user.managerProfile.title)}</strong></div>
       </div>
     </div>
-    <p class="note">${escapeHtml(user.managerProfile.summary)}</p>
+    <p class="note">${escapeHtml(`${user.managerProfile.summary} Current tier: ${user.scoreTier.label}.`)}</p>
     ${
       user.warnings.length
         ? `<div class="warning-list">${user.warnings.map((warning) => `<div class="warning-chip">${escapeHtml(warning)}</div>`).join("")}</div>`
-        : `<p class="note">Balanced management keeps dealership revenue moving without creating hidden team penalties.</p>`
+        : `<p class="note">Balanced management keeps restaurant revenue moving without creating hidden team penalties.</p>`
     }
+    ${renderRestaurantStateSection(user.restaurantState)}
+    ${renderLingeringEffectsPanel(user.lingeringEffects)}
   `;
 
   refs.studentRoundPanel.innerHTML = renderStudentRoundPanel();
@@ -540,34 +779,34 @@ function renderStudentRoundPanel() {
     return `
       <article class="decision-card loss-card">
         <div class="section-head compact">
-          <p class="eyebrow">Dealership Eliminated</p>
-          <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
-        </div>
-        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your dealership is out of the game.")}</p>
-        <p class="note">The class session is closed, and this dealership will stay out until the teacher resets standings.</p>
+        <p class="eyebrow">Restaurant Eliminated</p>
+        <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
+      </div>
+      <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your restaurant is out of the game.")}</p>
+      <p class="note">The class session is closed, and this restaurant will stay out until the teacher resets standings.</p>
       </article>
     `;
   }
 
   if (!game.isOpen) {
-    return `<div class="empty-state">The class session is closed right now. Once your teacher opens it, live staff situations will appear here.</div>`;
+    return `<div class="empty-state">The class session is closed right now. Once your teacher opens it, live restaurant situations will appear here.</div>`;
   }
 
   if (user.isEliminated && !currentRound) {
     return `
       <article class="decision-card loss-card">
         <div class="section-head compact">
-          <p class="eyebrow">Dealership Eliminated</p>
-          <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
-        </div>
-        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your dealership is out of the game.")}</p>
-        <p class="note">No new global event is active, and this dealership will not receive the next one unless standings are reset.</p>
+        <p class="eyebrow">Restaurant Eliminated</p>
+        <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
+      </div>
+      <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your restaurant is out of the game.")}</p>
+      <p class="note">No new global event is active, and this restaurant will not receive the next one unless standings are reset.</p>
       </article>
     `;
   }
 
   if (!currentRound) {
-    return `<div class="empty-state">Session is open, but there is no active global event yet. Stay ready for the next dealership crisis.</div>`;
+    return `<div class="empty-state">Session is open, but there is no active global event yet. Stay ready for the next restaurant crisis.</div>`;
   }
 
   const studentCase = currentRound.studentCase;
@@ -582,12 +821,12 @@ function renderStudentRoundPanel() {
         ${currentRound ? eventOverview : ""}
         <article class="decision-card case-step-card loss-card">
           <div class="section-head compact">
-            <p class="eyebrow">Dealership Eliminated</p>
-            <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
-          </div>
-          <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your dealership is out of the game.")}</p>
-          <div class="impact-summary">
-            <strong>Final standing snapshot</strong>
+          <p class="eyebrow">Restaurant Eliminated</p>
+          <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
+        </div>
+        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your restaurant is out of the game.")}</p>
+        <div class="impact-summary">
+          <strong>Final standing snapshot</strong>
             <div class="impact-grid">
               <div class="impact-chip positive">Score ${formatScore(user.aggregateScore)}</div>
               <div class="impact-chip positive">Revenue ${formatRevenue(user.sales)}</div>
@@ -595,7 +834,7 @@ function renderStudentRoundPanel() {
               <div class="impact-chip ${user.avgTrust >= 50 ? "positive" : "negative"}">Trust ${formatPercent(user.avgTrust)}</div>
             </div>
           </div>
-          <p class="note">You can still review the case timeline and leaderboard, but this dealership will not receive new event chains until the standings are reset.</p>
+          <p class="note">You can still review the case timeline and leaderboard, but this restaurant will not receive new event chains until the standings are reset.</p>
         </article>
         ${caseTimeline}
       </div>
@@ -625,7 +864,7 @@ function renderStudentRoundPanel() {
   }
 
   if (!studentCase) {
-    return `<div class="empty-state">Your dealership case has not started yet. Refresh in a moment if the teacher just launched the event.</div>`;
+    return `<div class="empty-state">Your restaurant case has not started yet. Refresh in a moment if the teacher just launched the event.</div>`;
   }
 
   if (studentCase.currentPhase === "consultant") {
@@ -679,6 +918,14 @@ function renderStudentRoundPanel() {
             <strong>Consulting:</strong>
             ${studentCase.selectedConsultant ? renderStaffInlineIdentity(studentCase.selectedConsultant.id, studentCase.selectedConsultant.name, "choice-pill choice-pill-person") : `<span class="choice-pill">Staff</span>`}
           </div>
+          ${
+            studentCase.selectedConsultant?.relationshipBeat
+              ? `<div class="relationship-callout">
+                  <strong>Relationship undercurrent</strong>
+                  <span>${escapeHtml(studentCase.selectedConsultant.relationshipBeat.prompt)}</span>
+                </div>`
+              : ""
+          }
           <div class="option-list">
             ${studentCase.actionOptions
               .map(
@@ -723,12 +970,114 @@ function renderCaseEventOverview(currentRound, studentCase) {
         <span class="pill pill-neutral">${escapeHtml(currentRound.pressure)} Pressure</span>
         ${
           studentCase
-            ? `<span class="pill ${studentCase.status === "lost" ? "pill-closed" : studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "lost" ? "Dealership lost" : studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
+            ? `<span class="pill ${studentCase.status === "lost" ? "pill-closed" : studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "lost" ? "Restaurant lost" : studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
             : ""
         }
       </div>
+      ${studentCase ? renderCaseStageRail(studentCase) : ""}
+      ${renderCarryoverStrip(state.data.user)}
       <p class="note">Everything below branches out from this event. The follow-up conversations and actions come from the selected event template.</p>
     </article>
+  `;
+}
+
+function renderRestaurantStateSection(states) {
+  if (!states?.length) {
+    return "";
+  }
+
+  return `
+    <section class="student-state-section">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Restaurant State</p>
+          <h3>What earlier choices changed</h3>
+        </div>
+      </div>
+      <div class="restaurant-state-grid">
+        ${states.map(renderRestaurantStateCard).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderRestaurantStateCard(stateEntry) {
+  return `
+    <article class="restaurant-state-card restaurant-state-card-${escapeHtml(stateEntry.tone || "muted")}">
+      <div class="feed-main">
+        <div>
+          <strong>${escapeHtml(stateEntry.label)}</strong>
+          <div class="subtext">${escapeHtml(stateEntry.statusLabel)}</div>
+        </div>
+        <span class="pill pill-neutral">${formatPercent(stateEntry.value)}</span>
+      </div>
+      <div class="meter">
+        <div class="meter-fill ${stateEntry.tone === "danger" ? "low" : stateEntry.key === "staff_burnout" && stateEntry.value > 55 ? "low" : ""}" style="width: ${Math.max(6, Math.min(100, Number(stateEntry.value || 0)))}%"></div>
+      </div>
+      <p class="note">${escapeHtml(stateEntry.summary)}</p>
+    </article>
+  `;
+}
+
+function renderLingeringEffectsPanel(effects) {
+  return `
+    <section class="student-state-section">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Lingering Effects</p>
+          <h3>What is still following this restaurant</h3>
+        </div>
+      </div>
+      ${
+        effects?.length
+          ? `<div class="lingering-effects-grid">${effects.slice(0, 3).map(renderLingeringEffectCard).join("")}</div>`
+          : `<p class="note">No strong aftershocks are carrying over right now. Future events will feel cleaner if you can keep it that way.</p>`
+      }
+    </section>
+  `;
+}
+
+function renderLingeringEffectCard(effect) {
+  return `
+    <article class="lingering-effect-card lingering-effect-card-${escapeHtml(effect.tone || "muted")}">
+      <div class="feed-main">
+        <div>
+          <strong>${escapeHtml(effect.title)}</strong>
+          <div class="subtext">${effect.targetStaffName ? escapeHtml(effect.targetStaffName) : "Restaurant-wide"}</div>
+        </div>
+        <span class="pill pill-neutral">${effect.roundsRemaining === 1 ? "1 round left" : `${effect.roundsRemaining} rounds left`}</span>
+      </div>
+      <p class="note">${escapeHtml(effect.summary)}</p>
+    </article>
+  `;
+}
+
+function renderCarryoverStrip(user) {
+  if (!user) {
+    return "";
+  }
+  const lowStates = (user.restaurantState || [])
+    .filter((entry) => {
+      if (entry.key === "staff_burnout") {
+        return entry.value >= 60;
+      }
+      return entry.value <= 45;
+    })
+    .slice(0, 2)
+    .map((entry) => `${entry.label}: ${entry.statusLabel}`);
+  const effectTitles = (user.lingeringEffects || []).slice(0, 2).map((entry) => entry.title);
+  const items = [...effectTitles, ...lowStates].slice(0, 3);
+  if (!items.length) {
+    return "";
+  }
+
+  return `
+    <div class="carryover-strip">
+      <strong>Carryover into this event</strong>
+      <div class="focus-row">
+        ${items.map((item) => `<span class="pill pill-neutral">${escapeHtml(item)}</span>`).join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -763,6 +1112,9 @@ function renderTeacherView() {
   refs.teacherSettingsForm.elements.salesGoal.value = admin.settings.salesGoal;
 
   refs.teacherSummary.innerHTML = `
+    <div class="teacher-scene-banner">
+      <img src="/assets/feast-haven/scenes/teacher-control-banner.png" alt="Feast Haven teacher control center artwork" />
+    </div>
     <div class="summary-grid admin-summary-grid">
       <article class="hero-stat">
         <span class="eyebrow">Top Score</span>
@@ -775,10 +1127,12 @@ function renderTeacherView() {
       <div class="mini-grid summary-mini-grid">
         <div class="mini-stat"><span>Average Revenue</span><strong>${formatRevenue(admin.metrics.averageSales)}</strong></div>
         <div class="mini-stat"><span>Average Morale</span><strong>${formatPercent(admin.metrics.averageMorale)}</strong></div>
+        <div class="mini-stat"><span>Average Pace</span><strong>${formatDurationCompact(admin.metrics.averageResponseMs)}</strong></div>
         <div class="mini-stat"><span>Completed Cases</span><strong>${currentRound ? `${admin.metrics.activeResponses}/${admin.metrics.studentCount}` : "Waiting"}</strong></div>
         <div class="mini-stat"><span>Session State</span><strong>${game.isOpen ? "Open" : "Closed"}</strong></div>
       </div>
     </div>
+    ${renderTeacherTimingHighlights(admin.analytics || {})}
     ${renderAwardsBoard(admin.awards || [])}
   `;
 
@@ -791,7 +1145,7 @@ function renderTeacherView() {
           <p class="note">
             ${
               currentRound
-                ? `Event ${currentRound.roundNumber} is active with ${currentRound.completedCount}/${currentRound.totalStudents} completed dealership cases.`
+                ? `Event ${currentRound.roundNumber} is active with ${currentRound.completedCount}/${currentRound.totalStudents} completed restaurant cases.`
                 : game.isOpen
                   ? "No global event is active yet. Launch one when you are ready."
                   : "Open the session before pushing the next event chain."
@@ -823,6 +1177,70 @@ function renderTeacherView() {
   refs.teacherFeed.innerHTML = admin.recentResponses.length
     ? `<div class="feed-list">${admin.recentResponses.map(renderTeacherFeedRow).join("")}</div>`
     : `<div class="empty-state">Student decisions will appear here once the class starts responding.</div>`;
+
+  if (refs.predictionMarketList) {
+    refs.predictionMarketList.innerHTML = admin.predictionMarkets.length
+      ? `<div class="feed-list">${admin.predictionMarkets.map(renderPredictionMarketAdminRow).join("")}</div>`
+      : `<div class="empty-state">No side lesson activities have been published yet.</div>`;
+  }
+}
+
+function renderTeacherTimingHighlights(analytics) {
+  const cards = [
+    {
+      eyebrow: "Fastest Responder",
+      tone: "positive",
+      fallbackTitle: "Waiting for finished events",
+      fallbackDetail: "Students need at least one completed case before pace rankings appear.",
+      entry: analytics.fastestResponder,
+      title: analytics.fastestResponder ? formatDurationCompact(analytics.fastestResponder.averageResolutionMs) : null,
+      detail: analytics.fastestResponder
+        ? `${escapeHtml(analytics.fastestResponder.studentName)} is leading the class average across ${analytics.fastestResponder.completedEventCount} finished ${analytics.fastestResponder.completedEventCount === 1 ? "event" : "events"}.`
+        : null,
+      chip: analytics.fastestResponder ? "Consistent pace" : "Need data"
+    },
+    {
+      eyebrow: "Slowest Responder",
+      tone: "negative",
+      fallbackTitle: "Waiting for finished events",
+      fallbackDetail: "Once students complete cases, this will show who may need time support.",
+      entry: analytics.slowestResponder,
+      title: analytics.slowestResponder ? formatDurationCompact(analytics.slowestResponder.averageResolutionMs) : null,
+      detail: analytics.slowestResponder
+        ? `${escapeHtml(analytics.slowestResponder.studentName)} currently has the slowest class average over ${analytics.slowestResponder.completedEventCount} finished ${analytics.slowestResponder.completedEventCount === 1 ? "event" : "events"}.`
+        : null,
+      chip: analytics.slowestResponder ? "Watch support" : "Need data"
+    },
+    {
+      eyebrow: "Most Improved",
+      tone: "neutral",
+      fallbackTitle: "Need two finished events",
+      fallbackDetail: "This starts tracking once someone speeds up from one completed event to the next.",
+      entry: analytics.mostImprovedResponder,
+      title: analytics.mostImprovedResponder ? `${formatDurationCompact(analytics.mostImprovedResponder.paceGainMs)} faster` : null,
+      detail: analytics.mostImprovedResponder
+        ? `${escapeHtml(analytics.mostImprovedResponder.studentName)} improved from ${formatDurationCompact(analytics.mostImprovedResponder.previousResolutionMs)} to ${formatDurationCompact(analytics.mostImprovedResponder.latestResolutionMs)} on the last completed event.`
+        : null,
+      chip: analytics.mostImprovedResponder ? "Momentum" : "Still settling"
+    }
+  ];
+
+  return `
+    <div class="teacher-analytics-grid">
+      ${cards.map(renderTeacherTimingCard).join("")}
+    </div>
+  `;
+}
+
+function renderTeacherTimingCard(card) {
+  return `
+    <article class="teacher-analytics-card">
+      <span class="eyebrow">${card.eyebrow}</span>
+      <strong>${card.title || card.fallbackTitle}</strong>
+      <span class="impact-chip ${card.tone}">${card.chip}</span>
+      <p class="teacher-analytics-detail">${card.detail || card.fallbackDetail}</p>
+    </article>
+  `;
 }
 
 function renderPresetOptions() {
@@ -872,31 +1290,13 @@ function renderScenarioPreview() {
 }
 
 function renderLeaderboard() {
-  refs.leaderboard.innerHTML = state.data.leaderboard.length
-    ? `<div class="feed-list">${state.data.leaderboard
-        .map(
-          (entry) => `
-            <article class="feed-row leaderboard-row">
-              <div class="feed-main">
-                <span class="rank-pill">#${entry.rank}</span>
-                <div>
-                  <strong>${escapeHtml(entry.displayName)}</strong>
-                  <div class="subtext">@${escapeHtml(entry.username)}</div>
-                </div>
-              </div>
-              <div class="feed-metrics">
-                <div><strong>${formatScore(entry.aggregateScore)}</strong><span>Score</span></div>
-                <div><strong>${formatRevenue(entry.sales)}</strong><span>Revenue</span></div>
-                <div><strong>${formatPercent(entry.teamHealth)}</strong><span>Team health</span></div>
-              </div>
-              <div class="focus-row">
-                <span class="pill ${entry.isEliminated ? "pill-closed" : "pill-open"}">${entry.isEliminated ? `Lost: ${escapeHtml(entry.lossState?.name || "Staff quit")}` : "Active"}</span>
-              </div>
-            </article>
-          `
-        )
-        .join("")}</div>`
-    : `<div class="empty-state">No students have joined yet. Once they do, live dealership standings will appear here.</div>`;
+  const leaderboards = state.data.leaderboards || {
+    overall: { id: "overall", title: "Overall Leaders", subtitle: "Weighted manager score", entries: state.data.leaderboard || [] }
+  };
+  const boards = Object.values(leaderboards).filter((board) => board?.entries?.length);
+  refs.leaderboard.innerHTML = boards.length
+    ? `<div class="leaderboard-board-grid">${boards.map(renderLeaderboardBoard).join("")}</div>`
+    : `<div class="empty-state">No students have joined yet. Once they do, live restaurant standings will appear here.</div>`;
 }
 
 function renderRoundFeed() {
@@ -921,7 +1321,12 @@ function renderStaffCard(staff) {
         <span class="tag ${staff.hasQuit ? "tag-danger" : ""}">${staff.hasQuit ? "Quit" : staff.morale < 40 || staff.trust < 40 ? "At risk" : "Stable"}</span>
       </div>
       <p>${escapeHtml(staff.summary)}</p>
-      <p class="note">${escapeHtml(staff.hasQuit ? `${staff.name} has quit the dealership.` : staff.tension)}</p>
+      <div class="focus-row">
+        ${renderTrustBadge(staff)}
+        <span class="pill pill-muted">${escapeHtml(staff.hasQuit ? "No longer available" : staff.trustEffectLabel)}</span>
+      </div>
+      ${renderRelationshipStack(staff.relationships)}
+      <p class="note">${escapeHtml(staff.hasQuit ? `${staff.name} has quit the restaurant.` : staff.tension)}</p>
       <div class="meter-block">
         <div class="meter-label"><span>Morale</span><strong>${formatPercent(staff.morale)}</strong></div>
         <div class="meter"><div class="meter-fill ${staff.morale < 40 ? "low" : ""}" style="width: ${staff.morale}%"></div></div>
@@ -978,30 +1383,41 @@ function renderStudentRosterRow(student) {
   return `
     <article class="feed-row">
       <div class="feed-main">
-        <div>
-          <strong>${escapeHtml(student.displayName)}</strong>
-          <div class="subtext">@${escapeHtml(student.username)} · Joined ${formatDate(student.joinedAt)}</div>
-        </div>
+        ${renderPlayerIdentity(student.displayName, `@${student.username} · Joined ${formatDate(student.joinedAt)}`, student.avatarPath)}
         <span class="pill ${student.progressTone === "closed" ? "pill-closed" : student.progressTone === "open" ? "pill-open" : "pill-muted"}">
           ${escapeHtml(student.progressLabel || "Waiting")}
         </span>
       </div>
       <div class="feed-metrics">
         <div><strong>${formatScore(student.aggregateScore)}</strong><span>Score</span></div>
+        <div class="metric-badge-cell">${renderScoreTierBadge(student.scoreTier, true)}</div>
         <div><strong>${formatRevenue(student.sales)}</strong><span>Revenue</span></div>
         <div><strong>${formatPercent(student.avgMorale)}</strong><span>Morale</span></div>
         <div><strong>${formatPercent(student.teamHealth)}</strong><span>Health</span></div>
       </div>
+      <div class="history-impact">
+        <span class="impact-chip neutral">Avg pace ${formatDurationCompact(student.timingStats?.averageResolutionMs)}</span>
+        <span class="impact-chip neutral">
+          ${
+            student.currentRoundTiming?.state === "completed"
+              ? `This event ${formatDurationCompact(student.currentRoundTiming.elapsedMs)}`
+              : student.currentRoundTiming?.state === "in_progress"
+                ? `Current event ${formatDurationCompact(student.currentRoundTiming.elapsedMs)}`
+                : "This event waiting"
+          }
+        </span>
+      </div>
       ${
         student.award
           ? `<div class="award-inline">
+              ${renderAwardIcon(student.award)}
               <strong>${escapeHtml(student.award.title)}</strong>
               <span>${escapeHtml(student.award.subtitle)}</span>
               <p class="note">${escapeHtml(student.award.reason)}</p>
             </div>`
           : ""
       }
-      ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This dealership has been eliminated.")}</p>` : ""}
+      ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This restaurant has been eliminated.")}</p>` : ""}
       <div class="roster-actions">
         <form data-password-form class="inline-form">
           <input type="hidden" name="userId" value="${student.id}" />
@@ -1021,6 +1437,18 @@ function renderStudentRosterRow(student) {
   `;
 }
 
+function renderPlayerIdentity(name, subtext, avatarPath, avatarClass = "") {
+  return `
+    <div class="player-identity">
+      <img class="player-avatar ${avatarClass}" src="${escapeHtml(avatarPath || "")}" alt="${escapeHtml(name)} manager portrait" />
+      <div>
+        <strong>${escapeHtml(name)}</strong>
+        <div class="subtext">${escapeHtml(subtext)}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderTeacherFeedRow(entry) {
   return `
     <article class="feed-row">
@@ -1035,8 +1463,48 @@ function renderTeacherFeedRow(entry) {
         <span class="impact-chip ${entry.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(entry.salesDelta)}</span>
         <span class="impact-chip ${entry.satisfactionDelta >= 0 ? "positive" : "negative"}">Sat ${formatSigned(entry.satisfactionDelta)}</span>
         <span class="impact-chip ${entry.reputationDelta >= 0 ? "positive" : "negative"}">Rep ${formatSigned(entry.reputationDelta)}</span>
+        <span class="impact-chip neutral">Time ${formatDurationCompact(entry.responseDurationMs)}</span>
       </div>
       <div class="subtext">${formatDate(entry.submittedAt)}</div>
+    </article>
+  `;
+}
+
+function renderPredictionMarketAdminRow(market) {
+  const probability = `${Math.round(Number(market.probability || 0))}c YES`;
+  const currentLine = `${Math.round(Number(market.currentProbability || market.probability || 0))}c YES`;
+  const resolvedLabel = market.status === "resolved"
+    ? `Resolved ${String(market.resolution || "").toUpperCase()}`
+    : market.status === "active"
+      ? "Live"
+      : "Archived";
+
+  return `
+    <article class="feed-row market-admin-row">
+      <div class="feed-main">
+        <div>
+          <div class="focus-row">
+            <span class="pill ${market.status === "active" ? "pill-open" : market.status === "resolved" ? "pill-neutral" : "pill-closed"}">${escapeHtml(resolvedLabel)}</span>
+            <span class="pill pill-muted">${escapeHtml(market.category)}</span>
+            <span class="pill pill-muted">${escapeHtml(market.desk)}</span>
+          </div>
+          <strong>${escapeHtml(market.title)}</strong>
+          <div class="subtext">${escapeHtml(market.description)}</div>
+        </div>
+      </div>
+      <div class="market-admin-metrics">
+        <div><strong>${escapeHtml(probability)}</strong><span>Opening line</span></div>
+        <div><strong>${escapeHtml(currentLine)}</strong><span>Current line</span></div>
+        <div><strong>${formatPercent(market.evidence)}</strong><span>Evidence</span></div>
+        <div><strong>${formatPercent(market.hype)}</strong><span>Hype</span></div>
+        <div><strong>${roundToTwo(market.totalPool)}</strong><span>Shared pool</span></div>
+      </div>
+      <div class="action-row">
+        <button class="secondary" data-resolve-market="${market.id}" data-resolution="yes" ${market.status === "active" ? "" : "disabled"}>Resolve YES</button>
+        <button class="secondary" data-resolve-market="${market.id}" data-resolution="no" ${market.status === "active" ? "" : "disabled"}>Resolve NO</button>
+        <button class="subtle" data-archive-market="${market.id}" ${market.status === "archived" ? "disabled" : ""}>Archive</button>
+      </div>
+      <div class="subtext">Published ${formatDate(market.publishedAt)}${market.resolvedAt ? ` · Settled ${formatDate(market.resolvedAt)}` : ""}</div>
     </article>
   `;
 }
@@ -1061,6 +1529,7 @@ function renderAwardsBoard(awards) {
             (award) => `
               <article class="award-card">
                 <div class="award-topline">
+                  ${renderAwardIcon(award)}
                   <div>
                     <strong>${escapeHtml(award.title)}</strong>
                     <div class="subtext">${escapeHtml(award.subtitle)}</div>
@@ -1092,6 +1561,7 @@ function renderRoundRow(round) {
       <div class="feed-metrics">
         <div><strong>${round.completedCount}/${round.totalStudents}</strong><span>Completed</span></div>
         <div><strong>${round.inProgressCount}</strong><span>In progress</span></div>
+        <div><strong>${formatDurationCompact(round.timingStats?.averageResponseMs)}</strong><span>Avg finish</span></div>
       </div>
       ${
         round.userResponse
@@ -1105,11 +1575,43 @@ function renderRoundRow(round) {
   `;
 }
 
+function renderLeaderboardBoard(board) {
+  return `
+    <section class="leaderboard-board">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">${escapeHtml(board.title)}</p>
+          <h3>${escapeHtml(board.subtitle)}</h3>
+        </div>
+      </div>
+      <div class="feed-list">
+        ${board.entries.slice(0, 5).map((entry) => `
+          <article class="feed-row leaderboard-row">
+            <div class="feed-main">
+              <span class="rank-pill">#${entry.rank}</span>
+              ${renderPlayerIdentity(entry.displayName, `@${entry.username}`, entry.avatarPath)}
+            </div>
+            <div class="feed-metrics">
+              <div><strong>${board.id === "revenue" ? formatRevenue(entry.sales) : formatScore(entry.boardScore)}</strong><span>${board.id === "revenue" ? "Revenue" : board.id === "culture" ? "Culture" : "Score"}</span></div>
+              <div class="metric-badge-cell">${renderScoreTierBadge(entry.scoreTier, true)}</div>
+              <div><strong>${formatRevenue(entry.sales)}</strong><span>Revenue</span></div>
+              <div><strong>${formatPercent(entry.teamHealth)}</strong><span>Team health</span></div>
+            </div>
+            <div class="focus-row">
+              <span class="pill ${entry.isEliminated ? "pill-closed" : "pill-open"}">${entry.isEliminated ? `Lost: ${escapeHtml(entry.lossState?.name || "Staff quit")}` : "Active"}</span>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderEventArtwork(presetId, headline, className = "event-artwork") {
-  const meta = EVENT_ART_DIRECTORY[presetId];
-  if (!meta?.image) {
-    return "";
-  }
+  const meta = EVENT_ART_DIRECTORY[presetId] || {
+    image: "/assets/feast-haven/scenes/dining-room-main.png",
+    alt: "Feast Haven dining room artwork"
+  };
 
   return `
     <div class="${className}">
@@ -1122,9 +1624,11 @@ function renderCaseChoiceRow(entry) {
   const label = entry.phase === "consultant"
     ? `Step ${entry.stepIndex}: Consultation`
     : `Step ${entry.stepIndex}: Action Taken`;
+  const stage = getCaseStageMeta(entry.stepIndex);
   return `
     <article class="feed-row compact-feed-row">
       <div class="feed-main">
+        ${renderStageIcon(stage, entry.stepIndex)}
         <div>
           <strong>${escapeHtml(label)}</strong>
           <div class="subtext">
@@ -1152,6 +1656,99 @@ function renderCaseChoiceRow(entry) {
       }
     </article>
   `;
+}
+
+function renderScoreTierBadge(scoreTier, compact = false) {
+  if (!scoreTier) {
+    return "";
+  }
+  const image = SCORE_TIER_BADGES[scoreTier.level];
+  return `
+    <div class="score-tier-badge ${compact ? "compact" : ""}">
+      <img src="${image}" alt="${escapeHtml(scoreTier.label)} badge" />
+      <div>
+        <strong>${compact ? `T${scoreTier.level}` : escapeHtml(scoreTier.label)}</strong>
+        <span>${compact ? escapeHtml(scoreTier.label) : `Tier ${scoreTier.level}`}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderTrustBadge(staff) {
+  const image = TRUST_BADGE_BY_TONE[staff?.trustBand?.tone] || TRUST_BADGE_BY_TONE.muted;
+  return `
+    <span class="trust-badge trust-badge-${escapeHtml(staff?.trustBand?.tone || "muted")}">
+      <img src="${image}" alt="${escapeHtml(staff?.trustBand?.label || "Trust")} trust badge" />
+      <span>${escapeHtml(staff?.trustBand?.label || "Trust")}</span>
+    </span>
+  `;
+}
+
+function renderRelationshipChip(relationship) {
+  if (!relationship) {
+    return "";
+  }
+  return `
+    <span class="relationship-chip relationship-chip-${escapeHtml(relationship.tone || "volatile")}">
+      <strong>${escapeHtml(relationship.counterpartName)}</strong>
+      <span>${escapeHtml(relationship.label)}</span>
+    </span>
+  `;
+}
+
+function renderRelationshipStack(relationships) {
+  if (!relationships?.length) {
+    return "";
+  }
+  return `
+    <div class="relationship-stack">
+      ${relationships.slice(0, 2).map(renderRelationshipChip).join("")}
+    </div>
+  `;
+}
+
+function getCaseStageMeta(stepIndex) {
+  const numericStep = Math.max(1, Math.min(6, Number(stepIndex || 1)));
+  return CASE_STAGE_META[numericStep] || CASE_STAGE_META[1];
+}
+
+function renderStageIcon(stage, stepIndex) {
+  if (!stage) {
+    return "";
+  }
+  return `
+    <div class="case-stage-icon">
+      <img src="${stage.icon}" alt="${escapeHtml(stage.label)} icon" />
+      <span>Step ${Number(stepIndex || 1)}</span>
+    </div>
+  `;
+}
+
+function renderCaseStageRail(studentCase) {
+  const currentStep = studentCase.status === "resolved" || studentCase.status === "lost"
+    ? 6
+    : Math.max(1, Math.min(6, Number(studentCase.stepIndex || 1)));
+  return `
+    <div class="case-stage-rail">
+      ${Object.entries(CASE_STAGE_META)
+        .map(([step, stage]) => {
+          const stepNumber = Number(step);
+          const tone = stepNumber < currentStep ? "done" : stepNumber === currentStep ? "active" : "pending";
+          return `
+            <div class="case-stage-stop case-stage-stop-${tone}">
+              <img src="${stage.icon}" alt="${escapeHtml(stage.label)} icon" />
+              <span>${escapeHtml(stage.label)}</span>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function renderAwardIcon(award) {
+  const image = AWARD_ICON_BY_ID[award?.awardId] || "/assets/feast-haven/award-icons/award-chef-cup.png";
+  return `<img class="award-icon" src="${image}" alt="${escapeHtml(award?.title || "Award")} icon" />`;
 }
 
 function renderImpactSummary(impact, label) {
@@ -1205,7 +1802,7 @@ function renderTeacherSnapshot(snapshot) {
                       <div class="feed-main">
                         <div>
                           <strong>${escapeHtml(node.title)}</strong>
-                          <div class="subtext">${node.count} active dealership case${node.count === 1 ? "" : "s"} at this branch</div>
+                          <div class="subtext">${node.count} active restaurant case${node.count === 1 ? "" : "s"} at this branch</div>
                         </div>
                       </div>
                     </article>
@@ -1232,7 +1829,7 @@ function getStaffMeta(staffId) {
         name: match.name,
         title: match.title,
         avatar: STAFF_DIRECTORY[staffId]?.avatar || "/assets/staff/jake.png",
-        accent: STAFF_DIRECTORY[staffId]?.accent || "sales",
+        accent: STAFF_DIRECTORY[staffId]?.accent || "waiter",
         badge: STAFF_DIRECTORY[staffId]?.badge || "Team"
       };
     }
@@ -1242,7 +1839,7 @@ function getStaffMeta(staffId) {
     name: staffId,
     title: "",
     avatar: "/assets/staff/jake.png",
-    accent: "sales",
+    accent: "waiter",
     badge: "Team"
   };
 }
@@ -1272,6 +1869,19 @@ function formatSignedRevenue(value) {
 
 function formatPercent(value) {
   return `${Math.round(Number(value || 0))}%`;
+}
+
+function formatDurationCompact(value) {
+  if (!Number.isFinite(Number(value))) {
+    return "Not yet";
+  }
+  const totalSeconds = Math.max(0, Math.round(Number(value) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (!minutes) {
+    return `${seconds}s`;
+  }
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 function formatSigned(value) {

@@ -7,443 +7,100 @@ const fx = (sales, satisfaction, reputation, staff = {}) => ({
 
 const st = (morale, trust) => ({ morale, trust });
 
+const opt = (id, label, outcome, nextNodeId, effects) => ({
+  id,
+  label,
+  outcome,
+  nextNodeId,
+  effects
+});
+
 module.exports = [
   {
-    id: "rotting-return",
-    category: "Return Nightmare",
+    id: "open-close-kitchen-feud",
+    category: "Kitchen Culture",
     pressure: "High",
-    headline: "A customer demands to return a week-old car and there is a rotting animal in the trunk",
+    headline: "Morning kitchen staff walked into a disaster and closing staff says leadership set them up to fail",
     body:
-      "A customer storms in claiming Nina promised a 30-day return policy online. The vehicle now reeks, the interior looks trashed, and a dead animal in the trunk is so decomposed nobody can identify it.",
+      "Opening cooks say the kitchen was left filthy, half-stocked, and impossible to start from clean. Closing staff says the restaurant stayed open an extra hour, nobody got backup, and they were already drowning when they were finally cut loose.",
     rootNodeId: "opening",
     nodes: {
       opening: {
         title: "Who do you talk to first?",
-        body: "The dealership has a promise dispute, a disgusting vehicle problem, and a furious customer all at once.",
+        body: "The morning line wants accountability. The closing team wants someone to admit they were pushed too far.",
         consultants: {
-          nina: {
-            prompt: "Nina wants the message thread reviewed before anyone decides she promised too much.",
-            options: [
-              {
-                id: "rr-open-nina-thread",
-                label: "Review the message thread with Nina before responding to the customer.",
-                outcome: "You start with facts instead of panic.",
-                nextNodeId: "promise-review",
-                effects: fx(-1, 0, 3, {
-                  nina: st(1, 3),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "rr-open-nina-front",
-                label: "Put Nina in front of the customer immediately to explain what she meant.",
-                outcome: "The customer gets an answer fast, but Nina feels exposed before the store has its story straight.",
-                nextNodeId: "showroom-containment",
-                effects: fx(0, -1, -2, {
-                  nina: st(-4, -4),
-                  jake: st(1, 0)
-                })
-              },
-              {
-                id: "rr-open-nina-calm",
-                label: "Have Nina keep the customer calm while you inspect the vehicle first.",
-                outcome: "You buy breathing room and separate the promise issue from the condition issue.",
-                nextNodeId: "contamination-triage",
-                effects: fx(0, 2, 1, {
-                  nina: st(2, 2),
-                  tasha: st(1, 1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus wants policy and documentation sorted before the dealership casually agrees to anything.",
-            options: [
-              {
-                id: "rr-open-marcus-freeze",
-                label: "Freeze any return talk until Marcus verifies policy and documents the claim.",
-                outcome: "The store looks disciplined, even if the customer hates the slower pace.",
-                nextNodeId: "promise-review",
-                effects: fx(-1, -1, 3, {
-                  marcus: st(3, 4),
-                  nina: st(-1, -1)
-                })
-              },
-              {
-                id: "rr-open-marcus-deny",
-                label: "Let Marcus tell the customer used cars are not casually returnable.",
-                outcome: "The policy line is clear, but the room gets harder immediately.",
-                nextNodeId: "showroom-containment",
-                effects: fx(0, -3, -3, {
-                  marcus: st(1, 2),
-                  elena: st(-1, -1)
-                })
-              },
-              {
-                id: "rr-open-marcus-cost",
-                label: "Have Marcus start documenting cleanup, depreciation, and condition exposure.",
-                outcome: "You turn a disgusting shock into a controlled business problem fast.",
-                nextNodeId: "contamination-triage",
-                effects: fx(-1, 0, 2, {
-                  marcus: st(2, 3),
-                  tasha: st(1, 1)
-                })
-              }
-            ]
-          },
           tasha: {
-            prompt: "Tasha wants the car quarantined and inspected before anyone pretends this is only a policy disagreement.",
+            prompt: "Chef Renata wants photos, prep sheets, and a real timeline before anyone starts acting offended.",
             options: [
-              {
-                id: "rr-open-tasha-inspect",
-                label: "Have Tasha inspect the car and tell you exactly how bad it is.",
-                outcome: "You trade speed for hard truth.",
-                nextNodeId: "contamination-triage",
-                effects: fx(-1, 1, 3, {
-                  tasha: st(3, 4),
-                  nina: st(0, 0)
-                })
-              },
-              {
-                id: "rr-open-tasha-quarantine",
-                label: "Move the vehicle off the public lot and quarantine it before the showroom smells it too.",
-                outcome: "The grossest part of the scene gets contained fast.",
-                nextNodeId: "contamination-triage",
-                effects: fx(-1, 2, 2, {
-                  tasha: st(2, 3),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "rr-open-tasha-hide",
-                label: "Ask whether service can deodorize and clean it before the customer gains more leverage.",
-                outcome: "You move toward concealment before you know what was actually promised.",
-                nextNodeId: "showroom-containment",
-                effects: fx(0, -2, -3, {
-                  tasha: st(-3, -4),
-                  nina: st(-1, -1)
-                })
-              }
+              opt("ocf-open-renata", "Audit the close with Renata and compare the kitchen state to actual closing expectations.", "You start with standards instead of emotion, which gives the whole shift a better chance to stay grounded.", "closing-audit", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 2), luis: st(0, 1) })),
+              opt("ocf-open-renata-line", "Back Renata immediately and treat the messy close as obvious kitchen failure.", "The standard sounds strong, but the closing crew feels condemned before anyone hears why they stayed late.", "blame-spillover", fx(1, -1, 1, { tasha: st(1, 2), luis: st(-3, -3), priya: st(-1, -1) }))
             ]
           },
-          jake: {
-            prompt: "Jake thinks the main job is stopping a loud customer from poisoning the showroom.",
+          luis: {
+            prompt: "Theo says closing got buried after the dining room stayed open late and the manager kept seating tables.",
             options: [
-              {
-                id: "rr-open-jake-exchange",
-                label: "Have Jake pivot the customer toward an exchange instead of a pure return.",
-                outcome: "The customer sees a path forward, but the store still has not answered what Nina promised.",
-                nextNodeId: "showroom-containment",
-                effects: fx(2, 1, 0, {
-                  jake: st(2, 2),
-                  nina: st(-1, -1)
-                })
-              },
-              {
-                id: "rr-open-jake-blame",
-                label: "Let Jake argue that Nina never had authority to promise returns anyway.",
-                outcome: "The blame shifts quickly and the dealership starts to look disorganized.",
-                nextNodeId: "promise-review",
-                effects: fx(0, -2, -2, {
-                  jake: st(1, 1),
-                  nina: st(-4, -4)
-                })
-              },
-              {
-                id: "rr-open-jake-stall",
-                label: "Tell Jake to buy time while service and accounting look underneath the story.",
-                outcome: "The room stays calmer, but Jake is now carrying a crisis he cannot fully explain.",
-                nextNodeId: "contamination-triage",
-                effects: fx(1, 1, 1, {
-                  jake: st(1, 2),
-                  tasha: st(0, 0)
-                })
-              }
+              opt("ocf-open-theo", "Walk the close from Theo's side and ask exactly where the extra hour broke the routine.", "The closing team feels heard, which lowers the chance of pure kitchen mutiny.", "closing-audit", fx(0, 1, 2, { luis: st(2, 3), tasha: st(-1, -1), priya: st(0, 1) })),
+              opt("ocf-open-theo-push", "Tell Theo that staying late explains fatigue, not leaving the next shift a disaster.", "You keep the accountability line clear, but Theo instantly hears it as another lecture.", "blame-spillover", fx(1, -1, 1, { luis: st(-2, -3), priya: st(0, 0), tasha: st(1, 1) }))
             ]
           }
         }
       },
-      "promise-review": {
-        title: "The messages are vague enough to be dangerous",
-        body: "Nina never typed the exact words 'full return,' but the thread is loose enough that the customer clearly walked away with that impression.",
+      "closing-audit": {
+        title: "Both sides are right in the most annoying possible way",
+        body: "The close was sloppy, but it also ran almost an hour beyond normal because the floor kept taking tables. The failure was shared, but nobody wants shared blame.",
         consultants: {
-          nina: {
-            prompt: "Nina wants the dealership to distinguish sloppy wording from a deliberate promise.",
+          priya: {
+            prompt: "Imani wants a reset that protects the next open without pretending the close was working under normal conditions.",
             options: [
-              {
-                id: "rr-promise-nina-own",
-                label: "Let Nina admit the wording was loose and help craft the correction herself.",
-                outcome: "The apology feels human instead of coached.",
-                nextNodeId: "customer-settlement",
-                effects: fx(-1, 3, 3, {
-                  nina: st(1, 3),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "rr-promise-nina-defend",
-                label: "Back Nina's interpretation and insist the customer heard what they wanted to hear.",
-                outcome: "You protect your employee, but the dealership sounds more defensive than fair.",
-                nextNodeId: "team-fallout",
-                effects: fx(0, -2, -3, {
-                  nina: st(2, 1),
-                  marcus: st(0, 1)
-                })
-              }
+              opt("ocf-audit-priya", "Create a split responsibility fix: kitchen resets, plus a hard last-seat cutoff for the floor.", "The solution feels fair because it changes the system instead of naming one villain.", "manager-fault", fx(1, 3, 4, { priya: st(3, 4), luis: st(1, 2), tasha: st(1, 1), devon: st(1, 1) })),
+              opt("ocf-audit-priya-tough", "Require the close to stay until the kitchen is reset no matter how late the floor runs.", "It protects tomorrow, but the kitchen hears more punishment than support.", "manager-fault", fx(2, -1, 1, { priya: st(1, 1), luis: st(-2, -2), tasha: st(1, 1) }))
             ]
           },
-          marcus: {
-            prompt: "Marcus wants the final answer tied to policy language, not to whoever seems most emotional.",
+          devon: {
+            prompt: "Parker says this became a kitchen war because nobody wants to admit the front kept feeding late tickets into a sinking ship.",
             options: [
-              {
-                id: "rr-promise-marcus-goodwill",
-                label: "Use policy as the baseline, but pair it with a documented goodwill option.",
-                outcome: "The dealership sounds firm without sounding petty.",
-                nextNodeId: "customer-settlement",
-                effects: fx(-2, 2, 4, {
-                  marcus: st(2, 3),
-                  nina: st(0, 1)
-                })
-              },
-              {
-                id: "rr-promise-marcus-hardline",
-                label: "Make Marcus enforce policy strictly and refuse anything that resembles a return.",
-                outcome: "The rule stays clean, but the room gets colder.",
-                nextNodeId: "team-fallout",
-                effects: fx(1, -3, -2, {
-                  marcus: st(2, 3),
-                  jake: st(-1, -1),
-                  elena: st(-1, -1)
-                })
-              }
+              opt("ocf-audit-parker", "Trace exactly who kept seating tables late and how that changed the close.", "The room gets uncomfortable, but suddenly the story is more accurate.", "manager-fault", fx(0, 2, 3, { devon: st(2, 3), elena: st(1, 1), luis: st(1, 1) })),
+              opt("ocf-audit-parker-soft", "Handle the floor's role quietly so the kitchen team can move on fast.", "You protect people from embarrassment, but risk the same bad pattern next week.", "manager-fault", fx(1, 0, 0, { devon: st(1, 1), elena: st(-1, -1), tasha: st(-1, -1) }))
             ]
           }
         }
       },
-      "contamination-triage": {
-        title: "The car is clearly a sanitation problem now, not just a resale problem",
-        body: "Tasha confirms the interior needs deep cleaning, the trunk is a biohazard scene, and the customer is trying to fold that condition into the return argument.",
+      "blame-spillover": {
+        title: "Now the room is choosing sides instead of solving the close",
+        body: "Opening staff feel disrespected. Closing staff feel scapegoated. The next move will decide whether this becomes a standards reset or a kitchen cold war.",
         consultants: {
-          tasha: {
-            prompt: "Tasha wants the dealership to treat the condition honestly and stop pretending appearance fixes this.",
+          priya: {
+            prompt: "Imani thinks the only way out is a written close-open handoff that nobody can fake next time.",
             options: [
-              {
-                id: "rr-triage-tasha-doc",
-                label: "Photograph and document the condition before negotiating anything.",
-                outcome: "You anchor the next conversation in reality.",
-                nextNodeId: "customer-settlement",
-                effects: fx(-1, 2, 4, {
-                  tasha: st(3, 4),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "rr-triage-tasha-blame",
-                label: "Have Tasha confront the customer about how the car ended up in this state.",
-                outcome: "The truth may be satisfying, but the tone gets harsher fast.",
-                nextNodeId: "team-fallout",
-                effects: fx(0, -3, -3, {
-                  tasha: st(1, 1),
-                  elena: st(-1, -1)
-                })
-              }
+              opt("ocf-blame-priya", "Launch a written close-open checklist and require both sides to sign it for the next week.", "You turn a feelings fight into an operational receipt everyone can see.", "manager-fault", fx(1, 2, 4, { priya: st(2, 3), luis: st(1, 1), tasha: st(1, 1) })),
+              opt("ocf-blame-priya-side", "Let opening staff vent now and worry about systems later.", "The pressure releases briefly, but the kitchen still has no new structure.", "manager-fault", fx(0, -1, -1, { priya: st(-1, -2), luis: st(-1, -1) }))
             ]
           },
           elena: {
-            prompt: "Elena wants to stop the gross-out factor from turning into a public story people repeat all week.",
+            prompt: "Marisol says the host stand heard all of this and the floor is now treating kitchen chaos like gossip content.",
             options: [
-              {
-                id: "rr-triage-elena-private",
-                label: "Move the customer into a private office and keep the scene away from the showroom.",
-                outcome: "The dealership looks calmer and more controlled.",
-                nextNodeId: "customer-settlement",
-                effects: fx(0, 3, 3, {
-                  elena: st(3, 4),
-                  jake: st(1, 1)
-                })
-              },
-              {
-                id: "rr-triage-elena-spin",
-                label: "Treat the condition like a weird one-off and focus on smoothing optics instead of facts.",
-                outcome: "The store may look composed for a moment, but trust gets thinner underneath it.",
-                nextNodeId: "team-fallout",
-                effects: fx(1, -1, -3, {
-                  elena: st(-1, -2),
-                  tasha: st(-1, -1)
-                })
-              }
+              opt("ocf-blame-marisol", "Address the whole team before preshift and frame it as a service-system failure, not a personality war.", "The room gets one clear story instead of three emotional versions.", "manager-fault", fx(1, 2, 3, { elena: st(2, 2), devon: st(1, 1), tasha: st(1, 1) })),
+              opt("ocf-blame-marisol-private", "Keep the conversation behind the kitchen doors and try to contain the embarrassment.", "It protects dignity, but the floor still senses something ugly happened.", "manager-fault", fx(0, 0, 1, { elena: st(1, 1), devon: st(-1, -1) }))
             ]
           }
         }
       },
-      "showroom-containment": {
-        title: "The customer is loud, the showroom is watching, and every word now shapes the dealership's tone",
-        body: "Even before the final decision, the dealership has to decide whether it wants to look compassionate, slippery, or combative in front of everyone else.",
+      "manager-fault": {
+        title: "The final question is whether leadership will own the extra-hour decision",
+        body: "Everyone now knows the kitchen mess did not happen in a vacuum. If you dodge that part, nobody will trust the rest of the fix.",
         consultants: {
-          jake: {
-            prompt: "Jake wants to get the customer out of the showroom with a quieter conversation and a path forward.",
-            options: [
-              {
-                id: "rr-show-jake-private",
-                label: "Move the customer into a quieter negotiation and work toward an exchange or trade assist.",
-                outcome: "The volume drops and the store regains enough dignity to think clearly.",
-                nextNodeId: "customer-settlement",
-                effects: fx(2, 2, 2, {
-                  jake: st(2, 3),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "rr-show-jake-promise",
-                label: "Let Jake keep making save promises before policy and service are aligned.",
-                outcome: "The customer may stay engaged, but the dealership risks stacking promises on promises.",
-                nextNodeId: "team-fallout",
-                effects: fx(2, 0, -3, {
-                  jake: st(3, 2),
-                  marcus: st(-2, -2),
-                  nina: st(-1, -1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants the room to feel professionally handled even if the final answer is still 'no.'",
-            options: [
-              {
-                id: "rr-show-elena-empathy",
-                label: "Lead with empathy and privacy before discussing what the dealership can actually do.",
-                outcome: "The customer feels less like a combatant and more like someone being managed carefully.",
-                nextNodeId: "customer-settlement",
-                effects: fx(0, 4, 4, {
-                  elena: st(4, 4),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "rr-show-elena-minimize",
-                label: "Keep the conversation short and transactional so it does not become bigger drama.",
-                outcome: "The dealership looks brisk, though not especially caring.",
-                nextNodeId: "team-fallout",
-                effects: fx(1, -1, -2, {
-                  elena: st(-1, -1),
-                  jake: st(1, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "customer-settlement": {
-        title: "Now the dealership has to choose what kind of business pain it can live with",
-        body: "The facts are clear enough. What remains is deciding how much goodwill, exchange help, or hard policy the store can stand behind.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants any resolution documented cleanly so goodwill does not quietly become policy.",
-            options: [
-              {
-                id: "rr-settle-marcus-trade",
-                label: "Offer a documented trade assist or exchange support instead of a full unwind.",
-                outcome: "The dealership absorbs a manageable hit and keeps the solution anchored in business reality.",
-                nextNodeId: null,
-                effects: fx(-2, 3, 4, {
-                  marcus: st(2, 3),
-                  jake: st(1, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "rr-settle-marcus-deny",
-                label: "Deny the return but clearly document the condition, cleanup, and actual message trail.",
-                outcome: "The store protects itself, though the customer leaves far from happy.",
-                nextNodeId: null,
-                effects: fx(1, -2, 1, {
-                  marcus: st(3, 4),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake wants a visible save so the showroom remembers the recovery instead of the smell.",
-            options: [
-              {
-                id: "rr-settle-jake-upgrade",
-                label: "Turn the whole mess into a guided move into a cleaner replacement vehicle.",
-                outcome: "It costs the dealership something, but transforms the moment into a salvageable sale.",
-                nextNodeId: null,
-                effects: fx(2, 4, 2, {
-                  jake: st(3, 3),
-                  nina: st(0, 1)
-                })
-              },
-              {
-                id: "rr-settle-jake-firm",
-                label: "Hold the line on a limited solution and refuse to let the customer bully the store.",
-                outcome: "The store keeps its spine, though the customer experience ends on a hard note.",
-                nextNodeId: null,
-                effects: fx(1, -1, -1, {
-                  jake: st(2, 1),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "team-fallout": {
-        title: "Even if the customer leaves, the staff now wants to know whether leadership values clarity or scapegoats",
-        body: "The return fight has turned inward. Nina feels exposed, service feels used, and the team is reading how you handle blame just as closely as how you handled the customer.",
-        consultants: {
-          nina: {
-            prompt: "Nina wants to know whether sloppy wording becomes a lesson or a scarlet letter here.",
-            options: [
-              {
-                id: "rr-fallout-nina-coach",
-                label: "Coach Nina privately and tighten online message rules without making her the store villain.",
-                outcome: "The lesson lands without poisoning trust.",
-                nextNodeId: null,
-                effects: fx(0, 1, 4, {
-                  nina: st(2, 4),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "rr-fallout-nina-public",
-                label: "Make Nina own the confusion publicly so everyone sees the standard.",
-                outcome: "The line is clear, but so is the humiliation.",
-                nextNodeId: null,
-                effects: fx(0, -1, 1, {
-                  nina: st(-5, -5),
-                  jake: st(1, 0)
-                })
-              }
-            ]
-          },
           tasha: {
-            prompt: "Tasha thinks the bigger issue is departments throwing each other forward without facts.",
+            prompt: "Chef Renata wants you to own the bad late-seat decision without erasing the kitchen's sloppy close.",
             options: [
-              {
-                id: "rr-fallout-tasha-process",
-                label: "Reset how online, service, and sales coordinate before promises hit customers.",
-                outcome: "The team sees leadership fix the system instead of just assigning shame.",
-                nextNodeId: null,
-                effects: fx(0, 1, 5, {
-                  tasha: st(3, 4),
-                  nina: st(1, 2),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "rr-fallout-tasha-shrug",
-                label: "Treat it like one bizarre exception and move on before it consumes the week.",
-                outcome: "The store regains speed, but everybody learns messy coordination is survivable here.",
-                nextNodeId: null,
-                effects: fx(1, 0, -2, {
-                  tasha: st(-1, -1),
-                  nina: st(-2, -2),
-                  marcus: st(-1, -1)
-                })
-              }
+              opt("ocf-final-own", "Own the extra-hour leadership mistake and pair it with new close standards for everyone.", "The kitchen hears both accountability and respect, which gives the repair a chance to stick.", null, fx(3, 4, 4, { tasha: st(2, 3), luis: st(2, 3), priya: st(2, 2), devon: st(1, 1) })),
+              opt("ocf-final-half", "Acknowledge the long close, but keep most of the blame on the team that left the mess.", "You sound partially fair, but not fully brave enough to calm the resentment.", null, fx(2, 0, 0, { tasha: st(0, 1), luis: st(-2, -3), priya: st(-1, -1) }))
+            ]
+          },
+          devon: {
+            prompt: "Parker thinks the restaurant needs one practical concession now so the next close does not immediately become a loyalty test.",
+            options: [
+              opt("ocf-final-support", "Add a hard last-seat cutoff and emergency backup help when the room runs late.", "People still grumble, but now they believe leadership learned something concrete.", null, fx(2, 3, 3, { devon: st(2, 3), elena: st(1, 2), luis: st(1, 2), priya: st(1, 1) })),
+              opt("ocf-final-toughness", "Keep the staffing model exactly the same and demand tougher closes from now on.", "It sounds tough, but the next bad night will probably explode faster.", null, fx(2, -2, -2, { devon: st(-2, -2), luis: st(-2, -2), priya: st(-1, -1) }))
             ]
           }
         }
@@ -451,444 +108,272 @@ module.exports = [
     }
   },
   {
-    id: "minivan-bet-meltdown",
-    category: "Bet Meltdown",
+    id: "hard-burger-ticket-war",
+    category: "Execution Failure",
+    pressure: "High",
+    headline: "Wait staff says the kitchen keeps sending out wrong dishes, and the line says the tickets are unreadable",
+    body:
+      "Guests are getting bad plates and everyone has an explanation. The line says the tickets look like a ransom note. The floor says nobody should mistake 'hamburger' for 'hard burger' and send out an overcooked hockey puck.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you talk to first?",
+        body: "The whole service chain is blaming the step before it, and guests are already feeling it.",
+        consultants: {
+          nina: {
+            prompt: "Celia says the kitchen is using bad handwriting as an excuse for sloppy attention.",
+            options: [
+              opt("hbt-open-celia", "Review the floor tickets with Celia and compare them to the plates that actually hit the table.", "You make the argument evidence-based fast, which keeps the dining room from becoming pure finger-pointing.", "ticket-audit", fx(0, 1, 2, { nina: st(2, 3), luis: st(-1, -1), priya: st(0, 1) })),
+              opt("hbt-open-celia-line", "Back the floor immediately and tell the kitchen a burger should never become a charcoal brick.", "Guests feel defended, but the line hears disrespect before the facts are sorted.", "kitchen-pushback", fx(1, 1, 1, { nina: st(1, 2), luis: st(-3, -3), priya: st(-2, -2) }))
+            ]
+          },
+          luis: {
+            prompt: "Theo says the tickets are so messy that the line is basically deciphering them under fire.",
+            options: [
+              opt("hbt-open-theo", "Stand at the line and have Theo show you exactly which tickets are causing the worst misses.", "The kitchen finally feels like someone is looking at the real bottleneck.", "ticket-audit", fx(0, 1, 2, { luis: st(2, 3), nina: st(-1, -1), priya: st(1, 1) })),
+              opt("hbt-open-theo-guest", "Tell Theo that unreadable tickets are still less embarrassing than wrong food landing in front of guests.", "The standard is fair, but Theo hears it as another front-of-house loyalty test.", "kitchen-pushback", fx(1, -1, 0, { luis: st(-2, -3), nina: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "ticket-audit": {
+        title: "The tickets are messy, but the line is also guessing too confidently",
+        body: "Handwriting is a problem. So is kitchen pride. The mistakes are happening because two weak habits are colliding under pressure.",
+        consultants: {
+          priya: {
+            prompt: "Imani wants a system change that slows the mistakes without slowing the whole kitchen into a crawl.",
+            options: [
+              opt("hbt-audit-imani", "Standardize ticket marks, circles, and modifier shorthand before the next rush.", "The restaurant suddenly has one language instead of six improvised ones.", "guest-fallout", fx(1, 3, 4, { priya: st(3, 4), nina: st(1, 1), luis: st(1, 1) })),
+              opt("hbt-audit-imani-verify", "Require verbal read-backs on any ticket that looks even slightly unclear.", "It is slower, but the kitchen can no longer hide behind bad guesses.", "guest-fallout", fx(0, 2, 3, { priya: st(2, 3), luis: st(1, 2), nina: st(1, 1) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks the guest-facing damage matters most because tables do not care whose handwriting started it.",
+            options: [
+              opt("hbt-audit-adrian", "Focus first on table recovery and coach the internal process after the rush.", "You protect the room in the short term, but the workflow fix gets delayed.", "guest-fallout", fx(2, 2, 1, { jake: st(2, 2), nina: st(0, 1), luis: st(-1, -1) })),
+              opt("hbt-audit-adrian-team", "Have Adrian help rewrite guest-facing order checks so the floor shares more of the fix.", "The floor loses some innocence, but the kitchen stops feeling dumped on.", "guest-fallout", fx(1, 2, 3, { jake: st(1, 2), luis: st(1, 1), nina: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "kitchen-pushback": {
+        title: "Now the line and floor are arguing about respect, not just tickets",
+        body: "Once the tone hardened, everyone started remembering old slights. The actual food problem is at risk of becoming secondary.",
+        consultants: {
+          devon: {
+            prompt: "Parker thinks the only way to cool this down is to rebuild the handoff in public so both sides stop rewriting history.",
+            options: [
+              opt("hbt-push-parker", "Run a mock handoff with floor and line together so everyone sees where the confusion begins.", "The room hates how awkward it is, which is exactly why it works.", "guest-fallout", fx(1, 2, 4, { devon: st(2, 3), nina: st(1, 1), luis: st(1, 1), priya: st(1, 1) })),
+              opt("hbt-push-parker-soft", "Correct the tone privately and hope the service chain calms itself down.", "The temperature falls a little, but the broken handoff is still broken.", "guest-fallout", fx(0, 0, 0, { devon: st(1, 1), nina: st(-1, -1), luis: st(-1, -1) }))
+            ]
+          },
+          tasha: {
+            prompt: "Chef Renata wants one clear standard that lets the line say no to unreadable tickets without sounding insubordinate.",
+            options: [
+              opt("hbt-push-renata", "Give the kitchen permission to reject unreadable tickets once, but require the floor to rewrite them immediately.", "It creates friction up front, but far less embarrassment once food starts leaving the pass.", "guest-fallout", fx(1, 2, 3, { tasha: st(2, 3), luis: st(2, 3), nina: st(-1, 0) })),
+              opt("hbt-push-renata-hard", "Tell Renata the kitchen still has to make judgment calls because the floor cannot stop to rewrite every mess.", "Speed survives, but trust in the handoff erodes even more.", "guest-fallout", fx(1, -2, -2, { tasha: st(-2, -2), luis: st(-2, -3), nina: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "guest-fallout": {
+        title: "The dining room now wants to know whether the restaurant learned anything",
+        body: "A few guests have already had dishes remade. You need a closing move that stabilizes both the room and the team behind it.",
+        consultants: {
+          nina: {
+            prompt: "Celia wants the final answer to prove the floor will not be left holding the embarrassment alone next rush.",
+            options: [
+              opt("hbt-final-celia", "Train the full service chain together before the next shift and document the new ticket rules.", "The restaurant looks more serious because everyone shares the repair.", null, fx(3, 4, 4, { nina: st(2, 3), luis: st(1, 2), priya: st(1, 1), devon: st(1, 1) })),
+              opt("hbt-final-celia-fast", "Patch tonight's mistakes, refund a few plates, and trust the team to work it out naturally.", "Guests may calm down, but the staff still knows the process is shaky.", null, fx(2, 1, 0, { nina: st(-1, -2), luis: st(-1, -1) }))
+            ]
+          },
+          priya: {
+            prompt: "Imani wants to end this with a system everyone will remember under pressure.",
+            options: [
+              opt("hbt-final-imani", "Create one visual ticket cheat sheet and make it part of every preshift for a week.", "The solution is a little boring, which is exactly why it might survive the rush.", null, fx(2, 3, 4, { priya: st(2, 3), luis: st(1, 1), nina: st(1, 1) })),
+              opt("hbt-final-imani-hard", "Punish the loudest offenders and move on without formalizing anything else.", "The message lands, but the restaurant is still one bad scribble away from repeating itself.", null, fx(2, -1, -1, { priya: st(-1, -1), nina: st(-2, -2), luis: st(-2, -2) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "viral-gossip-backfire",
+    category: "Reputation",
+    pressure: "High",
+    headline: "The hostess keeps filming behind-the-scenes gossip videos and now the staff cannot tell what is real anymore",
+    body:
+      "Marisol says the behind-the-scenes clips are helping Feast Haven go viral, but she keeps revealing staff drama and inventing wild claims when the real gossip is not juicy enough. Now the staff are furious, suspicious, and watching each other differently.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you talk to first?",
+        body: "This is not just a social media problem. It is a trust problem hiding inside a marketing excuse.",
+        consultants: {
+          elena: {
+            prompt: "Marisol insists she is building hype and says the staff should be grateful someone is making the restaurant interesting.",
+            options: [
+              opt("vgb-open-marisol", "Review the actual clips with Marisol before deciding whether this is bold marketing or reckless gossip.", "You start with evidence, which gives you a chance to separate attention from damage.", "staff-trust-crack", fx(0, 1, 2, { elena: st(1, 2), devon: st(1, 1), nina: st(-1, -1) })),
+              opt("vgb-open-marisol-line", "Tell Marisol immediately that staff drama is not content and she needs to stop filming.", "The line is clear, but Marisol instantly shifts into self-defense mode.", "staff-trust-crack", fx(0, 0, 1, { elena: st(-2, -2), devon: st(-1, -1), nina: st(1, 1) }))
+            ]
+          },
+          devon: {
+            prompt: "Parker says Marisol crossed a line, but also worries a public crackdown will turn this into even bigger drama.",
+            options: [
+              opt("vgb-open-parker", "Use Parker to understand what staff think was revealed, exaggerated, and fully invented.", "You map the emotional damage before choosing the punishment.", "staff-trust-crack", fx(0, 2, 2, { devon: st(2, 3), nina: st(1, 1), elena: st(0, 1) })),
+              opt("vgb-open-parker-cover", "Ask Parker to quietly help Marisol pull the worst clips down before anyone else sees them.", "The cleanup starts fast, but it also risks looking like protection for the wrong person.", "staff-trust-crack", fx(0, 0, -1, { devon: st(1, 1), elena: st(1, 1), nina: st(-1, -2) }))
+            ]
+          }
+        }
+      },
+      "staff-trust-crack": {
+        title: "Now the staff want to know whether any of their private moments are safe here",
+        body: "Some clips are real, some are exaggerated, and one or two are total fiction. That mix is what makes the betrayal so hard to calm down.",
+        consultants: {
+          nina: {
+            prompt: "Celia wants this treated like a trust violation, not a cute social media accident.",
+            options: [
+              opt("vgb-crack-celia", "Take staff statements and address the fabricated claims as seriously as the real gossip.", "The room finally hears that lying for virality is its own offense.", "public-fallout", fx(0, 3, 4, { nina: st(2, 3), elena: st(-1, -1), devon: st(1, 1) })),
+              opt("vgb-crack-celia-soft", "Focus only on the clips that are objectively untrue and ignore the real gossip for now.", "It is cleaner legally, but emotionally flatter than the staff hoped for.", "public-fallout", fx(0, 1, 1, { nina: st(0, 1), elena: st(0, 1) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks the real danger is that guests or ex-staff will start quoting the videos back to the room.",
+            options: [
+              opt("vgb-crack-adrian", "Prepare one guest-facing line and one staff-facing line so nobody improvises the story badly.", "You stop the damage from spreading in six different versions at once.", "public-fallout", fx(1, 2, 3, { jake: st(2, 2), elena: st(0, 1), devon: st(1, 1) })),
+              opt("vgb-crack-adrian-hide", "Treat it purely as an internal issue and hope the clips die before the public notices.", "It keeps things quieter short-term, but the restaurant now depends on luck.", "public-fallout", fx(0, -1, -2, { jake: st(-1, -1), nina: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      "public-fallout": {
+        title: "The final damage depends on whether this is framed as recklessness, betrayal, or forgivable chaos",
+        body: "The staff do not all want the same thing. Some want discipline. Some want privacy restored. Some want to know whether leadership will protect favorites.",
+        consultants: {
+          devon: {
+            prompt: "Parker wants Marisol held accountable without destroying every good thing she has built at the front door.",
+            options: [
+              opt("vgb-fallout-parker", "Suspend the filming, force a direct apology, and rebuild a real content policy before anything goes live again.", "The restaurant loses the chaos, keeps a future path, and sounds like it finally has standards.", "final-standard", fx(1, 3, 4, { devon: st(2, 3), elena: st(-1, 0), nina: st(2, 2), jake: st(1, 1) })),
+              opt("vgb-fallout-parker-save", "Let Marisol stay visible publicly, but quietly strip her access to staff spaces and private moments.", "It protects brand momentum, but the staff may still smell favoritism.", "final-standard", fx(1, 0, 0, { devon: st(0, 1), elena: st(1, 1), nina: st(-2, -3) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol says the restaurant only cares now because the videos worked, and that hurts almost as much as being accused.",
+            options: [
+              opt("vgb-fallout-marisol", "Acknowledge the creative upside, but make it clear that fabricated staff stories killed the trust budget.", "You sound fair without being weak, which gives the apology a chance to matter.", "final-standard", fx(1, 2, 3, { elena: st(1, 2), devon: st(1, 1), nina: st(1, 1) })),
+              opt("vgb-fallout-marisol-hard", "Treat the whole thing as disloyalty and remove Marisol from anything brand-facing immediately.", "The message is clear, but the punishment may feel more emotional than strategic.", "final-standard", fx(0, 0, 1, { elena: st(-3, -4), devon: st(-2, -2), nina: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "final-standard": {
+        title: "The final move decides whether the restaurant feels safer or just quieter",
+        body: "By now, the videos matter less than the culture signal you leave behind.",
+        consultants: {
+          nina: {
+            prompt: "Celia wants one final move that tells the staff their private life is not just raw content waiting to happen.",
+            options: [
+              opt("vgb-final-celia", "Publish a strict no-gossip content rule and train the whole team on what can and cannot ever be filmed.", "It feels bigger than one person, which is exactly why the room can finally breathe again.", null, fx(2, 4, 4, { nina: st(2, 3), devon: st(1, 1), elena: st(0, 1) })),
+              opt("vgb-final-celia-small", "End the incident with a one-time warning and a promise to be more careful.", "The scandal may end, but the trust repair does not really begin.", null, fx(1, -1, -2, { nina: st(-2, -3), devon: st(-1, -1), elena: st(1, 1) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks the restaurant also needs a new story fast so the scandal is not the only thing people remember this week.",
+            options: [
+              opt("vgb-final-adrian", "Pair the discipline with a cleaner, guest-facing campaign that puts the focus back on the food and room.", "You close the wound faster because the restaurant stops staring at it.", null, fx(3, 2, 3, { jake: st(2, 2), elena: st(1, 1), nina: st(1, 1) })),
+              opt("vgb-final-adrian-quiet", "Stay silent publicly and make this a purely internal repair.", "That can work, but only if the clips truly stop traveling.", null, fx(1, 1, 0, { jake: st(0, 1), nina: st(1, 1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "emotional-support-date",
+    category: "Guest Policy",
     pressure: "Medium",
-    headline: "Jake dumped a Monster on Marcus's desk over a stupid minivan bet",
+    headline: "The host seated a guest with a badly behaved dog because he called it his emotional support date",
     body:
-      "Jake bet Marcus he would sell 10 minivans this month. He sold 8 actual minivans and now wants two SUVs to count because they 'basically look like minivans.' Marcus refused to pay, so Jake dumped a Monster Energy drink across his desk and paperwork.",
+      "A man charmed his way in and Parker let him sit with his dog at a table after he called it his 'emotional support date.' Now the dog is barking, lunging for food, and making the whole room question whether Feast Haven has any standards.",
     rootNodeId: "opening",
     nodes: {
       opening: {
         title: "Who do you talk to first?",
-        body: "The bet is dumb, but the property damage, public disrespect, and department tension are very real.",
+        body: "The room is split between thinking this is absurd, awkward, or somehow still manageable.",
+        consultants: {
+          devon: {
+            prompt: "Parker says the guest sounded persuasive, the room was backed up, and the dog only started acting wild after it was seated.",
+            options: [
+              opt("esd-open-parker", "Get Parker's full read before deciding whether this was kindness, bad judgment, or both.", "You start by understanding the decision instead of only reacting to the spectacle.", "policy-gap", fx(0, 1, 2, { devon: st(2, 3), elena: st(-1, 0), jake: st(0, 1) })),
+              opt("esd-open-parker-line", "Tell Parker immediately that funny explanations are not the same thing as policy.", "The lesson is obvious, but Parker feels hung out to dry before the fix is even clear.", "dining-room-chaos", fx(0, -1, 1, { devon: st(-2, -3), elena: st(1, 1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol is embarrassed because the front door standard just dissolved in full view of the dining room.",
+            options: [
+              opt("esd-open-marisol", "Have Marisol walk you through what the host stand should have done and where the judgment slipped.", "You anchor the incident in front-door standards instead of just vibes.", "policy-gap", fx(0, 1, 3, { elena: st(2, 3), devon: st(-1, -1) })),
+              opt("esd-open-marisol-room", "Put Marisol on guest recovery immediately before the dog wrecks another table.", "The room gets attention fast, but the internal lesson gets delayed.", "dining-room-chaos", fx(1, 2, 1, { elena: st(1, 1), devon: st(0, 1) }))
+            ]
+          }
+        }
+      },
+      "policy-gap": {
+        title: "It turns out nobody can explain the policy the same way",
+        body: "Some people think emotional support claims should be treated like service animals. Others think this was obviously nonsense. Guests now care less about the law than whether the restaurant looks serious.",
         consultants: {
           jake: {
-            prompt: "Jake thinks Marcus is hiding behind technicalities and wants the whole store to know it.",
+            prompt: "Adrian wants the dog out before the room turns this into the only thing anyone remembers tonight.",
             options: [
-              {
-                id: "mb-open-jake-terms",
-                label: "Hear Jake's version and ask exactly what the original bet terms were.",
-                outcome: "You start with the actual dispute instead of just the bad behavior.",
-                nextNodeId: "bet-review",
-                effects: fx(0, 0, 2, {
-                  jake: st(2, 3),
-                  marcus: st(0, 0)
-                })
-              },
-              {
-                id: "mb-open-jake-conduct",
-                label: "Tell Jake the desk drenching matters more right now than whether the SUVs count.",
-                outcome: "The professionalism line becomes clear, but Jake feels instantly unheard.",
-                nextNodeId: "damage-control",
-                effects: fx(0, 0, 2, {
-                  jake: st(-3, -2),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "mb-open-jake-private",
-                label: "Pull Jake away from the floor and make clear this will not become a public showroom fight.",
-                outcome: "You reduce the spectacle fast, though Jake still wants validation.",
-                nextNodeId: "floor-gossip",
-                effects: fx(0, 0, 1, {
-                  jake: st(-1, 1),
-                  elena: st(1, 1)
-                })
-              }
+              opt("esd-gap-adrian", "Move fast, apologize to affected tables, and relocate or remove the guest before the room gets uglier.", "The dining room sees action instead of endless policy confusion.", "staff-standard", fx(2, 3, 2, { jake: st(2, 2), elena: st(1, 1), devon: st(-1, -1) })),
+              opt("esd-gap-adrian-soft", "Try to compromise by moving the guest to a quieter corner and hoping the dog settles.", "It feels gentler, but the dog has not actually agreed to the plan.", "staff-standard", fx(0, -2, -1, { jake: st(-1, -1), elena: st(-1, -1) }))
             ]
           },
-          marcus: {
-            prompt: "Marcus thinks the bet was obviously about literal minivans and now his desk is ruined because Jake cannot lose gracefully.",
+          tasha: {
+            prompt: "Chef Renata says the kitchen should not have to guess whether a barking dog belongs in a room full of food.",
             options: [
-              {
-                id: "mb-open-marcus-files",
-                label: "Review what was damaged on Marcus's desk before weighing the bet itself.",
-                outcome: "You treat the stunt like a business problem instead of a silly prank.",
-                nextNodeId: "damage-control",
-                effects: fx(-1, 0, 3, {
-                  marcus: st(2, 4),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "mb-open-marcus-terms",
-                label: "Have Marcus walk you through what the bet actually was and why he refused to pay.",
-                outcome: "You start separating the childish bet from the real question of fairness.",
-                nextNodeId: "bet-review",
-                effects: fx(0, 0, 2, {
-                  marcus: st(2, 3),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "mb-open-marcus-back",
-                label: "Back Marcus immediately and tell him the bet is over because Jake crossed a line.",
-                outcome: "You sound decisive, but the sales floor now sees an answer before a hearing.",
-                nextNodeId: "floor-gossip",
-                effects: fx(0, 0, -1, {
-                  marcus: st(2, 2),
-                  jake: st(-5, -5)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina thinks the real danger is sales and accounting turning one dumb wager into a department war.",
-            options: [
-              {
-                id: "mb-open-nina-rumor",
-                label: "Ask Nina how fast the argument is spreading across the store.",
-                outcome: "You start managing the social blast radius instead of only the liquid on the desk.",
-                nextNodeId: "floor-gossip",
-                effects: fx(0, 0, 2, {
-                  nina: st(2, 3),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "mb-open-nina-credit",
-                label: "Ask Nina whether the two SUVs were ever pitched internally as part of Jake's minivan push.",
-                outcome: "The fairness question gets more nuanced than a simple outburst story.",
-                nextNodeId: "bet-review",
-                effects: fx(0, 0, 1, {
-                  nina: st(1, 2),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "mb-open-nina-stayout",
-                label: "Keep Nina out because this should stay between sales and accounting.",
-                outcome: "You keep the circle small, but lose one of the few people reading the wider room.",
-                nextNodeId: "damage-control",
-                effects: fx(0, 0, -1, {
-                  nina: st(-2, -2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena sees culture damage first. The desk drenching is becoming lunch-break entertainment.",
-            options: [
-              {
-                id: "mb-open-elena-culture",
-                label: "Ask Elena how ugly the vibe already feels to the rest of the staff.",
-                outcome: "You start with the culture consequences instead of pretending this is only between two people.",
-                nextNodeId: "floor-gossip",
-                effects: fx(0, 0, 2, {
-                  elena: st(2, 3),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "mb-open-elena-calm",
-                label: "Use Elena to cool the room while you sort the facts privately.",
-                outcome: "The atmosphere steadies, which makes a fair decision easier to land.",
-                nextNodeId: "bet-review",
-                effects: fx(0, 0, 3, {
-                  elena: st(3, 3),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "mb-open-elena-ignore",
-                label: "Tell Elena this is not a culture issue, just two coworkers acting immature.",
-                outcome: "The language sounds tidy, but the staff already knows it feels bigger than that.",
-                nextNodeId: "damage-control",
-                effects: fx(0, 0, -2, {
-                  elena: st(-2, -2),
-                  nina: st(-1, -1)
-                })
-              }
+              opt("esd-gap-renata", "Treat it as a food and room-control issue and remove the dog from the equation quickly.", "The standard sounds less sentimental, but much more defensible under pressure.", "staff-standard", fx(1, 2, 3, { tasha: st(2, 3), elena: st(1, 1), devon: st(-1, -1) })),
+              opt("esd-gap-renata-policy", "Pause and verify the exact accommodation policy before forcing the next move.", "The caution protects you legally, but the room gets more time to unravel.", "staff-standard", fx(0, 0, 2, { tasha: st(1, 1), devon: st(0, 1) }))
             ]
           }
         }
       },
-      "bet-review": {
-        title: "The bet terms were sloppy enough to invite an argument, but not sloppy enough to justify a desk shower",
-        body: "Jake and Marcus never wrote the bet down. Most staff assumed it meant literal minivans, but Jake spent the month bragging that he was moving 'family boxes,' which included two large SUVs in his own head.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants the ruling to separate the childish bet from the desk damage and still show that words matter.",
-            options: [
-              {
-                id: "mb-review-marcus-split",
-                label: "Rule that Jake lost the bet, but admit the terms were vague enough for a smaller compromise.",
-                outcome: "The decision feels measured rather than purely punitive.",
-                nextNodeId: "payout-ruling",
-                effects: fx(0, 1, 3, {
-                  marcus: st(1, 2),
-                  jake: st(-1, 1)
-                })
-              },
-              {
-                id: "mb-review-marcus-hardline",
-                label: "Rule flatly for Marcus and make clear the SUVs never counted.",
-                outcome: "The logic is clean, even if the floor reads it as cold.",
-                nextNodeId: "discipline-ruling",
-                effects: fx(0, 0, 2, {
-                  marcus: st(2, 3),
-                  jake: st(-4, -4)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina thinks the fairest answer is the one that reduces future department score-settling, not just this week's yelling.",
-            options: [
-              {
-                id: "mb-review-nina-mediate",
-                label: "Treat the bet like a mediation issue, settle the money question, and forbid side wagers across departments.",
-                outcome: "The store learns something useful from a very dumb conflict.",
-                nextNodeId: "payout-ruling",
-                effects: fx(0, 1, 4, {
-                  nina: st(2, 3),
-                  marcus: st(1, 1),
-                  jake: st(0, 1)
-                })
-              },
-              {
-                id: "mb-review-nina-dismiss",
-                label: "Call the bet meaningless and focus entirely on the conduct issue instead.",
-                outcome: "You avoid validating the wager, but Jake feels like the fairness question got buried.",
-                nextNodeId: "discipline-ruling",
-                effects: fx(0, 0, 1, {
-                  nina: st(1, 2),
-                  jake: st(-3, -3)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "damage-control": {
-        title: "The desk, paperwork, and office mood all need repair now",
-        body: "Monster is in Marcus's papers, on a keyboard, and all over the office. What looked like a joke has become actual disruption and cost.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants repayment, documentation, and a clear signal that accounting is not open season.",
-            options: [
-              {
-                id: "mb-damage-marcus-repay",
-                label: "Have Jake repay damaged materials and help reconstruct what was ruined.",
-                outcome: "The consequence feels tangible and connected to the act itself.",
-                nextNodeId: "discipline-ruling",
-                effects: fx(-1, 0, 4, {
-                  marcus: st(2, 4),
-                  jake: st(-2, -1)
-                })
-              },
-              {
-                id: "mb-damage-marcus-clean",
-                label: "Make the focus immediate cleanup and restoration before the discipline conversation.",
-                outcome: "The dealership gets functional again fast, though the emotional score remains unsettled.",
-                nextNodeId: "payout-ruling",
-                effects: fx(-1, 0, 2, {
-                  marcus: st(1, 2),
-                  jake: st(-1, 0)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena thinks the office chaos matters because the whole store is reading this like permission for theatrical revenge.",
-            options: [
-              {
-                id: "mb-damage-elena-reset",
-                label: "Clean the scene, then address the whole store on respect between departments.",
-                outcome: "The desk gets fixed and the culture gets a line drawn under it.",
-                nextNodeId: "discipline-ruling",
-                effects: fx(-1, 0, 4, {
-                  elena: st(3, 4),
-                  marcus: st(1, 1),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "mb-damage-elena-private",
-                label: "Keep the reset private so the dealership does not look even more ridiculous in public.",
-                outcome: "The shame stays smaller, but so does the lesson for everyone else.",
-                nextNodeId: "payout-ruling",
-                effects: fx(-1, 0, 1, {
-                  elena: st(1, 2),
-                  jake: st(0, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "floor-gossip": {
-        title: "The staff are already taking sides and turning the bet into dealership mythology",
-        body: "Sales thinks Marcus is humorless, accounting thinks Jake is a man-child, and the rest of the store is enjoying the spectacle far too much.",
+      "dining-room-chaos": {
+        title: "Now the issue is not the dog alone, it is whether the room thinks you are in control",
+        body: "Nearby tables are reacting. Staff are improvising explanations. The guest keeps acting like everyone else is the problem.",
         consultants: {
           nina: {
-            prompt: "Nina thinks the gossip is about to do more damage than the original bet ever could.",
+            prompt: "Celia wants one clean guest-facing script so nobody says something dumb while trying to help.", 
             options: [
-              {
-                id: "mb-gossip-nina-team",
-                label: "Address the staff briefly and shut down the side-taking before it hardens.",
-                outcome: "You cut off the audience effect that is keeping this alive.",
-                nextNodeId: "discipline-ruling",
-                effects: fx(0, 0, 4, {
-                  nina: st(2, 3),
-                  elena: st(1, 1),
-                  jake: st(-1, 0)
-                })
-              },
-              {
-                id: "mb-gossip-nina-ignore",
-                label: "Ignore the gossip and trust the ruling to calm everyone later.",
-                outcome: "Maybe that works. Maybe the departments just keep narrating the story themselves.",
-                nextNodeId: "payout-ruling",
-                effects: fx(0, 0, -2, {
-                  nina: st(-1, -1),
-                  marcus: st(-1, -1),
-                  jake: st(-1, -1)
-                })
-              }
+              opt("esd-chaos-celia", "Give the floor one guest script and one internal line so the room stops getting six versions.", "The restaurant suddenly sounds coordinated again, which calms more than one table.", "staff-standard", fx(1, 3, 3, { nina: st(2, 3), jake: st(1, 1), elena: st(1, 1) })),
+              opt("esd-chaos-celia-free", "Let each table be handled naturally so the service feels less robotic.", "It sounds nicer in theory than it plays in a barking dining room.", "staff-standard", fx(0, -1, -1, { nina: st(-1, -2), jake: st(-1, -1) }))
             ]
           },
-          elena: {
-            prompt: "Elena wants the room to stop treating public humiliation as fun office content.",
+          devon: {
+            prompt: "Parker wants a path that corrects the mistake without making the whole front door feel publicly incompetent.",
             options: [
-              {
-                id: "mb-gossip-elena-private",
-                label: "Meet privately with Jake and Marcus first, then reset the tone with the broader team.",
-                outcome: "You keep some dignity intact while still addressing the bigger cultural ripple.",
-                nextNodeId: "discipline-ruling",
-                effects: fx(0, 0, 3, {
-                  elena: st(3, 4),
-                  marcus: st(1, 2),
-                  jake: st(0, 1)
-                })
-              },
-              {
-                id: "mb-gossip-elena-laughoff",
-                label: "Let the store laugh it off as long as nobody escalates again.",
-                outcome: "The moment stays light, and the professionalism standard gets lighter with it.",
-                nextNodeId: "payout-ruling",
-                effects: fx(0, 0, -3, {
-                  elena: st(-2, -2),
-                  marcus: st(-2, -2),
-                  jake: st(1, 0)
-                })
-              }
+              opt("esd-chaos-parker", "Own that the host stand made the wrong judgment and fix it calmly without turning Parker into a spectacle.", "The correction lands cleaner because it is honest without being cruel.", "staff-standard", fx(1, 2, 3, { devon: st(1, 2), elena: st(1, 1), nina: st(1, 1) })),
+              opt("esd-chaos-parker-cover", "Protect Parker publicly and describe the issue as a one-off guest misunderstanding.", "It saves face, but the staff may quietly call it favoritism.", "staff-standard", fx(1, 0, 0, { devon: st(2, 2), elena: st(-1, -2), nina: st(-1, -1) }))
             ]
           }
         }
       },
-      "payout-ruling": {
-        title: "You still need a final answer on the bet itself",
-        body: "Even after the cleanup, both Jake and Marcus are waiting to see whether leadership thinks the SUVs count, the compromise counts, or only the lesson counts.",
+      "staff-standard": {
+        title: "The final move is whether this becomes a joke, a precedent, or a real standard",
+        body: "Everyone will remember what happened here the next time a charming guest tries to freestyle the rules.",
         consultants: {
-          marcus: {
-            prompt: "Marcus wants the ruling to preserve logic and not reward theatrical pressure.",
-            options: [
-              {
-                id: "mb-payout-marcus-split",
-                label: "Rule that the SUVs do not count, but pay a symbolic split to close the argument cleanly.",
-                outcome: "The dealership gets closure without pretending the logic changed.",
-                nextNodeId: null,
-                effects: fx(-1, 0, 3, {
-                  marcus: st(1, 2),
-                  jake: st(0, 1)
-                })
-              },
-              {
-                id: "mb-payout-marcus-zero",
-                label: "Rule for Marcus completely and make the bet loss part of Jake's lesson.",
-                outcome: "The principle is crisp, though Jake leaves feeling publicly defeated.",
-                nextNodeId: null,
-                effects: fx(0, 0, 2, {
-                  marcus: st(2, 3),
-                  jake: st(-3, -3)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake wants to walk away feeling like the dealership did not let accounting hide behind smug technicality.",
-            options: [
-              {
-                id: "mb-payout-jake-compromise",
-                label: "Give Jake partial credit for the SUVs as a one-time compromise and outlaw future side bets.",
-                outcome: "He does not win cleanly, but he also does not leave feeling humiliated.",
-                nextNodeId: null,
-                effects: fx(-1, 1, 2, {
-                  jake: st(2, 2),
-                  marcus: st(-1, 0)
-                })
-              },
-              {
-                id: "mb-payout-jake-nocredit",
-                label: "Tell Jake the bet was about literal minivans and that is the end of it.",
-                outcome: "The dealership sounds consistent, though not especially warm.",
-                nextNodeId: null,
-                effects: fx(0, 0, 2, {
-                  jake: st(-2, -2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "discipline-ruling": {
-        title: "The money question matters, but the desk shower still needs a real consequence",
-        body: "Everyone now knows Jake crossed a line. What they are waiting to see is whether leadership believes that means a real consequence or just an awkward lecture.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants the discipline to show that accounting does not exist to be mocked or physically trashed.",
-            options: [
-              {
-                id: "mb-discipline-marcus-writeup",
-                label: "Issue a formal write-up tied to property damage and conduct across departments.",
-                outcome: "The consequence is clear, documented, and hard to laugh off.",
-                nextNodeId: null,
-                effects: fx(0, 0, 4, {
-                  marcus: st(3, 4),
-                  jake: st(-4, -4)
-                })
-              },
-              {
-                id: "mb-discipline-marcus-repair",
-                label: "Use repayment, cleanup, and a direct apology instead of a formal write-up this time.",
-                outcome: "The punishment feels concrete and restorative without locking into a larger HR moment.",
-                nextNodeId: null,
-                effects: fx(-1, 0, 3, {
-                  marcus: st(2, 3),
-                  jake: st(-2, -1)
-                })
-              }
-            ]
-          },
           elena: {
-            prompt: "Elena wants the discipline to calm the culture, not just satisfy one department for a day.",
+            prompt: "Marisol wants the front door protected by a rule that still leaves room for real compassion when it matters.",
             options: [
-              {
-                id: "mb-discipline-elena-mediate",
-                label: "Pair the consequence with a mediated reset between sales and accounting.",
-                outcome: "The store gets accountability and a path back to functioning respect.",
-                nextNodeId: null,
-                effects: fx(-1, 1, 5, {
-                  elena: st(3, 4),
-                  marcus: st(1, 2),
-                  jake: st(-1, 1)
-                })
-              },
-              {
-                id: "mb-discipline-elena-warning",
-                label: "Give a hard warning and move on before the incident consumes the whole week.",
-                outcome: "The dealership regains speed, though some staff will wonder whether the line was really that firm.",
-                nextNodeId: null,
-                effects: fx(0, 0, 1, {
-                  elena: st(1, 1),
-                  jake: st(-1, 0),
-                  marcus: st(0, 0)
-                })
-              }
+              opt("esd-final-marisol", "Write a front-door animal policy, train the stand, and make escalation mandatory on edge cases.", "The next weird guest will still happen, but the room will no longer wing it.", null, fx(2, 3, 4, { elena: st(2, 3), devon: st(1, 2), nina: st(1, 1) })),
+              opt("esd-final-marisol-soft", "Tell the host stand to use better judgment next time and leave the rest unwritten.", "It sounds flexible, but not especially safe.", null, fx(1, -1, -1, { elena: st(-1, -1), devon: st(0, 1) }))
+            ]
+          },
+          devon: {
+            prompt: "Parker wants to recover from the mistake without losing all confidence at the front door.",
+            options: [
+              opt("esd-final-parker", "Coach Parker directly, let them own the recovery, and keep them visible in the next clean service moment.", "You correct the error without turning one bad call into permanent panic.", null, fx(2, 2, 2, { devon: st(2, 3), elena: st(1, 1) })),
+              opt("esd-final-parker-pull", "Pull Parker off the stand for a while and let someone steadier hold the door.", "The immediate risk drops, but Parker may hear it as trust leaving the room.", null, fx(1, 0, 1, { devon: st(-2, -3), elena: st(1, 1) }))
             ]
           }
         }
@@ -896,453 +381,181 @@ module.exports = [
     }
   },
   {
-    id: "ex-husband-drama",
-    category: "Relationship Fallout",
+    id: "buffalo-breakdown",
+    category: "Inventory Failure",
+    pressure: "High",
+    headline: "The buffalo wing special is out of buffalo sauce and it is only Wednesday",
+    body:
+      "Feast Haven pushed the weekly special hard and now one of the core ingredients is gone halfway through the week. No one wants to own the slip-up, and the room is trying to decide whether this was ordering, overselling, or pure negligence.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you talk to first?",
+        body: "The special is already printed, guests are asking for it, and every department has a reason this is someone else's fault.",
+        consultants: {
+          tasha: {
+            prompt: "Chef Renata wants inventory counts, ticket volume, and the exact moment the kitchen realized the special was living on borrowed time.",
+            options: [
+              opt("bb-open-renata", "Audit the actual inventory and sales pace with Chef Renata before blaming the floor.", "You start with facts and avoid a fake certainty that would only inflame the next argument.", "supply-trace", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
+              opt("bb-open-renata-line", "Back the kitchen immediately and assume the floor oversold the special irresponsibly.", "The cooks feel protected, but the floor hears blame arriving before the count is even done.", "service-scramble", fx(0, -1, 0, { tasha: st(1, 1), nina: st(-2, -2), elena: st(-1, -1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol says the host stand was still seating people with the special pitch because nobody told the front door to stop.",
+            options: [
+              opt("bb-open-marisol", "Trace exactly when the front should have been told to stop selling the special.", "You shift the question from blame to communication failure, which is much more useful.", "supply-trace", fx(0, 2, 3, { elena: st(2, 3), devon: st(1, 1), tasha: st(0, 1) })),
+              opt("bb-open-marisol-room", "Focus first on how to speak to guests now that the special is effectively fake.", "The room gets triage fast, but the root cause waits in the dark.", "service-scramble", fx(1, 2, 1, { elena: st(1, 1), nina: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "supply-trace": {
+        title: "Everyone contributed one small piece to the failure",
+        body: "Ordering lagged, the kitchen stretched the stock optimistically, and the front kept selling it longer than anyone should have. Nobody is innocent enough to lecture everyone else.",
+        consultants: {
+          priya: {
+            prompt: "Imani wants the fix to be boring, visible, and impossible to misunderstand next time.",
+            options: [
+              opt("bb-trace-imani", "Create a live special-count board that the kitchen and floor both update during service.", "It sounds almost too simple, which is exactly why people might finally use it.", "guest-recovery", fx(1, 3, 4, { priya: st(3, 4), tasha: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
+              opt("bb-trace-imani-kitchen", "Give the kitchen full control over when a special is cut off, even if the floor hates the timing.", "It protects supply better, but centralizes the resentment too.", "guest-recovery", fx(1, 1, 2, { priya: st(1, 2), tasha: st(2, 2), nina: st(-1, -1) }))
+            ]
+          },
+          nina: {
+            prompt: "Celia wants the floor looped in earlier so guests stop hearing great pitches for things that are already half gone.",
+            options: [
+              opt("bb-trace-celia", "Set a mandatory floor alert the moment stock hits the final third of any promoted item.", "Guests still hear the special, just not after the truth has changed.", "guest-recovery", fx(1, 2, 3, { nina: st(2, 3), elena: st(1, 1), tasha: st(0, 1) })),
+              opt("bb-trace-celia-blunt", "Tell the floor to sell smarter and stop relying on kitchen rescue when specials get tight.", "There is truth in it, but not much teamwork.", "guest-recovery", fx(1, -1, -1, { nina: st(-1, -1), elena: st(-1, -1), tasha: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "service-scramble": {
+        title: "Guests are still ordering something the restaurant does not fully have",
+        body: "If the guest script is weak, the inventory problem becomes a trust problem in under ten minutes.",
+        consultants: {
+          jake: {
+            prompt: "Adrian wants a substitution path that feels generous, not like a desperate save after a bad sell.",
+            options: [
+              opt("bb-scramble-adrian", "Offer a clear substitute and a small comp so tables do not feel baited.", "The room takes the pivot better when it feels intentional instead of evasive.", "guest-recovery", fx(1, 3, 2, { jake: st(2, 2), nina: st(1, 1), elena: st(1, 1) })),
+              opt("bb-scramble-adrian-tight", "Push the remaining stock to the loudest tables and quietly steer everyone else elsewhere.", "It may save a few check averages, but the fairness cost is ugly if people compare notes.", "guest-recovery", fx(2, -2, -2, { jake: st(1, 1), nina: st(-1, -2), elena: st(-2, -2) }))
+            ]
+          },
+          tasha: {
+            prompt: "Chef Renata wants the kitchen protected from a wave of improvisation that will only create new mistakes.", 
+            options: [
+              opt("bb-scramble-renata", "Cut the special cleanly and stop any half-measure improvisations before they reach the pass.", "It costs some sales now, but saves a bigger mess ten tickets later.", "guest-recovery", fx(0, 2, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
+              opt("bb-scramble-renata-stretch", "Tell the kitchen to stretch what is left into modified versions for the rest of the night.", "You buy time, but invite inconsistency the second the room gets busy again.", "guest-recovery", fx(1, -1, -2, { tasha: st(-2, -2), priya: st(-1, -1), luis: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "guest-recovery": {
+        title: "The final move is whether this feels like scarcity, incompetence, or a restaurant that adjusted well under pressure",
+        body: "By the end of tonight, guests will remember either the shortage or the recovery. Staff will remember whether the fix was fair.",
+        consultants: {
+          elena: {
+            prompt: "Marisol wants the final standard to stop the host stand from ever selling blind into a dead special again.",
+            options: [
+              opt("bb-final-marisol", "Make special inventory visible across the whole room and require real-time updates from kitchen to floor.", "It is not glamorous, but it would have prevented almost every part of this disaster.", null, fx(2, 3, 4, { elena: st(2, 3), nina: st(1, 2), tasha: st(1, 1), priya: st(1, 1) })),
+              opt("bb-final-marisol-quiet", "Patch the communication privately and avoid announcing a bigger policy reset.", "It may work once, but it also keeps the lesson soft and forgettable.", null, fx(1, 0, 0, { elena: st(0, 1), nina: st(-1, -1) }))
+            ]
+          },
+          tasha: {
+            prompt: "Chef Renata wants leadership to admit the shortage was shared, not just dropped on the kitchen at the last second.", 
+            options: [
+              opt("bb-final-renata", "Own the shared failure publicly and pair it with a simple special-tracking system everyone must use.", "The accountability lands because nobody gets to pretend they were the only responsible adult in the room.", null, fx(3, 3, 4, { tasha: st(2, 3), priya: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
+              opt("bb-final-renata-kitchen", "Frame the kitchen as the main control point and let the floor adapt around that.", "It sounds decisive, but the floor may feel blamed for a problem it could not fully see.", null, fx(2, 0, 1, { tasha: st(2, 2), nina: st(-2, -2), elena: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "busser-flirt-slowdown",
+    category: "Floor Discipline",
     pressure: "Medium",
-    headline: "Tasha is dating Elena's ex-husband and the dealership is starting to feel radioactive",
+    headline: "The busser keeps flirting with customers and they love it, but the room is falling behind",
     body:
-      "Tasha recently started dating a new man, and Elena has now discovered it is her ex-husband. The tension between them is stiff and obvious, while Jake is treating the whole thing like premium dealership comedy content.",
+      "Omar has started charming customers so much that some tables now expect him to stop and banter. The guests enjoy it, but resets are slower, other staff are jealous, and Feast Haven is starting to feel uneven.",
     rootNodeId: "opening",
     nodes: {
       opening: {
         title: "Who do you talk to first?",
-        body: "This is private life spilling hard into public work, and the dealership is already feeling the temperature change.",
+        body: "This is one of those annoying problems where the behavior is good for the vibe right up until it becomes bad for the shift.",
         consultants: {
-          elena: {
-            prompt: "Elena is trying to stay composed, but she feels blindsided and humiliated by how close the whole thing is to home.",
+          marcus: {
+            prompt: "Omar says he is building the guest experience, not doing anything wrong, and nobody complained until coworkers got salty about it.",
             options: [
-              {
-                id: "eh-open-elena-hear",
-                label: "Hear Elena out privately before deciding how big the intervention needs to be.",
-                outcome: "Elena feels respected, which lowers the odds that the hurt turns into open retaliation.",
-                nextNodeId: "boundary-setting",
-                effects: fx(0, 0, 2, {
-                  elena: st(2, 4),
-                  tasha: st(0, 0)
-                })
-              },
-              {
-                id: "eh-open-elena-separate",
-                label: "Tell Elena you are sorry, but this is private life and she has to keep it separate from work.",
-                outcome: "The principle is fair, though Elena hears it as being told to swallow something huge instantly.",
-                nextNodeId: "workflow-freeze",
-                effects: fx(0, 0, 1, {
-                  elena: st(-3, -2),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "eh-open-elena-document",
-                label: "Treat Elena's concern like the start of a real workplace disruption and document it.",
-                outcome: "The dealership takes the tension seriously without pretending it is already a legal case.",
-                nextNodeId: "boundary-setting",
-                effects: fx(0, 0, 3, {
-                  elena: st(1, 3),
-                  marcus: st(1, 2)
-                })
-              }
+              opt("bfs-open-omar", "Hear Omar out and find out how much of this is hospitality versus how much is missed reset work.", "You treat the issue like a real leadership call instead of instant jealousy management.", "room-jealousy", fx(0, 2, 2, { marcus: st(2, 3), jake: st(-1, -1), nina: st(-1, -1) })),
+              opt("bfs-open-omar-line", "Tell Omar immediately that charm stops being charming when tables are not reset on time.", "The standard is fair, but Omar hears it as punishment for being naturally good with people.", "room-jealousy", fx(0, -1, 0, { marcus: st(-2, -2), jake: st(1, 1), nina: st(1, 1) }))
             ]
           },
-          tasha: {
-            prompt: "Tasha is defensive and says she is not doing anything wrong just because the relationship is awkward for Elena.",
+          nina: {
+            prompt: "Celia thinks Omar is getting away with something nobody else would be allowed to do during a rush.",
             options: [
-              {
-                id: "eh-open-tasha-hear",
-                label: "Hear Tasha's side before deciding whether this is mainly emotion, gossip, or workflow damage.",
-                outcome: "Tasha feels less ambushed, which makes professionalism easier to demand later.",
-                nextNodeId: "boundary-setting",
-                effects: fx(0, 0, 2, {
-                  tasha: st(2, 3),
-                  elena: st(0, 0)
-                })
-              },
-              {
-                id: "eh-open-tasha-boundary",
-                label: "Tell Tasha immediately that whatever she does personally cannot create drama at work.",
-                outcome: "The line is clear, though Tasha feels judged before she feels heard.",
-                nextNodeId: "workflow-freeze",
-                effects: fx(0, 0, 1, {
-                  tasha: st(-2, -1),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "eh-open-tasha-ignore",
-                label: "Minimize the issue and say the dealership will not manage anyone's dating life.",
-                outcome: "You avoid overreaching, but you also leave the room to figure out its own messy rules.",
-                nextNodeId: "gossip-spread",
-                effects: fx(0, 0, -2, {
-                  tasha: st(1, 0),
-                  elena: st(-2, -2),
-                  jake: st(1, 0)
-                })
-              }
+              opt("bfs-open-celia", "Let Celia explain exactly how the flirting is slowing the service chain, not just annoying the floor.", "The complaint becomes more credible when it is tied to actual missed duties.", "room-jealousy", fx(0, 1, 2, { nina: st(2, 3), marcus: st(-1, -1), jake: st(0, 1) })),
+              opt("bfs-open-celia-jealous", "Call out the jealousy angle immediately and make Celia prove the problem is operational.", "You challenge the tone, but risk making a real service issue sound petty.", "room-jealousy", fx(0, -1, -1, { nina: st(-2, -2), marcus: st(1, 1) }))
             ]
-          },
+          }
+        }
+      },
+      "room-jealousy": {
+        title: "The room is now arguing about fairness, charisma, and who gets judged by different rules",
+        body: "Omar is not the only person affected anymore. Adrian feels shown up, Celia feels standards are uneven, and guests are starting to notice who gets extra attention.",
+        consultants: {
           jake: {
-            prompt: "Jake thinks the whole dealership is too tense and that a few jokes are helping everyone cope.",
+            prompt: "Adrian thinks Omar is freelancing the floor role without taking the harder guest-facing consequences servers live with all shift.",
             options: [
-              {
-                id: "eh-open-jake-stop",
-                label: "Tell Jake to stop making jokes immediately because he is feeding the fire.",
-                outcome: "The audience effect drops, which gives the actual conflict less oxygen.",
-                nextNodeId: "gossip-spread",
-                effects: fx(0, 0, 3, {
-                  jake: st(-2, -1),
-                  elena: st(1, 1),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "eh-open-jake-heard",
-                label: "Ask Jake how much of this has already become open-floor gossip.",
-                outcome: "You get a clearer sense of how private this still is, if at all.",
-                nextNodeId: "gossip-spread",
-                effects: fx(0, 0, 1, {
-                  jake: st(1, 2),
-                  elena: st(0, 0)
-                })
-              },
-              {
-                id: "eh-open-jake-letjoke",
-                label: "Let Jake keep the jokes light as long as they do not become cruel.",
-                outcome: "You hope humor diffuses things, but it mostly teaches the room that leadership is comfortable with cheap commentary.",
-                nextNodeId: "workflow-freeze",
-                effects: fx(0, 0, -3, {
-                  jake: st(1, 0),
-                  elena: st(-3, -3),
-                  tasha: st(-1, -1)
-                })
-              }
+              opt("bfs-jealous-adrian", "Redraw the line between friendly table touchpoints and actual busser duties so nobody is guessing.", "The room suddenly has language for what crossed the line and what did not.", "guest-signal", fx(1, 2, 3, { jake: st(2, 2), marcus: st(1, 1), nina: st(1, 1) })),
+              opt("bfs-jealous-adrian-side", "Protect the servers' territory and tell Omar to stop any table lingering immediately.", "It solves the jealousy fast, but also erases the one part guests actually liked.", "guest-signal", fx(0, -1, -1, { jake: st(1, 1), marcus: st(-2, -3) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol says the real issue is that the room now feels inconsistent depending on which table Omar likes best.", 
+            options: [
+              opt("bfs-jealous-marisol", "Treat this like a service-consistency problem, not a morality problem, and rebalance the floor touchpoints.", "The standard lands better because it sounds guest-focused instead of personal.", "guest-signal", fx(1, 3, 3, { elena: st(2, 3), marcus: st(1, 1), nina: st(1, 1) })),
+              opt("bfs-jealous-marisol-quiet", "Leave the guest banter mostly alone and only push Omar harder on the resets.", "It may work if he adjusts, but the fairness question will still linger.", "guest-signal", fx(1, 0, 0, { elena: st(0, 1), nina: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      "guest-signal": {
+        title: "Now the guests are part of the story too",
+        body: "Some tables clearly love Omar. Others are noticing delays, uneven attention, and a room that looks less organized than it should.",
+        consultants: {
+          devon: {
+            prompt: "Parker thinks Omar can keep the warmth if someone else fixes the pacing and role clarity around him.", 
+            options: [
+              opt("bfs-signal-parker", "Keep Omar's guest warmth, but give him tighter reset triggers and a visible duty checklist.", "You preserve the upside without pretending hospitality has no timing cost.", "final-balance", fx(2, 3, 3, { devon: st(2, 3), marcus: st(2, 2), nina: st(1, 1) })),
+              opt("bfs-signal-parker-shift", "Move Omar further off the floor and use him mostly on back-end resets for a while.", "The room gets faster, but the human spark disappears with it.", "final-balance", fx(1, 0, 1, { devon: st(0, 1), marcus: st(-2, -2) }))
             ]
           },
           marcus: {
-            prompt: "Marcus does not care who dates whom, but he absolutely cares if departments stop functioning because of it.",
+            prompt: "Omar still thinks the attention is good for business and says nobody is angry when they are flirting back.", 
             options: [
-              {
-                id: "eh-open-marcus-impact",
-                label: "Ask Marcus whether the tension is already affecting deadlines or handoffs.",
-                outcome: "You measure the operational damage instead of assuming it.",
-                nextNodeId: "workflow-freeze",
-                effects: fx(0, 0, 2, {
-                  marcus: st(2, 3),
-                  elena: st(0, 0),
-                  tasha: st(0, 0)
-                })
-              },
-              {
-                id: "eh-open-marcus-neutral",
-                label: "Use Marcus as a neutral observer while you gather both sides privately.",
-                outcome: "The whole thing feels less like emotional chaos and more like leadership is actually managing it.",
-                nextNodeId: "boundary-setting",
-                effects: fx(0, 0, 3, {
-                  marcus: st(2, 3),
-                  elena: st(1, 1),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "eh-open-marcus-stayout",
-                label: "Tell Marcus to stay out because this is personal, not operational.",
-                outcome: "You protect privacy, though you may miss the moment it becomes a workflow issue.",
-                nextNodeId: "gossip-spread",
-                effects: fx(0, 0, -1, {
-                  marcus: st(-1, -1),
-                  jake: st(1, 0)
-                })
-              }
+              opt("bfs-signal-omar", "Coach Omar on 'fast charm' instead of 'full conversation' so the room still moves.", "The correction feels respectful because it keeps his strength while trimming the excess.", "final-balance", fx(2, 2, 2, { marcus: st(2, 3), jake: st(1, 1), nina: st(1, 1) })),
+              opt("bfs-signal-omar-hard", "Frame the whole thing as unprofessional and strip the warmth out of it entirely.", "The room gets safer, but also flatter and more resentful.", "final-balance", fx(0, -1, -1, { marcus: st(-3, -3), jake: st(1, 1), nina: st(1, 1) }))
             ]
           }
         }
       },
-      "boundary-setting": {
-        title: "Both women are keeping it together, but only barely",
-        body: "Elena is hurt, Tasha is defensive, and neither of them wants to be the one who looks unprofessional first.",
+      "final-balance": {
+        title: "The final move is whether the room learns balance or just fear",
+        body: "Omar is not a villain. The room is not crazy. Your job is deciding what kind of hospitality Feast Haven actually rewards.",
         consultants: {
           elena: {
-            prompt: "Elena wants room to be honest about the discomfort without being painted as unstable or jealous.",
+            prompt: "Marisol wants one final standard everyone can live with, not just a weird one-time talk about flirting.", 
             options: [
-              {
-                id: "eh-boundary-elena-private",
-                label: "Set private boundaries first, then bring them together for a work-only reset.",
-                outcome: "You slow the pace down, but you give both a real chance to arrive calm enough for a useful conversation.",
-                nextNodeId: "direct-mediation",
-                effects: fx(0, 1, 4, {
-                  elena: st(2, 4),
-                  tasha: st(1, 2)
-                })
-              },
-              {
-                id: "eh-boundary-elena-publicline",
-                label: "Draw a strict professionalism line immediately and skip the emotional processing piece.",
-                outcome: "The expectation is clear, though the resentment has nowhere graceful to go.",
-                nextNodeId: "culture-reset",
-                effects: fx(0, 0, 2, {
-                  elena: st(-1, 0),
-                  tasha: st(-1, 0),
-                  marcus: st(1, 1)
-                })
-              }
+              opt("bfs-final-marisol", "Define a guest-warmth standard that still protects role clarity, reset timing, and fairness on the floor.", "The room gets a real cultural answer instead of another whispered exception.", null, fx(3, 3, 4, { elena: st(2, 3), marcus: st(2, 2), nina: st(1, 1), jake: st(1, 1) })),
+              opt("bfs-final-marisol-warning", "End it with a one-time warning and trust people to self-correct.", "That may calm tonight, but it leaves the same fairness debate waiting for the next rush.", null, fx(1, 0, -1, { elena: st(-1, -1), nina: st(-1, -1) }))
             ]
           },
-          tasha: {
-            prompt: "Tasha wants to know whether she is being judged for her dating choice or only for how she behaves at work.",
-            options: [
-              {
-                id: "eh-boundary-tasha-behavior",
-                label: "Make clear the dealership is not judging her relationship, only workplace behavior and respect.",
-                outcome: "Tasha becomes less defensive because the line feels fair rather than moralizing.",
-                nextNodeId: "direct-mediation",
-                effects: fx(0, 1, 4, {
-                  tasha: st(2, 4),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "eh-boundary-tasha-distance",
-                label: "Temporarily reduce direct overlap between Tasha and Elena while emotions cool.",
-                outcome: "The tension drops quickly, though the move also confirms the issue is shaping the workplace.",
-                nextNodeId: "culture-reset",
-                effects: fx(-1, 0, 2, {
-                  tasha: st(1, 2),
-                  elena: st(1, 2),
-                  marcus: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "gossip-spread": {
-        title: "Jake's jokes and hallway whispers are turning a painful situation into dealership entertainment",
-        body: "The issue is no longer just between Elena and Tasha. Other staff are now treating it like serialized drama.",
-        consultants: {
-          jake: {
-            prompt: "Jake swears the jokes are harmless, but the laughter keeps the whole issue hot.",
-            options: [
-              {
-                id: "eh-gossip-jake-apology",
-                label: "Make Jake apologize and stop turning the relationship into public content.",
-                outcome: "The room loses its loudest amplifier, which helps everything else come down a notch.",
-                nextNodeId: "culture-reset",
-                effects: fx(0, 0, 4, {
-                  jake: st(-2, 0),
-                  elena: st(2, 3),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "eh-gossip-jake-private",
-                label: "Correct Jake privately and trust the rest of the team to read the change in tone.",
-                outcome: "The dealership gets a quieter reset, though some of the gossip machine remains intact.",
-                nextNodeId: "direct-mediation",
-                effects: fx(0, 0, 2, {
-                  jake: st(-1, 1),
-                  elena: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants leadership to show that mockery is not the culture tax she has to pay for showing up hurt.",
-            options: [
-              {
-                id: "eh-gossip-elena-teamline",
-                label: "Address the whole team on gossip, dignity, and customer-facing professionalism.",
-                outcome: "The standard becomes public, which is exactly what the rumor mill needed.",
-                nextNodeId: "culture-reset",
-                effects: fx(0, 0, 5, {
-                  elena: st(2, 4),
-                  jake: st(-1, -1),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "eh-gossip-elena-quiet",
-                label: "Keep the response private so Elena does not feel even more exposed than she already does.",
-                outcome: "Dignity is preserved, though the wider team learns less from it.",
-                nextNodeId: "direct-mediation",
-                effects: fx(0, 0, 2, {
-                  elena: st(2, 3),
-                  jake: st(0, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "workflow-freeze": {
-        title: "The emotional tension is now starting to break real work",
-        body: "Marketing requests are slowing down, service communication is clipped, and what started as private pain is turning into operational drag.",
-        consultants: {
           marcus: {
-            prompt: "Marcus wants the dealership to treat workflow failure as the non-negotiable line even if the relationship issue stays messy.",
+            prompt: "Omar wants to know whether being genuinely great with guests counts for anything if it annoys coworkers.", 
             options: [
-              {
-                id: "eh-work-marcus-assign",
-                label: "Reset responsibilities and communication rules so the work can keep moving.",
-                outcome: "The dealership becomes more functional quickly, even if not especially warm.",
-                nextNodeId: "culture-reset",
-                effects: fx(1, 0, 4, {
-                  marcus: st(2, 3),
-                  elena: st(0, 1),
-                  tasha: st(0, 1)
-                })
-              },
-              {
-                id: "eh-work-marcus-mediate",
-                label: "Use the workflow issue as the reason to bring Elena and Tasha into a direct conversation now.",
-                outcome: "The practical stakes give the mediation a purpose bigger than personal closure.",
-                nextNodeId: "direct-mediation",
-                effects: fx(0, 0, 3, {
-                  marcus: st(1, 2),
-                  elena: st(1, 1),
-                  tasha: st(1, 1)
-                })
-              }
-            ]
-          },
-          tasha: {
-            prompt: "Tasha does not want to be painted as the person who brought drama into the shop.",
-            options: [
-              {
-                id: "eh-work-tasha-cooperate",
-                label: "Make cooperation the standard now and promise the personal conversation gets its own space later.",
-                outcome: "The work gets protected, even if the personal hurt stays unfinished.",
-                nextNodeId: "culture-reset",
-                effects: fx(1, 0, 2, {
-                  tasha: st(0, 1),
-                  elena: st(0, 1)
-                })
-              },
-              {
-                id: "eh-work-tasha-talknow",
-                label: "Let Tasha air the tension directly with Elena now before it keeps poisoning tasks.",
-                outcome: "The risk is higher, but so is the chance of finally breaking the freeze honestly.",
-                nextNodeId: "direct-mediation",
-                effects: fx(0, 0, 2, {
-                  tasha: st(1, 2),
-                  elena: st(0, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "direct-mediation": {
-        title: "The core tension has to be faced directly now",
-        body: "You have enough information to stop pretending this will fix itself. The next move determines whether the dealership remembers this as a rough reset or the beginning of lasting bitterness.",
-        consultants: {
-          elena: {
-            prompt: "Elena wants to be able to say what hurt without being forced to bless the relationship itself.",
-            options: [
-              {
-                id: "eh-mediate-elena-boundaries",
-                label: "Run a direct meeting focused only on respect, boundaries, and work behavior going forward.",
-                outcome: "The conversation stays uncomfortable but useful, which is exactly what the dealership needed.",
-                nextNodeId: null,
-                effects: fx(0, 1, 5, {
-                  elena: st(2, 4),
-                  tasha: st(1, 3),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "eh-mediate-elena-feelings",
-                label: "Give Elena more room to process than the room can really sustain as a business conversation.",
-                outcome: "She feels heard, but the meeting drifts away from what the dealership can actually govern.",
-                nextNodeId: null,
-                effects: fx(0, 0, 2, {
-                  elena: st(3, 3),
-                  tasha: st(-1, -1)
-                })
-              }
-            ]
-          },
-          tasha: {
-            prompt: "Tasha wants the final message to be that she can work here professionally without apologizing for her private life.",
-            options: [
-              {
-                id: "eh-mediate-tasha-workline",
-                label: "Center the resolution on future behavior, communication, and no more public jokes from anyone.",
-                outcome: "The dealership gets a practical peace instead of a forced emotional miracle.",
-                nextNodeId: null,
-                effects: fx(1, 1, 4, {
-                  tasha: st(2, 3),
-                  elena: st(1, 2),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "eh-mediate-tasha-distance",
-                label: "Pair the conversation with temporary distance in how Elena and Tasha work together.",
-                outcome: "The peace comes with structural support, which lowers the chance of a quick relapse.",
-                nextNodeId: null,
-                effects: fx(0, 0, 3, {
-                  tasha: st(1, 2),
-                  elena: st(1, 2),
-                  marcus: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "culture-reset": {
-        title: "The dealership now needs a broader answer about gossip, dignity, and emotional spillover",
-        body: "Even if Elena and Tasha stabilize, the whole store has learned something about how publicly playable personal pain can become here.",
-        consultants: {
-          jake: {
-            prompt: "Jake is the obvious culture accelerant here, whether he means to be or not.",
-            options: [
-              {
-                id: "eh-culture-jake-stop",
-                label: "Set a clear no-jokes line around coworkers' personal pain and enforce it.",
-                outcome: "The rule feels overdue, and the room immediately becomes less cheap.",
-                nextNodeId: null,
-                effects: fx(0, 0, 5, {
-                  jake: st(-2, -2),
-                  elena: st(2, 3),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "eh-culture-jake-soft",
-                label: "Give Jake a softer warning and hope the room takes the hint.",
-                outcome: "The tone improves some, though the lesson stays blurrier than ideal.",
-                nextNodeId: null,
-                effects: fx(0, 0, 2, {
-                  jake: st(-1, 0),
-                  elena: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants the outcome to make the dealership feel safe again, not just controlled.",
-            options: [
-              {
-                id: "eh-culture-elena-reset",
-                label: "Reset the team's expectations around gossip, respect, and private pain becoming public sport.",
-                outcome: "The dealership feels more adult and much less like a rumor machine.",
-                nextNodeId: null,
-                effects: fx(0, 1, 5, {
-                  elena: st(3, 4),
-                  tasha: st(1, 2),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "eh-culture-elena-minimal",
-                label: "Keep the reset narrow so the situation can fade without becoming a whole staff seminar.",
-                outcome: "The week moves faster, though the culture lesson lands more softly than it could have.",
-                nextNodeId: null,
-                effects: fx(0, 0, 2, {
-                  elena: st(1, 2),
-                  jake: st(0, 0),
-                  tasha: st(0, 1)
-                })
-              }
+              opt("bfs-final-omar", "Tell Omar his guest warmth matters, but only when the role is still fully handled behind it.", "The message lands because it does not shame the strength, only the drift.", null, fx(2, 2, 2, { marcus: st(2, 3), nina: st(1, 1), jake: st(1, 1) })),
+              opt("bfs-final-omar-shut", "Make the issue purely about duty completion and refuse to discuss the guest upside at all.", "The clarity is real, but so is the missed coaching opportunity.", null, fx(1, -1, 0, { marcus: st(-2, -2), nina: st(1, 1) }))
             ]
           }
         }
@@ -1350,446 +563,181 @@ module.exports = [
     }
   },
   {
-    id: "tiktok-sunroof",
-    category: "TikTok Sunroof Disaster",
+    id: "chef-mad-scientist-menu",
+    category: "Menu Innovation",
+    pressure: "Medium",
+    headline: "Chef Renata's wild weekly experiments are exciting customers and breaking the kitchen's brain",
+    body:
+      "Chef Renata keeps forcing ambitious new dishes into the menu cycle: peanut-butter sloppy joes, BBQ chip tacos, chicken and pancakes. Some become cult hits. Some bomb immediately. The bigger problem is that ordering, prep, and training are turning into weekly chaos.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you talk to first?",
+        body: "The creativity is real. So is the operational drag. The restaurant now has to decide what kind of chaos it is willing to romanticize.",
+        consultants: {
+          tasha: {
+            prompt: "Chef Renata says the restaurant will die boring if every new idea is strangled by spreadsheet fear.",
+            options: [
+              opt("cms-open-renata", "Hear Renata out and separate the creative upside from the operational damage it is causing.", "You avoid reducing the whole issue to 'chef bad' and give the conversation real shape.", "line-friction", fx(0, 1, 2, { tasha: st(2, 3), luis: st(1, 1), priya: st(-1, -1) })),
+              opt("cms-open-renata-line", "Tell Renata immediately that the menu is not a weekly science fair if the line cannot execute it.", "The constraint is real, but it lands as disrespect before it lands as leadership.", "line-friction", fx(0, -1, 0, { tasha: st(-2, -3), luis: st(1, 1), priya: st(1, 1) }))
+            ]
+          },
+          priya: {
+            prompt: "Imani says the experiments might be fine if they did not keep ambushing prep, pars, and line memory every week.",
+            options: [
+              opt("cms-open-imani", "Walk the prep and supply burden with Imani before deciding how much innovation the kitchen can actually absorb.", "You start with execution reality, which is exactly where the strain is hiding.", "line-friction", fx(0, 2, 3, { priya: st(2, 3), tasha: st(0, 1), luis: st(1, 1) })),
+              opt("cms-open-imani-speed", "Tell Imani the kitchen simply needs to adapt faster if Feast Haven wants to stay interesting.", "That may sound visionary, but it mostly sounds like extra work with no guardrails.", "line-friction", fx(0, -1, -1, { priya: st(-2, -2), tasha: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      "line-friction": {
+        title: "The deeper issue is not creativity, it is how often the room has to relearn itself",
+        body: "Theo loves the swings when they land. Imani hates the instability. The floor hates selling things that may vanish or confuse guests midweek.",
+        consultants: {
+          luis: {
+            prompt: "Theo thinks the weird dishes are worth it because they make Feast Haven feel alive instead of generic.",
+            options: [
+              opt("cms-friction-theo", "Keep the experiments, but cut them down to one controlled launch at a time with full prep buy-in.", "You preserve the spark without making every week feel like kitchen roulette.", "floor-consequence", fx(2, 2, 3, { luis: st(2, 3), tasha: st(1, 1), priya: st(1, 1) })),
+              opt("cms-friction-theo-free", "Give Renata broad room to keep experimenting and tell the line to embrace the identity shift.", "The passion is real, but the chaos becomes policy instead of a side effect.", "floor-consequence", fx(1, -1, -2, { luis: st(2, 2), priya: st(-3, -3), nina: st(-1, -1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol says the host stand is tired of selling items that sound like jokes unless the room is actually ready to stand behind them.", 
+            options: [
+              opt("cms-friction-marisol", "Require a front-of-house sign-off before any experimental dish goes public.", "The launch gets slower, but the room stops promising things it does not understand.", "floor-consequence", fx(1, 3, 4, { elena: st(2, 3), nina: st(1, 2), tasha: st(-1, 0) })),
+              opt("cms-friction-marisol-late", "Let the kitchen experiment first and teach the floor after the dish proves itself.", "That sounds efficient until the room is blindsided mid-service again.", "floor-consequence", fx(1, -1, -1, { elena: st(-1, -2), nina: st(-2, -2) }))
+            ]
+          }
+        }
+      },
+      "floor-consequence": {
+        title: "The restaurant now has to choose whether weird is worth being difficult",
+        body: "Guests are intrigued, but not always delighted. The kitchen is energized, but not always ready. The room is living inside that contradiction.",
+        consultants: {
+          nina: {
+            prompt: "Celia wants the menu to stop making the floor sound ridiculous when a guest asks the obvious follow-up question.", 
+            options: [
+              opt("cms-floor-celia", "Create a limited innovation board with simple scripts, ingredients, and fallback swaps before launch.", "The dishes stay playful, but the room no longer sounds like it is improvising the explanation.", "final-identity", fx(2, 3, 4, { nina: st(2, 3), elena: st(1, 1), tasha: st(0, 1), priya: st(1, 1) })),
+              opt("cms-floor-celia-cut", "Pull the strangest dishes entirely and make the menu more stable for a while.", "The room gets calmer, but the chef may hear it as creative surrender.", "final-identity", fx(1, 1, 2, { nina: st(1, 1), tasha: st(-2, -3), luis: st(-1, -1) }))
+            ]
+          },
+          tasha: {
+            prompt: "Chef Renata says the restaurant should not chase personality only when it is easy and safe.", 
+            options: [
+              opt("cms-floor-renata", "Keep the innovation identity, but cap it with prep discipline, ordering limits, and one test window at a time.", "You finally make creativity pay rent instead of living free in operations.", "final-identity", fx(3, 2, 3, { tasha: st(2, 3), luis: st(1, 1), priya: st(1, 2) })),
+              opt("cms-floor-renata-chaos", "Back Renata's instinct almost completely and let the room adapt around the chef's imagination.", "If it works, it sings. If it misses, it misses in public.", "final-identity", fx(2, -2, -2, { tasha: st(2, 2), luis: st(1, 1), priya: st(-2, -3), nina: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      "final-identity": {
+        title: "This is really a decision about what Feast Haven is trying to be",
+        body: "A safer room. A stranger room. A more famous room. A more disciplined room. The final call shapes more than a menu.",
+        consultants: {
+          tasha: {
+            prompt: "Renata wants to know whether leadership still believes Feast Haven should feel alive and surprising.", 
+            options: [
+              opt("cms-final-renata", "Commit to creative identity, but only inside a strict pilot system the whole restaurant can support.", "The restaurant keeps its edge and finally builds a frame strong enough to carry it.", null, fx(3, 3, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
+              opt("cms-final-renata-narrow", "Shrink experimentation sharply and tell Renata the room needs predictability more than flair right now.", "The shift gets calmer fast, but some of Feast Haven's personality goes with it.", null, fx(2, 1, 1, { tasha: st(-3, -4), luis: st(-1, -1), priya: st(1, 1) }))
+            ]
+          },
+          priya: {
+            prompt: "Imani wants one final answer she can actually trust while she is standing in the middle of a rush.", 
+            options: [
+              opt("cms-final-imani", "Set one launch calendar, one prep standard, and one fallback rule for every future experiment.", "It sounds rigid enough to save the room without killing the chef.", null, fx(2, 3, 4, { priya: st(2, 3), tasha: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
+              opt("cms-final-imani-handwave", "Keep the conversation inspirational and trust the kitchen to feel its way through it week by week.", "That may sound supportive, but it solves almost none of the repeated pain.", null, fx(1, -1, -2, { priya: st(-2, -3), nina: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "silverware-collapse",
+    category: "Supply Failure",
     pressure: "High",
-    headline: "Tasha fell through a customer's sunroof while filming one of Nina's dealership TikToks",
+    headline: "Someone ordered one fork, one knife, and one spoon instead of one hundred of each",
     body:
-      "Nina has been using TikToks to promote the dealership and asking employees to join viral dances. Tasha climbed onto a customer's vehicle during one of them, slipped, went through the sunroof, and now expects the company to cover her medical bills.",
+      "The new silverware shipment arrived and the entire restaurant now effectively has one place setting. The person responsible says it was a computer error. The rest of the staff says a real adult should have noticed before the order went through.",
     rootNodeId: "opening",
     nodes: {
       opening: {
         title: "Who do you talk to first?",
-        body: "This is now an injury question, a damaged-customer-property question, and a judgment question all at once.",
-        consultants: {
-          tasha: {
-            prompt: "Tasha is hurt, embarrassed, and insists she was helping the dealership's marketing push when she fell.",
-            options: [
-              {
-                id: "ts-open-tasha-care",
-                label: "Start with Tasha's condition and get her immediate care before the blame talk.",
-                outcome: "The dealership looks humane first, which matters in a mess like this.",
-                nextNodeId: "injury-triage",
-                effects: fx(-1, 1, 2, {
-                  tasha: st(2, 4),
-                  nina: st(0, 0)
-                })
-              },
-              {
-                id: "ts-open-tasha-why",
-                label: "Ask Tasha why she thought standing on a customer's car for a dance was acceptable.",
-                outcome: "The accountability question lands immediately, though Tasha feels interrogated while injured.",
-                nextNodeId: "liability-review",
-                effects: fx(0, -1, 0, {
-                  tasha: st(-3, -2),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "ts-open-tasha-workers",
-                label: "Tell Tasha you need to determine whether this counts as work activity before promising anything.",
-                outcome: "The company angle becomes central fast, which Tasha does not love but Marcus absolutely does.",
-                nextNodeId: "injury-triage",
-                effects: fx(0, 0, 1, {
-                  tasha: st(-1, 0),
-                  marcus: st(2, 2)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina says the TikToks were helping traffic and insists nobody told Tasha to stand on a customer's actual car.",
-            options: [
-              {
-                id: "ts-open-nina-process",
-                label: "Have Nina walk you through exactly what was planned, approved, and filmed.",
-                outcome: "You start separating actual direction from chaotic improvisation.",
-                nextNodeId: "liability-review",
-                effects: fx(0, 0, 3, {
-                  nina: st(1, 3),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "ts-open-nina-video",
-                label: "Find out whether the video exists and whether it has already been posted anywhere.",
-                outcome: "You start controlling the public-risk side before it controls you.",
-                nextNodeId: "viral-fallout",
-                effects: fx(0, 0, 2, {
-                  nina: st(1, 2),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "ts-open-nina-scold",
-                label: "Scold Nina first for turning the dealership into a content circus.",
-                outcome: "The seriousness is obvious, but the immediate injury and customer-damage questions remain unsorted.",
-                nextNodeId: "liability-review",
-                effects: fx(0, -1, -1, {
-                  nina: st(-4, -4),
-                  tasha: st(-1, -1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus sees damaged customer property, possible medical expense, and a huge question about whether this was sanctioned work at all.",
-            options: [
-              {
-                id: "ts-open-marcus-doc",
-                label: "Have Marcus document the damage and incident immediately before stories drift.",
-                outcome: "The dealership gets a clear record while everyone still remembers what happened.",
-                nextNodeId: "liability-review",
-                effects: fx(-1, 0, 3, {
-                  marcus: st(3, 4),
-                  nina: st(0, 0)
-                })
-              },
-              {
-                id: "ts-open-marcus-customer",
-                label: "Ask Marcus what the dealership can reasonably offer the customer whose car was damaged.",
-                outcome: "You start from the external relationship instead of the internal argument.",
-                nextNodeId: "viral-fallout",
-                effects: fx(-1, 1, 2, {
-                  marcus: st(2, 3),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "ts-open-marcus-hold",
-                label: "Tell Marcus to hold the paperwork for a moment while you check on Tasha personally.",
-                outcome: "The room feels more human, though the record is now a step behind the chaos.",
-                nextNodeId: "injury-triage",
-                effects: fx(0, 1, 0, {
-                  marcus: st(-1, -1),
-                  tasha: st(1, 2)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena understands exactly how fast a falling-through-the-sunroof TikTok could become the dealership's identity for a week.",
-            options: [
-              {
-                id: "ts-open-elena-brand",
-                label: "Ask Elena to think about containment before the story becomes public content.",
-                outcome: "You treat the reputational blast radius like a real part of the event, which it is.",
-                nextNodeId: "viral-fallout",
-                effects: fx(0, 0, 3, {
-                  elena: st(3, 4),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "ts-open-elena-customer",
-                label: "Use Elena to help frame the apology to the customer whose car was damaged.",
-                outcome: "The store sounds much less chaotic than the actual event was.",
-                nextNodeId: "injury-triage",
-                effects: fx(-1, 2, 3, {
-                  elena: st(2, 3),
-                  tasha: st(0, 0)
-                })
-              },
-              {
-                id: "ts-open-elena-stayout",
-                label: "Keep Elena out because this is operations and liability, not marketing image.",
-                outcome: "You keep the circle tight, though the public-risk side keeps moving without guidance.",
-                nextNodeId: "liability-review",
-                effects: fx(0, 0, -2, {
-                  elena: st(-2, -2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "injury-triage": {
-        title: "Tasha is hurt, the customer is shocked, and nobody agrees yet on what the company owes",
-        body: "Medical attention, damaged property, and responsibility are colliding before the dust has even settled.",
-        consultants: {
-          tasha: {
-            prompt: "Tasha wants the dealership to acknowledge that she was helping a company promotion when she got hurt.",
-            options: [
-              {
-                id: "ts-injury-tasha-care",
-                label: "Get Tasha proper medical care first and reserve the compensation decision until facts are cleaner.",
-                outcome: "The dealership looks humane without rushing into a legal conclusion.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-2, 2, 3, {
-                  tasha: st(3, 4),
-                  marcus: st(0, 1)
-                })
-              },
-              {
-                id: "ts-injury-tasha-skeptical",
-                label: "Stay skeptical about company responsibility while still arranging basic care.",
-                outcome: "The compassion is there, but so is the warning that this may not be covered the way Tasha expects.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-1, 0, 1, {
-                  tasha: st(-1, -1),
-                  marcus: st(1, 2)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants to show visible care so the customer and staff do not conclude the dealership is cold and reckless.",
-            options: [
-              {
-                id: "ts-injury-elena-both",
-                label: "Pair care for Tasha with a thoughtful apology and immediate support for the customer.",
-                outcome: "The dealership looks responsible to both internal and external eyes.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-2, 3, 4, {
-                  elena: st(3, 4),
-                  tasha: st(1, 1),
-                  nina: st(0, 0)
-                })
-              },
-              {
-                id: "ts-injury-elena-minimal",
-                label: "Keep the response practical and avoid sounding more guilty than necessary.",
-                outcome: "The tone stays controlled, though not especially warm.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-1, 0, 1, {
-                  elena: st(0, 1),
-                  tasha: st(0, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "liability-review": {
-        title: "Nobody agrees on whether the fall was sanctioned work or reckless freelancing",
-        body: "The core issue becomes whether Nina's content push created the conditions for the stunt or whether Tasha went far beyond any reasonable instruction.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants a clean line between approved marketing activity and obviously unsafe improvisation.",
-            options: [
-              {
-                id: "ts-liability-marcus-line",
-                label: "Define the stunt as outside approved work and separate that from basic care and customer repair.",
-                outcome: "The company protects itself without pretending nobody got hurt.",
-                nextNodeId: "content-policy",
-                effects: fx(-1, 0, 3, {
-                  marcus: st(3, 4),
-                  tasha: st(-2, -2),
-                  nina: st(-1, -1)
-                })
-              },
-              {
-                id: "ts-liability-marcus-shared",
-                label: "Treat it as a leadership failure too and accept the dealership helped create the unsafe culture.",
-                outcome: "The dealership absorbs more responsibility, but the conclusion feels honest.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-2, 1, 4, {
-                  marcus: st(1, 2),
-                  tasha: st(2, 3),
-                  nina: st(0, 1)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina wants to admit the content culture got loose without taking the full blame for Tasha climbing a customer's car.",
-            options: [
-              {
-                id: "ts-liability-nina-own",
-                label: "Have Nina own the loose culture and help build stricter content boundaries going forward.",
-                outcome: "The accountability feels real without becoming total self-sacrifice.",
-                nextNodeId: "content-policy",
-                effects: fx(-1, 1, 4, {
-                  nina: st(1, 3),
-                  tasha: st(1, 1),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "ts-liability-nina-distance",
-                label: "Let Nina insist she never approved anything this reckless and move the burden onto Tasha.",
-                outcome: "The line may protect Nina, but it also turns the recovery into a blame contest.",
-                nextNodeId: "compensation-decision",
-                effects: fx(0, -1, -1, {
-                  nina: st(1, 1),
-                  tasha: st(-3, -3),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "viral-fallout": {
-        title: "The real danger may be the clip itself if it is already on a phone somewhere",
-        body: "A ridiculous visual plus a damaged customer vehicle is exactly the kind of thing that can turn into a local meme before the dealership even finishes apologizing.",
+        body: "It is funny for maybe ten seconds and then instantly becomes a full service catastrophe.",
         consultants: {
           elena: {
-            prompt: "Elena wants the story contained before it becomes the week's defining dealership anecdote.",
+            prompt: "Marisol handled or approved the front-of-house order flow and says the system glitched in a way nobody would have caught.",
             options: [
-              {
-                id: "ts-viral-elena-contain",
-                label: "Pull the video, apologize to the customer, and tighten the message before anyone else does it for you.",
-                outcome: "The dealership looks responsive rather than clueless.",
-                nextNodeId: "content-policy",
-                effects: fx(-1, 2, 5, {
-                  elena: st(4, 4),
-                  nina: st(0, 1)
-                })
-              },
-              {
-                id: "ts-viral-elena-spin",
-                label: "Treat it like a weird viral near-miss and try to shape the story before it shapes you.",
-                outcome: "If it lands, it softens the embarrassment. If it misses, it looks heartless.",
-                nextNodeId: "content-policy",
-                effects: fx(0, -1, -4, {
-                  elena: st(-2, -2),
-                  tasha: st(-1, -1)
-                })
-              }
+              opt("sc-open-marisol", "Walk the order trail with Marisol before deciding whether this was negligence, bad software, or both.", "You resist the urge to laugh and start with the kind of fact pattern that might actually help.", "service-improv", fx(0, 1, 2, { elena: st(1, 2), devon: st(1, 1), nina: st(0, 1) })),
+              opt("sc-open-marisol-line", "Tell Marisol a whole restaurant does not end up with one fork unless someone was not paying attention.", "The frustration is fair, but the accusation lands before the system story is tested.", "service-improv", fx(0, -1, 0, { elena: st(-2, -3), devon: st(-1, -1) }))
             ]
           },
-          marcus: {
-            prompt: "Marcus wants a boring, controlled response because lawsuits and screenshots age forever.",
+          devon: {
+            prompt: "Parker says they saw the order screen at some point and also thought something looked strange, but nobody stopped to verify it.", 
             options: [
-              {
-                id: "ts-viral-marcus-lockdown",
-                label: "Treat the clip as evidence, lock the story down, and avoid cleverness entirely.",
-                outcome: "The dealership looks sober and defensible, even if not especially charming.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-1, 0, 3, {
-                  marcus: st(3, 4),
-                  elena: st(-1, -1)
-                })
-              },
-              {
-                id: "ts-viral-marcus-customerfirst",
-                label: "Focus first on the customer and Tasha, then circle back to the digital mess once the people side is stable.",
-                outcome: "The priorities feel right, though the clip risk stays live longer.",
-                nextNodeId: "compensation-decision",
-                effects: fx(-1, 2, 1, {
-                  marcus: st(1, 2),
-                  tasha: st(1, 1)
-                })
-              }
+              opt("sc-open-parker", "Use Parker to reconstruct who saw the order, who shrugged, and when the bad assumption became policy.", "You turn one absurd mistake into a chain-of-attention problem, which is closer to the truth.", "service-improv", fx(0, 2, 3, { devon: st(2, 3), elena: st(0, 1) })),
+              opt("sc-open-parker-protect", "Protect Parker from the blame map and focus only on the final approver.", "It keeps things cleaner politically, but maybe cleaner than the real failure deserves.", "service-improv", fx(0, 0, 0, { devon: st(1, 1), elena: st(-1, -1) }))
             ]
           }
         }
       },
-      "compensation-decision": {
-        title: "The company now has to decide what support looks like without teaching the wrong lesson",
-        body: "Tasha wants her medical bills covered, the customer wants their car made right, and everyone is watching to see how leadership defines responsibility.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants to split care, customer repair, and company responsibility into separate buckets.",
-            options: [
-              {
-                id: "ts-comp-marcus-partial",
-                label: "Cover immediate care and customer repair, then decide longer-term employee coverage after review.",
-                outcome: "The dealership responds responsibly without making a rushed blanket promise.",
-                nextNodeId: null,
-                effects: fx(-3, 2, 4, {
-                  marcus: st(2, 3),
-                  tasha: st(1, 2),
-                  nina: st(0, 0)
-                })
-              },
-              {
-                id: "ts-comp-marcus-deny",
-                label: "Repair the customer's car but deny that the company owes Tasha more than basic immediate help.",
-                outcome: "The line is financially clean, though it leaves Tasha feeling abandoned.",
-                nextNodeId: null,
-                effects: fx(-2, -1, 0, {
-                  marcus: st(2, 3),
-                  tasha: st(-4, -4)
-                })
-              }
-            ]
-          },
-          tasha: {
-            prompt: "Tasha wants the final answer to acknowledge the dealership benefited from the stunt culture until it went bad.",
-            options: [
-              {
-                id: "ts-comp-tasha-shared",
-                label: "Acknowledge shared responsibility and support Tasha while clearly ending unsafe marketing participation.",
-                outcome: "The resolution feels humane and honest, even if it costs more.",
-                nextNodeId: null,
-                effects: fx(-4, 2, 3, {
-                  tasha: st(3, 4),
-                  nina: st(0, 1),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "ts-comp-tasha-reckless",
-                label: "Call the stunt reckless enough that company support must stay limited despite the injury.",
-                outcome: "The rule sounds tough and consistent, though morale pays for it.",
-                nextNodeId: null,
-                effects: fx(-2, -1, 1, {
-                  tasha: st(-5, -5),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "content-policy": {
-        title: "Even if the immediate mess settles, the dealership cannot keep making content this way",
-        body: "The class-clown version of dealership marketing just smashed into property damage, injury, and customer trust.",
+      "service-improv": {
+        title: "Now the restaurant has to survive service with almost no silverware",
+        body: "Guests still need to eat. The fix you choose now will decide whether this becomes a funny story or a humiliating one.",
         consultants: {
           nina: {
-            prompt: "Nina still believes short-form content can work, but not if safety is optional.",
+            prompt: "Celia wants a guest-facing plan immediately because the floor cannot keep saying 'we're working on it' to every table.", 
             options: [
-              {
-                id: "ts-policy-nina-guardrails",
-                label: "Keep the TikToks, but add approvals, location rules, and a strict no-customer-property line.",
-                outcome: "The dealership keeps the energy while finally acting like an adult about it.",
-                nextNodeId: null,
-                effects: fx(1, 1, 5, {
-                  nina: st(2, 4),
-                  elena: st(1, 1),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "ts-policy-nina-stop",
-                label: "Shut the TikTok program down entirely until the dealership proves it can handle content responsibly.",
-                outcome: "The risk drops hard, though so does the creative momentum Nina had built.",
-                nextNodeId: null,
-                effects: fx(-1, 0, 3, {
-                  nina: st(-4, -4),
-                  marcus: st(2, 2)
-                })
-              }
+              opt("sc-improv-celia", "Pivot to a visible rolling-sanitize system and explain the shortage before guests discover it by surprise.", "The room may not love it, but it respects being told the truth before the awkwardness lands.", "blame-accountability", fx(1, 2, 2, { nina: st(2, 3), jake: st(1, 1), elena: st(0, 1) })),
+              opt("sc-improv-celia-hide", "Try to quietly recycle silverware table to table and hope nobody notices the delay pattern.", "It feels slick until one frustrated table compares notes with another.", "blame-accountability", fx(1, -2, -2, { nina: st(-1, -2), jake: st(-1, -1) }))
+            ]
+          },
+          marcus: {
+            prompt: "Omar wants the bussing loop redesigned immediately because the whole room now depends on his reset timing.", 
+            options: [
+              opt("sc-improv-omar", "Make bussing and reset the temporary heartbeat of the shift and reassign support to protect it.", "The dining room gets slower but far more survivable.", "blame-accountability", fx(1, 2, 3, { marcus: st(3, 4), devon: st(1, 1), nina: st(1, 1) })),
+              opt("sc-improv-omar-push", "Tell Omar to simply move faster and keep the current staffing pattern.", "It sounds decisive, but it mostly turns one bad order into burnout math.", "blame-accountability", fx(0, -1, -1, { marcus: st(-2, -3), nina: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      "blame-accountability": {
+        title: "Once service is patched, everyone wants the same answer: who owns this",
+        body: "A funny systems error is still a systems error. The room is now watching whether leadership will solve the joke or just survive it.",
+        consultants: {
+          elena: {
+            prompt: "Marisol says she will own what is hers, but not every click that passed through three other sets of eyes too.", 
+            options: [
+              opt("sc-blame-marisol", "Treat it as a chain failure and fix the approval process instead of publicly hanging one person.", "The answer sounds grown-up enough that people may actually trust the fix.", "final-protocol", fx(1, 2, 4, { elena: st(1, 2), devon: st(1, 1), nina: st(1, 1), marcus: st(1, 1) })),
+              opt("sc-blame-marisol-direct", "Make the final approver own it publicly because someone needs to be visibly responsible.", "The room gets its villain, but maybe not its best lesson.", "final-protocol", fx(1, -1, 1, { elena: st(-3, -4), devon: st(-1, -1), nina: st(1, 1) }))
+            ]
+          },
+          devon: {
+            prompt: "Parker thinks the real embarrassment is how many people saw something odd and kept moving anyway.", 
+            options: [
+              opt("sc-blame-parker", "Use the mistake to create a two-person verification rule on every critical order.", "The room may groan, but it will never forget why the rule exists.", "final-protocol", fx(1, 2, 4, { devon: st(2, 3), elena: st(1, 1), nina: st(1, 1) })),
+              opt("sc-blame-parker-soft", "Keep the process light and trust people to be more careful after this humiliation.", "It saves time now, but invites future overconfidence.", "final-protocol", fx(1, 0, 0, { devon: st(0, 1), marcus: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      "final-protocol": {
+        title: "The final move is whether this becomes a one-night disaster or a permanent story about how Feast Haven learns",
+        body: "Staff will laugh about the one-fork night forever. The question is whether they also remember the rule that came out of it.",
+        consultants: {
+          marcus: {
+            prompt: "Omar wants the last move to respect how much hidden labor carried the room through this absurd shift.", 
+            options: [
+              opt("sc-final-omar", "Create a supply verification ritual and credit the support staff who kept service from collapsing entirely.", "The fix lands stronger because it honors both the lesson and the people who saved the room.", null, fx(2, 3, 4, { marcus: st(2, 3), devon: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
+              opt("sc-final-omar-funny", "Lean into the comedy of the night and trust the staff to remember the embarrassment on their own.", "It may become a legendary story, but not necessarily a better system.", null, fx(1, 0, -1, { marcus: st(-1, -1), devon: st(-1, -1) }))
             ]
           },
           elena: {
-            prompt: "Elena wants the dealership to stay modern without confusing viral energy with permissionless chaos.",
+            prompt: "Marisol wants to recover her credibility without pretending the order was no big deal.", 
             options: [
-              {
-                id: "ts-policy-elena-reset",
-                label: "Reset the content strategy around safer, sharper brand storytelling instead of stunts.",
-                outcome: "The dealership keeps its voice and loses the circus energy that created the crash.",
-                nextNodeId: null,
-                effects: fx(1, 1, 4, {
-                  elena: st(3, 4),
-                  nina: st(1, 2),
-                  tasha: st(0, 0)
-                })
-              },
-              {
-                id: "ts-policy-elena-freeze",
-                label: "Freeze all employee performance content until trust inside the building is rebuilt.",
-                outcome: "The tone becomes safer immediately, though the team may feel newly overmanaged.",
-                nextNodeId: null,
-                effects: fx(0, 0, 3, {
-                  elena: st(1, 2),
-                  nina: st(-2, -2),
-                  tasha: st(0, 0)
-                })
-              }
+              opt("sc-final-marisol", "Own the miss, help design the new verification path, and make the process correction part of your leadership reset.", "It gives the room a reason to trust that the embarrassment produced an adult response.", null, fx(2, 2, 3, { elena: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
+              opt("sc-final-marisol-protect", "Contain the blame tightly and move on once the new silverware finally arrives.", "The immediate wound may close, but the cultural lesson stays blurry.", null, fx(1, -1, -1, { elena: st(-1, -2), devon: st(-1, -1) }))
             ]
           }
         }
@@ -1797,443 +745,90 @@ module.exports = [
     }
   },
   {
-    id: "sleep-detox-breakdown",
-    category: "Sleep Detox Breakdown",
+    id: "dirty-dishes-war",
+    category: "Operations Conflict",
     pressure: "High",
-    headline: "Marcus has not slept in 48 hours and his accounting mistakes are now costing the dealership money",
+    headline: "Dirty dishes keep landing in front of guests and now the whole service chain is at war",
     body:
-      "Marcus says staying awake for 48 hours is his new method to 'detox his mind.' Meanwhile, several accounting mistakes are starting to affect pay, paperwork, and dealership profitability.",
+      "Plates are coming back with spots, lipstick, or stuck-on grime. The dish side says kitchen plates are impossible to wash when they come back caked. The floor says guests should never be the ones catching it. The kitchen is furious at both of them.",
     rootNodeId: "opening",
     nodes: {
       opening: {
         title: "Who do you talk to first?",
-        body: "This is health, judgment, money, and leadership colliding in the office at once.",
+        body: "The problem touches every handoff in the building, which is why nobody feels fully guilty and everybody feels fully annoyed.",
         consultants: {
           marcus: {
-            prompt: "Marcus insists he is actually more mentally clear than usual and thinks everyone is overreacting.",
+            prompt: "Omar says the dishes are being sent back filthy enough to require a miracle, not a rinse cycle.", 
             options: [
-              {
-                id: "sd-open-marcus-hear",
-                label: "Hear Marcus out, but ask directly what work may have been affected.",
-                outcome: "You keep the conversation humane while pulling it toward real consequences.",
-                nextNodeId: "audit-scramble",
-                effects: fx(0, 0, 2, {
-                  marcus: st(1, 3),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "sd-open-marcus-home",
-                label: "Tell Marcus he is done for the day and cannot keep touching dealership money in this state.",
-                outcome: "The line is immediate, though Marcus feels embarrassed and challenged.",
-                nextNodeId: "health-intervention",
-                effects: fx(-1, 0, 3, {
-                  marcus: st(-3, -2),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "sd-open-marcus-scan",
-                label: "Keep Marcus present just long enough to identify what he may have touched before removing him.",
-                outcome: "The dealership gets better forensic help, even if the decision feels less clean.",
-                nextNodeId: "audit-scramble",
-                effects: fx(0, 0, 2, {
-                  marcus: st(-1, 1),
-                  nina: st(0, 0)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake does not care about Marcus's wellness theory. He cares that bad numbers are already costing him and the floor money.",
-            options: [
-              {
-                id: "sd-open-jake-impacts",
-                label: "Ask Jake what errors are already hitting deals or commissions.",
-                outcome: "You start from the business damage customers and staff can actually feel.",
-                nextNodeId: "deal-fallout",
-                effects: fx(0, 0, 1, {
-                  jake: st(1, 2),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "sd-open-jake-calm",
-                label: "Tell Jake to stay out of the office drama while you assess whether Marcus can still function.",
-                outcome: "You keep the floor from becoming a second crisis source.",
-                nextNodeId: "health-intervention",
-                effects: fx(0, 0, 1, {
-                  jake: st(-1, 0),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "sd-open-jake-audit",
-                label: "Use Jake's frustration as a prompt to audit every recent payout or deal Marcus touched.",
-                outcome: "The review becomes broader, which improves fairness and raises pressure.",
-                nextNodeId: "audit-scramble",
-                effects: fx(-1, 0, 3, {
-                  jake: st(1, 2),
-                  marcus: st(-2, -2)
-                })
-              }
+              opt("ddw-open-omar", "Walk the dish flow with Omar and see exactly what is hitting the pit and what is leaving it.", "You start where the hidden labor lives, which usually makes the truth show up faster.", "handoff-failure", fx(0, 2, 3, { marcus: st(2, 3), tasha: st(-1, -1), nina: st(0, 1) })),
+              opt("ddw-open-omar-floor", "Tell Omar guest-visible dirty plates matter more than how impossible the pit feels right now.", "The guest standard is right, but the pit hears it as leadership seeing only the end of the chain.", "guest-embarrassment", fx(0, -1, 0, { marcus: st(-2, -3), nina: st(1, 1) }))
             ]
           },
           nina: {
-            prompt: "Nina worries that if Marcus is this impaired, CRM-to-accounting handoffs may also be compromised in ways nobody sees yet.",
+            prompt: "Celia says the floor is catching the embarrassment while everyone else debates texture, grease, and excuses.", 
             options: [
-              {
-                id: "sd-open-nina-cross",
-                label: "Have Nina cross-check deals and handoffs against accounting records immediately.",
-                outcome: "You start building a second source of truth fast.",
-                nextNodeId: "audit-scramble",
-                effects: fx(0, 0, 3, {
-                  nina: st(2, 3),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "sd-open-nina-quiet",
-                label: "Tell Nina to work quietly in the background while you handle Marcus directly.",
-                outcome: "The investigation stays controlled, though slower and more isolated.",
-                nextNodeId: "health-intervention",
-                effects: fx(0, 0, 1, {
-                  nina: st(1, 1),
-                  marcus: st(0, 0)
-                })
-              },
-              {
-                id: "sd-open-nina-culture",
-                label: "Ask Nina whether Marcus has been talking about this detox idea openly and whether anyone tried to stop it.",
-                outcome: "You start treating the issue as a leadership culture problem too.",
-                nextNodeId: "deal-fallout",
-                effects: fx(0, 0, 2, {
-                  nina: st(1, 2),
-                  elena: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena can feel the dealership drifting toward panic because nobody knows whether Marcus is unwell, stubborn, or both.",
-            options: [
-              {
-                id: "sd-open-elena-tone",
-                label: "Use Elena to help keep the staff calm while you make a clear decision on Marcus.",
-                outcome: "The atmosphere becomes less chaotic, which matters when the office is already unstable.",
-                nextNodeId: "health-intervention",
-                effects: fx(0, 0, 2, {
-                  elena: st(2, 3),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "sd-open-elena-visible",
-                label: "Ask Elena how visible Marcus's condition has become to the rest of the store.",
-                outcome: "You get a better read on whether this is still contained or already eroding trust broadly.",
-                nextNodeId: "deal-fallout",
-                effects: fx(0, 0, 2, {
-                  elena: st(2, 2),
-                  marcus: st(0, 0)
-                })
-              },
-              {
-                id: "sd-open-elena-stayout",
-                label: "Keep Elena out of it because this is an office issue, not a culture issue.",
-                outcome: "The scope stays narrow, though the room may still interpret the silence on its own.",
-                nextNodeId: "audit-scramble",
-                effects: fx(0, 0, -1, {
-                  elena: st(-2, -2),
-                  nina: st(0, 0)
-                })
-              }
+              opt("ddw-open-celia", "Start with the guest-facing failures and document exactly what tables are seeing.", "The room gets immediate validation that guest embarrassment is not a side issue.", "handoff-failure", fx(0, 1, 2, { nina: st(2, 3), marcus: st(-1, -1), tasha: st(0, 1) })),
+              opt("ddw-open-celia-blame", "Treat the dish pit as the primary failure until someone proves otherwise.", "The simplicity feels satisfying right up until the rest of the chain pushes back hard.", "guest-embarrassment", fx(0, -1, -1, { nina: st(1, 1), marcus: st(-3, -4), tasha: st(-1, -1) }))
             ]
           }
         }
       },
-      "audit-scramble": {
-        title: "The deeper review shows mistakes across commissions, deal jackets, and lender paperwork",
-        body: "This is not one typo. The lack of sleep is now showing up in multiple places where the dealership needs absolute precision.",
+      "handoff-failure": {
+        title: "The restaurant is discovering that every station is dirty in a different way",
+        body: "Kitchen sends back rough plates, dish is rushed, and floor checks are inconsistent. The problem survives because each step thinks the next one should catch it.",
         consultants: {
-          nina: {
-            prompt: "Nina wants a structured cross-check so the store can know the size of the damage before customers discover it for you.",
+          tasha: {
+            prompt: "Chef Renata wants the kitchen held accountable for what hits the pit without pretending the dish side gets a free pass.", 
             options: [
-              {
-                id: "sd-audit-nina-full",
-                label: "Launch a full cross-check of recent deals before more bad numbers escape.",
-                outcome: "The dealership slows down, but it stops bleeding blind.",
-                nextNodeId: "control-plan",
-                effects: fx(-2, 0, 5, {
-                  nina: st(3, 4),
-                  marcus: st(-1, -1),
-                  jake: st(0, 1)
-                })
-              },
-              {
-                id: "sd-audit-nina-targeted",
-                label: "Focus only on the deals most likely to be wrong so the office can keep moving.",
-                outcome: "You regain some control without fully freezing the dealership.",
-                nextNodeId: "trust-repair",
-                effects: fx(-1, 0, 2, {
-                  nina: st(2, 2),
-                  marcus: st(0, 0)
-                })
-              }
+              opt("ddw-handoff-renata", "Set a scrape-and-rinse standard before anything leaves kitchen hands for the pit.", "The kitchen hates it at first, which is usually how you know the standard mattered.", "guest-embarrassment", fx(1, 2, 4, { tasha: st(1, 2), marcus: st(2, 2), priya: st(1, 1), luis: st(1, 1) })),
+              opt("ddw-handoff-renata-pit", "Leave the kitchen flow alone and force dish to improve under the current mess load.", "That keeps the line moving, but asks the pit to solve everybody else's bad habits.", "guest-embarrassment", fx(1, -1, -1, { tasha: st(1, 1), marcus: st(-3, -4) }))
             ]
           },
-          marcus: {
-            prompt: "Marcus still believes he can fix his own mess if you just give him a little more time and less humiliation.",
+          devon: {
+            prompt: "Parker says the floor also needs a final plate check because no guest should be the true last quality control step.", 
             options: [
-              {
-                id: "sd-audit-marcus-remove",
-                label: "Remove Marcus from the work and let others audit without his hands on the controls.",
-                outcome: "The dealership gets safer quickly, even if Marcus feels deeply embarrassed.",
-                nextNodeId: "control-plan",
-                effects: fx(-1, 0, 4, {
-                  marcus: st(-4, -4),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "sd-audit-marcus-assist",
-                label: "Let Marcus assist the review under supervision so you can understand the damage faster.",
-                outcome: "The store gets better context, but it still relies partly on the person who caused the mess.",
-                nextNodeId: "trust-repair",
-                effects: fx(0, 0, 1, {
-                  marcus: st(-1, 1),
-                  nina: st(0, 0)
-                })
-              }
+              opt("ddw-handoff-parker", "Build a quick plate-check habit into the floor handoff before anything touches the table.", "It adds seconds, but saves the room from full public embarrassment.", "guest-embarrassment", fx(1, 3, 3, { devon: st(2, 3), nina: st(1, 1), jake: st(1, 1) })),
+              opt("ddw-handoff-parker-speed", "Keep the floor moving fast and trust kitchen-plus-dish to solve it upstream.", "The pacing survives, but so do the ugly surprises.", "guest-embarrassment", fx(1, -1, -2, { devon: st(-1, -1), nina: st(-1, -1) }))
             ]
           }
         }
       },
-      "health-intervention": {
-        title: "The question becomes whether this is mainly a performance issue, a wellness issue, or both",
-        body: "Marcus insists the no-sleep streak is intentional and useful, which means leadership now has to decide how hard to intervene for his sake and the dealership's sake.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants to be treated like a rational adult making an eccentric choice, not like a danger to himself and everyone else.",
-            options: [
-              {
-                id: "sd-health-marcus-home",
-                label: "Send Marcus home and make clear he cannot return to critical accounting work without rest.",
-                outcome: "The boundary is compassionate and firm at the same time.",
-                nextNodeId: "control-plan",
-                effects: fx(-1, 0, 4, {
-                  marcus: st(-2, 1),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "sd-health-marcus-negotiate",
-                label: "Negotiate a shorter removal and a monitored return so Marcus feels less punished.",
-                outcome: "The re-entry feels gentler, though the message gets blurrier too.",
-                nextNodeId: "trust-repair",
-                effects: fx(0, 0, 1, {
-                  marcus: st(0, 1),
-                  jake: st(-1, -1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants the office to understand leadership can care about Marcus and still refuse to let impaired judgment stay in control.",
-            options: [
-              {
-                id: "sd-health-elena-tone",
-                label: "Frame the intervention as care plus responsibility, not punishment plus embarrassment.",
-                outcome: "The store sees a manager protecting both a person and a business.",
-                nextNodeId: "control-plan",
-                effects: fx(0, 1, 4, {
-                  elena: st(3, 4),
-                  marcus: st(1, 2),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "sd-health-elena-private",
-                label: "Keep the tone private and narrow so the whole store does not turn Marcus into a spectacle.",
-                outcome: "The dignity stays intact, though the broader trust lesson lands more quietly.",
-                nextNodeId: "trust-repair",
-                effects: fx(0, 0, 2, {
-                  elena: st(2, 3),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "deal-fallout": {
-        title: "The dealership can already feel the cost in live business",
-        body: "Commission confusion, incorrect paperwork, and delayed funding are now hitting people who did nothing except trust the office to be stable.",
+      "guest-embarrassment": {
+        title: "Now guests are part of the story and the room wants visible control back",
+        body: "The staff conflict is no longer private. Dirty plates change how guests read the entire restaurant, not just the dish station.",
         consultants: {
           jake: {
-            prompt: "Jake wants visible correction because the floor is already acting like accounting is a liability.",
+            prompt: "Adrian wants a recovery move that protects tables now, even if the internal fix takes another day to fully land.", 
             options: [
-              {
-                id: "sd-fallout-jake-fix",
-                label: "Correct any employee-facing mistakes immediately before resentment compounds.",
-                outcome: "The dealership regains credibility because it stops debating harm that is already obvious.",
-                nextNodeId: "trust-repair",
-                effects: fx(-2, 0, 4, {
-                  jake: st(2, 3),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "sd-fallout-jake-wait",
-                label: "Tell the floor to wait until the full review is complete before any corrections happen.",
-                outcome: "The process stays orderly, though the trust cost keeps rising while people wait.",
-                nextNodeId: "control-plan",
-                effects: fx(0, 0, 0, {
-                  jake: st(-3, -3),
-                  marcus: st(0, 1)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina wants the final answer to include how the dealership will restore confidence in the office after this.",
-            options: [
-              {
-                id: "sd-fallout-nina-transparent",
-                label: "Be transparent about the review and what is being corrected so the rumor gap stays small.",
-                outcome: "The store sounds honest, which keeps fear from becoming its own second crisis.",
-                nextNodeId: "trust-repair",
-                effects: fx(-1, 0, 4, {
-                  nina: st(2, 3),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "sd-fallout-nina-quiet",
-                label: "Keep the review tightly contained and only tell people what directly affects them.",
-                outcome: "The communication stays clean, though some staff will assume the worst in the silence.",
-                nextNodeId: "control-plan",
-                effects: fx(0, 0, 1, {
-                  nina: st(0, 1),
-                  jake: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "control-plan": {
-        title: "The dealership needs a durable control plan now, not just a dramatic morning",
-        body: "You have contained the most immediate damage. The final step is deciding how the office regains reliability once Marcus is no longer treated as a one-man unquestioned system.",
-        consultants: {
-          nina: {
-            prompt: "Nina wants stronger cross-checks so the dealership is never this dependent on one impaired person again.",
-            options: [
-              {
-                id: "sd-control-nina-checks",
-                label: "Add cross-checks between accounting, CRM, and deal files so errors cannot hide in one desk.",
-                outcome: "The dealership gets slower in a healthy way and much harder to destabilize.",
-                nextNodeId: null,
-                effects: fx(0, 1, 5, {
-                  nina: st(3, 4),
-                  marcus: st(0, 1),
-                  jake: st(1, 1)
-                })
-              },
-              {
-                id: "sd-control-nina-light",
-                label: "Make only a light process change and trust this was a one-off wake-up call.",
-                outcome: "The office regains speed faster, though some staff quietly doubt the lesson really stuck.",
-                nextNodeId: null,
-                effects: fx(1, 0, 1, {
-                  nina: st(0, 1),
-                  marcus: st(0, 0)
-                })
-              }
+              opt("ddw-guest-adrian", "Comp affected tables, apologize directly, and slow the service chain just enough to protect the next hour.", "The room may lose some speed, but it stops bleeding dignity in public.", "final-standard", fx(1, 4, 3, { jake: st(2, 2), nina: st(1, 1), marcus: st(1, 1) })),
+              opt("ddw-guest-adrian-quiet", "Handle complaints table by table and avoid turning the issue into a whole-room slowdown.", "That can work if the dirty plates stop immediately. If they do not, the damage doubles.", "final-standard", fx(1, 0, 0, { jake: st(1, 1), nina: st(-1, -1) }))
             ]
           },
           marcus: {
-            prompt: "Marcus wants a path back that is not simply public humiliation followed by permanent mistrust.",
+            prompt: "Omar wants the pit protected from becoming the single scapegoat for a three-stage failure.", 
             options: [
-              {
-                id: "sd-control-marcus-return",
-                label: "Give Marcus a structured return plan with oversight instead of pretending nothing happened.",
-                outcome: "The dealership balances grace with guardrails, which gives the recovery a chance to be real.",
-                nextNodeId: null,
-                effects: fx(0, 1, 4, {
-                  marcus: st(1, 3),
-                  nina: st(1, 1),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "sd-control-marcus-strip",
-                label: "Strip Marcus's critical responsibilities for now and rebuild trust only much later.",
-                outcome: "The controls get stronger immediately, even if Marcus leaves feeling broken by the verdict.",
-                nextNodeId: null,
-                effects: fx(0, 0, 3, {
-                  marcus: st(-5, -5),
-                  nina: st(1, 1)
-                })
-              }
+              opt("ddw-guest-omar", "Frame the problem as a full-chain reset and make each station own one non-negotiable check.", "It sounds less dramatic than blame, but much more likely to survive next week.", "final-standard", fx(1, 2, 4, { marcus: st(2, 3), tasha: st(1, 1), devon: st(1, 1), nina: st(1, 1) })),
+              opt("ddw-guest-omar-pit", "Put the burden mainly on dish because guests do not care how the grime got there.", "The logic is clean, but the culture gets uglier instantly.", "final-standard", fx(1, -1, -1, { marcus: st(-3, -4), tasha: st(1, 1), nina: st(1, 1) }))
             ]
           }
         }
       },
-      "trust-repair": {
-        title: "The final job is restoring trust with people who now feel the office can hurt them without warning",
-        body: "It is not enough to fix the numbers. The staff and affected customers need to believe leadership took the instability seriously and did not just smooth it over.",
+      "final-standard": {
+        title: "The final move decides whether this becomes a quality standard or just another ugly service memory",
+        body: "Everyone now agrees the problem is real. The last question is whether the restaurant fixes the chain or only the loudest symptom.",
         consultants: {
-          jake: {
-            prompt: "Jake wants proof that if accounting errors hurt salespeople, leadership will not hide behind patience forever.",
+          tasha: {
+            prompt: "Chef Renata wants one full-chain standard, not a vague promise that everyone will try harder next time.", 
             options: [
-              {
-                id: "sd-trust-jake-direct",
-                label: "Reconcile the affected deals and communicate the corrections directly to everyone impacted.",
-                outcome: "The store feels more fair because the repair is visible, not theoretical.",
-                nextNodeId: null,
-                effects: fx(-2, 0, 5, {
-                  jake: st(3, 4),
-                  marcus: st(0, 0),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "sd-trust-jake-minimal",
-                label: "Correct only the biggest issues and move on before the dealership gets stuck living in the mess.",
-                outcome: "The week moves faster, though some people feel leadership valued momentum over full fairness.",
-                nextNodeId: null,
-                effects: fx(-1, 0, 1, {
-                  jake: st(0, 1),
-                  nina: st(-1, -1)
-                })
-              }
+              opt("ddw-final-renata", "Create a three-stop cleanliness standard: kitchen scrape, dish clarity, floor check.", "It is operationally obvious enough to actually outlive the argument.", null, fx(2, 3, 4, { tasha: st(2, 3), marcus: st(2, 2), devon: st(1, 1), nina: st(1, 1) })),
+              opt("ddw-final-renata-hard", "Punish the most visibly responsible people and trust the rest of the chain to self-correct.", "The blame lands, but the process still leaks.", null, fx(1, -1, -1, { tasha: st(-1, -1), marcus: st(-2, -2), nina: st(-1, -1) }))
             ]
           },
-          elena: {
-            prompt: "Elena wants the story inside the building to become 'leadership handled it' instead of 'accounting nearly came apart.'",
+          devon: {
+            prompt: "Parker wants guests to feel the restaurant got more serious, not more defensive.", 
             options: [
-              {
-                id: "sd-trust-elena-message",
-                label: "Pair the corrections with a thoughtful internal reset on trust, coverage, and asking for help earlier.",
-                outcome: "The dealership feels wiser instead of merely exhausted.",
-                nextNodeId: null,
-                effects: fx(-1, 1, 5, {
-                  elena: st(3, 4),
-                  marcus: st(1, 2),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "sd-trust-elena-quiet",
-                label: "Keep the trust repair quiet and trust time to smooth the edges.",
-                outcome: "That may work for some people. Others will simply remember the silence.",
-                nextNodeId: null,
-                effects: fx(0, 0, 1, {
-                  elena: st(1, 1),
-                  jake: st(-1, -1),
-                  nina: st(-1, -1)
-                })
-              }
+              opt("ddw-final-parker", "Pair the internal standard with one quiet guest-recovery protocol so embarrassment never lingers unanswered.", "The fix feels complete because it respects both the operation and the guest memory.", null, fx(2, 4, 4, { devon: st(2, 3), jake: st(1, 1), nina: st(1, 1), marcus: st(1, 1) })),
+              opt("ddw-final-parker-speed", "Restore full pace quickly and trust the new standards to work without much extra visibility.", "That may save time, but not necessarily confidence.", null, fx(1, 0, 0, { devon: st(0, 1), nina: st(-1, -1) }))
             ]
           }
         }
@@ -2241,1841 +836,90 @@ module.exports = [
     }
   },
   {
-    id: "church-flyer-disaster",
-    category: "Community Backlash",
+    id: "food-heaven-rivalry",
+    category: "Competitive Threat",
     pressure: "High",
-    headline: "Elena's edgy ad copy with swear words was printed and delivered to schools and churches",
+    headline: "A new restaurant called FOOD HEAVEN just opened across the street and the whole staff is rattled",
     body:
-      "Trying to help the dealership go viral, Elena wrote this week's printed marketing ads with several swear words. Those flyers were delivered to schools and churches, and complaints are starting to come in fast.",
+      "The new place is visible from Feast Haven's front windows. Some staff are openly competitive. Some are anxious. Some are already wondering whether the better opportunity might be across the street. The room feels jumpy and personal.",
     rootNodeId: "opening",
     nodes: {
       opening: {
         title: "Who do you talk to first?",
-        body: "This is a branding problem, a community problem, and an approval problem at the same time.",
+        body: "A rival can energize a restaurant or hollow it out from the inside before the first guest even defects.",
         consultants: {
           elena: {
-            prompt: "Elena says the copy was bold on purpose, but she never intended for it to land in schools and churches.",
+            prompt: "Marisol wants Feast Haven to respond visibly and confidently before FOOD HEAVEN defines the story for both restaurants.", 
             options: [
-              {
-                id: "cf-open-elena-walk",
-                label: "Have Elena walk you through the concept, the wording, and how distribution happened.",
-                outcome: "You start with the creative and operational facts before anyone rushes to villainize her.",
-                nextNodeId: "approval-trail",
-                effects: fx(0, 0, 2, {
-                  elena: st(1, 3),
-                  marcus: st(0, 0)
-                })
-              },
-              {
-                id: "cf-open-elena-recall",
-                label: "Tell Elena to help pull the campaign immediately before you do anything else.",
-                outcome: "Containment starts fast, though the questions about judgment are still waiting.",
-                nextNodeId: "community-backlash",
-                effects: fx(-1, 0, 3, {
-                  elena: st(-1, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-open-elena-scold",
-                label: "Scold Elena first for thinking profanity was smart for print marketing.",
-                outcome: "The seriousness is obvious, but the dealership still has no phone plan right now.",
-                nextNodeId: "customer-traffic",
-                effects: fx(0, -1, -1, {
-                  elena: st(-4, -4),
-                  jake: st(0, 0)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus wants to know who approved what, how much this cost, and how expensive the cleanup is about to become.",
-            options: [
-              {
-                id: "cf-open-marcus-cost",
-                label: "Ask Marcus for the financial and legal exposure before you speak publicly.",
-                outcome: "You anchor the response in real stakes instead of pure embarrassment.",
-                nextNodeId: "approval-trail",
-                effects: fx(0, 0, 3, {
-                  marcus: st(2, 4),
-                  elena: st(-1, -1)
-                })
-              },
-              {
-                id: "cf-open-marcus-stop",
-                label: "Tell Marcus to stop distribution and preserve every version of the ad immediately.",
-                outcome: "The dealership becomes more defensible and slightly less chaotic.",
-                nextNodeId: "community-backlash",
-                effects: fx(-1, 0, 3, {
-                  marcus: st(2, 3),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-open-marcus-cheap",
-                label: "Ask Marcus for the cheapest way to make the complaints go away without overreacting.",
-                outcome: "Containment becomes the goal, though not necessarily trust.",
-                nextNodeId: "customer-traffic",
-                effects: fx(0, -1, -2, {
-                  marcus: st(1, 1),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina sees the digital and community blowback forming at the same time and wants a clean explanation fast.",
-            options: [
-              {
-                id: "cf-open-nina-reaction",
-                label: "Ask Nina what complaints are already coming in and how people are framing them.",
-                outcome: "You get a real-time read on the shape of the backlash before it fully hardens.",
-                nextNodeId: "community-backlash",
-                effects: fx(0, 0, 2, {
-                  nina: st(2, 3),
-                  elena: st(0, 0)
-                })
-              },
-              {
-                id: "cf-open-nina-copy",
-                label: "Have Nina help draft a cleaner explanation while you investigate how this happened.",
-                outcome: "The dealership becomes much better prepared to answer without sounding stunned or defensive.",
-                nextNodeId: "approval-trail",
-                effects: fx(0, 1, 3, {
-                  nina: st(2, 3),
-                  elena: st(0, 1)
-                })
-              },
-              {
-                id: "cf-open-nina-stayout",
-                label: "Keep Nina out because print marketing is Elena's lane and this is her mess.",
-                outcome: "The ownership sounds neat, but the store loses some of its best communication discipline.",
-                nextNodeId: "customer-traffic",
-                effects: fx(0, 0, -1, {
-                  nina: st(-2, -2),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake thinks the whole thing is embarrassing, but he is also wondering whether the ad at least got people talking.",
-            options: [
-              {
-                id: "cf-open-jake-customer",
-                label: "Ask Jake what customers on the floor are saying right now.",
-                outcome: "You hear quickly whether this still feels like community backlash or already feels like in-store distrust too.",
-                nextNodeId: "customer-traffic",
-                effects: fx(0, 0, 1, {
-                  jake: st(1, 2),
-                  elena: st(0, 0)
-                })
-              },
-              {
-                id: "cf-open-jake-serious",
-                label: "Tell Jake this is not a 'buzz is buzz' situation and shut down that framing fast.",
-                outcome: "The dealership avoids sliding into fake-edgy denial.",
-                nextNodeId: "community-backlash",
-                effects: fx(0, 0, 2, {
-                  jake: st(-1, 0),
-                  elena: st(0, 0)
-                })
-              },
-              {
-                id: "cf-open-jake-traffic",
-                label: "Check whether the ad actually increased traffic before you decide how apologetic to be.",
-                outcome: "You get more business context, but the moral problem does not get smaller while you wait.",
-                nextNodeId: "approval-trail",
-                effects: fx(0, -1, -1, {
-                  jake: st(1, 1),
-                  marcus: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "community-backlash": {
-        title: "Parents, church staff, and community members are now calling and posting",
-        body: "The issue has moved beyond awkwardness into community trust. People are not just confused; they are offended and deciding what your dealership stands for.",
-        consultants: {
-          nina: {
-            prompt: "Nina wants to answer quickly, clearly, and without doubling down on the edgy tone.",
-            options: [
-              {
-                id: "cf-backlash-nina-apology",
-                label: "Issue a clear apology, stop distribution, and acknowledge the copy was inappropriate for the audience it reached.",
-                outcome: "The dealership sounds responsible instead of cagey.",
-                nextNodeId: "public-response",
-                effects: fx(-1, 2, 5, {
-                  nina: st(3, 4),
-                  elena: st(-1, 0)
-                })
-              },
-              {
-                id: "cf-backlash-nina-soft",
-                label: "Use softer wording about 'tone missing the mark' without fully owning the profanity issue.",
-                outcome: "The response sounds polished, though some people will hear it as avoiding the plain truth.",
-                nextNodeId: "discipline-reset",
-                effects: fx(0, 0, 1, {
-                  nina: st(1, 2),
-                  elena: st(0, 0)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants to fix it, but she is afraid a full apology makes her look incompetent and disposable.",
-            options: [
-              {
-                id: "cf-backlash-elena-own",
-                label: "Have Elena own the tone mistake directly and help lead the cleanup.",
-                outcome: "The accountability feels real, which gives the apology much more weight.",
-                nextNodeId: "public-response",
-                effects: fx(-1, 2, 4, {
-                  elena: st(0, 2),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-backlash-elena-defend",
-                label: "Let Elena argue the ad was meant to be bold and the distribution mistake changed the context.",
-                outcome: "There is logic to it, but it still sounds like the dealership is explaining profanity to churches.",
-                nextNodeId: "discipline-reset",
-                effects: fx(0, -2, -4, {
-                  elena: st(1, 0),
-                  marcus: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "approval-trail": {
-        title: "Nobody seems fully sure how the ad got approved, which may be as bad as the words themselves",
-        body: "Now the dealership has a second problem: whether Elena acted alone, whether someone waved it through, or whether nobody was actually reviewing print marketing closely at all.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants the final answer to address governance, not just embarrassment.",
-            options: [
-              {
-                id: "cf-approval-marcus-process",
-                label: "Treat this as a failed approval process and build a formal review step for future print campaigns.",
-                outcome: "The dealership sounds like it learned something deeper than 'do not swear at churches.'",
-                nextNodeId: "discipline-reset",
-                effects: fx(0, 1, 5, {
-                  marcus: st(3, 4),
-                  elena: st(0, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-approval-marcus-blame",
-                label: "Place the problem squarely on Elena's judgment and keep the larger process out of it.",
-                outcome: "The accountability looks simple, though the system that let it happen stays mostly untouched.",
-                nextNodeId: "discipline-reset",
-                effects: fx(0, 0, 1, {
-                  marcus: st(1, 2),
-                  elena: st(-4, -4)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina thinks the store needs a cleaner path from idea to approved public message or this will happen again in a different form.",
-            options: [
-              {
-                id: "cf-approval-nina-modern",
-                label: "Use this to build a clearer marketing review chain that still allows bold ideas with guardrails.",
-                outcome: "The dealership keeps creativity alive without pretending chaos is a strategy.",
-                nextNodeId: "public-response",
-                effects: fx(0, 1, 4, {
-                  nina: st(3, 4),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "cf-approval-nina-lockdown",
-                label: "Shift to a much tighter, less risky approval process even if it makes marketing slower and safer.",
-                outcome: "The risk collapses quickly, though so does some of the energy Elena was chasing.",
-                nextNodeId: "discipline-reset",
-                effects: fx(-1, 0, 3, {
-                  nina: st(1, 2),
-                  elena: st(-2, -2)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "customer-traffic": {
-        title: "The ad may have drawn eyes, but now those eyes are mixed with disgust and disbelief",
-        body: "Jake can see that some people are talking about the dealership, but it is not clean buzz. The room now has to decide whether any bump in attention matters when the trust cost is this ugly.",
-        consultants: {
-          jake: {
-            prompt: "Jake thinks there may be a sales angle left if the dealership can separate the buzz from the backlash.",
-            options: [
-              {
-                id: "cf-traffic-jake-separate",
-                label: "Treat any traffic bump as irrelevant and center the response on community repair instead.",
-                outcome: "The dealership sounds like it still knows what matters most.",
-                nextNodeId: "public-response",
-                effects: fx(0, 1, 4, {
-                  jake: st(0, 1),
-                  elena: st(0, 0)
-                })
-              },
-              {
-                id: "cf-traffic-jake-buzz",
-                label: "Lean into the idea that the ad did cut through the noise, just maybe too hard.",
-                outcome: "The reasoning may be technically true and emotionally disastrous.",
-                nextNodeId: "discipline-reset",
-                effects: fx(1, -2, -5, {
-                  jake: st(1, 0),
-                  elena: st(1, 1),
-                  nina: st(-1, -1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants one chance to prove this can be recovered without branding her as a reckless embarrassment forever.",
-            options: [
-              {
-                id: "cf-traffic-elena-reset",
-                label: "Let Elena help rewrite the message and lead a cleaner follow-up campaign once the apology is out.",
-                outcome: "The dealership salvages some marketing credibility by showing it can correct course professionally.",
-                nextNodeId: "public-response",
-                effects: fx(0, 1, 4, {
-                  elena: st(1, 3),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-traffic-elena-bench",
-                label: "Pull Elena fully out of the public response so the cleanup does not sound self-protective.",
-                outcome: "The store looks safer, though Elena now feels publicly benched by the very thing she created.",
-                nextNodeId: "discipline-reset",
-                effects: fx(0, 0, 2, {
-                  elena: st(-4, -4),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "public-response": {
-        title: "The dealership's public answer will define whether this becomes a bad week or a lasting stain",
-        body: "By now, people know what happened. The final decision is how fully the dealership owns it and what tone it wants the community to remember.",
-        consultants: {
-          nina: {
-            prompt: "Nina wants the response to be plain, human, and impossible to misread.",
-            options: [
-              {
-                id: "cf-public-nina-plain",
-                label: "Use a plain apology, clear ownership, and a promise that the campaign is gone.",
-                outcome: "The dealership sounds grounded and mature, which is exactly what this crisis needs.",
-                nextNodeId: null,
-                effects: fx(-1, 2, 5, {
-                  nina: st(3, 4),
-                  elena: st(0, 1)
-                })
-              },
-              {
-                id: "cf-public-nina-corporate",
-                label: "Use a polished corporate statement that sounds safe but slightly distant.",
-                outcome: "The response is tidy, though not especially warm.",
-                nextNodeId: null,
-                effects: fx(0, 0, 2, {
-                  nina: st(1, 2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus wants the dealership to say only what it can defend and not promise a moral awakening it cannot maintain.",
-            options: [
-              {
-                id: "cf-public-marcus-factual",
-                label: "Issue a factual apology focused on the distribution mistake, removed materials, and corrected standard.",
-                outcome: "The dealership sounds controlled and responsible, though not especially soulful.",
-                nextNodeId: null,
-                effects: fx(0, 1, 3, {
-                  marcus: st(2, 3),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-public-marcus-silent",
-                label: "Keep the response minimal and trust the flyers' removal to do most of the work.",
-                outcome: "The noise may die down, but the silence leaves room for others to define the story.",
-                nextNodeId: null,
-                effects: fx(0, -1, -3, {
-                  marcus: st(1, 1),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "discipline-reset": {
-        title: "The store still needs to decide how much of this lands on Elena and how much lands on the system around her",
-        body: "Even with the public response handled, the staff is waiting to see whether this becomes a lesson in guardrails, a public shaming, or a quiet shrug.",
-        consultants: {
-          elena: {
-            prompt: "Elena knows the copy was hers, but she wants the final outcome to reflect the sloppy approval chain too.",
-            options: [
-              {
-                id: "cf-discipline-elena-coach",
-                label: "Give Elena a hard coaching moment, remove the campaign, and rebuild her role with stronger approval rules.",
-                outcome: "The consequence is real, but so is the path forward.",
-                nextNodeId: null,
-                effects: fx(0, 0, 4, {
-                  elena: st(-1, 2),
-                  marcus: st(1, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-discipline-elena-burn",
-                label: "Make Elena the clear public example so nobody mistakes edgy for smart again.",
-                outcome: "The line is unmistakable, though the humiliation may poison more than it fixes.",
-                nextNodeId: null,
-                effects: fx(0, -1, 1, {
-                  elena: st(-5, -5),
-                  nina: st(-1, -1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus thinks the best discipline is one that also forces a real review process into existence.",
-            options: [
-              {
-                id: "cf-discipline-marcus-process",
-                label: "Tie Elena's consequence to a broader print-approval process so the dealership actually learns something.",
-                outcome: "The response feels less like scapegoating and more like a genuine operational correction.",
-                nextNodeId: null,
-                effects: fx(0, 0, 5, {
-                  marcus: st(3, 4),
-                  elena: st(-1, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "cf-discipline-marcus-warning",
-                label: "Issue a sharp warning and move on once the community fire is contained.",
-                outcome: "The week recovers faster, though some staff will wonder if the lesson was too cheap.",
-                nextNodeId: null,
-                effects: fx(0, 0, 1, {
-                  marcus: st(1, 1),
-                  elena: st(-2, -2)
-                })
-              }
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "gym-ego-spiral",
-    category: "Showroom Conduct",
-    pressure: "Moderate",
-    headline: "Jake's gym obsession is turning into a customer-facing ego circus",
-    body:
-      "Jake has become weirdly obsessed with his body, keeps fishing for compliments from customers, and the rest of the dealership is getting fed up with the constant flexing.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "The issue sounds silly, but it is now visible enough that customers and staff are both reacting to it.",
-        consultants: {
-          jake: {
-            prompt: "Jake thinks he is being charismatic and says people just wish they had his confidence.",
-            options: [
-              {
-                id: "ge-open-jake-direct",
-                label: "Tell Jake immediately that the gym comments stop now.",
-                outcome: "The line is clear early, even if Jake feels clipped fast.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 1, 2, {
-                  jake: st(-2, -1),
-                  nina: st(1, 1),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "ge-open-jake-hear",
-                label: "Hear Jake out fully before deciding whether this is confidence or a real problem.",
-                outcome: "You get more context, but Jake also reads the pause as a chance to keep defending the act.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 0, 1, {
-                  jake: st(1, 2),
-                  nina: st(-1, -1)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina says the comments are getting embarrassing and making the online-to-showroom handoff feel less professional.",
-            options: [
-              {
-                id: "ge-open-nina-pattern",
-                label: "Ask Nina to map the pattern so you are not reacting to one awkward moment.",
-                outcome: "You start with evidence instead of annoyance.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 1, 2, {
-                  nina: st(2, 3),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "ge-open-nina-fast",
-                label: "Use Nina's frustration as enough proof and move straight toward correction.",
-                outcome: "The response is faster, though Jake may feel judged by secondhand reports.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 0, 1, {
-                  nina: st(1, 1),
-                  jake: st(-2, -2)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena says the vibe is starting to feel less confident and more thirsty, which is not helping the brand.",
-            options: [
-              {
-                id: "ge-open-elena-brand",
-                label: "Treat it as a showroom-brand issue before it becomes a review problem.",
-                outcome: "You frame the issue around customer comfort, not just Jake's ego.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 2, 3, {
-                  elena: st(2, 3),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "ge-open-elena-private",
-                label: "Keep it private for now and avoid making a weird issue feel bigger than it is.",
-                outcome: "You slow the public drama, though the pattern keeps developing underneath.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 0, 0, {
-                  elena: st(1, 1),
-                  nina: st(-1, 0)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus thinks the whole thing is ridiculous but professionally dangerous because it invites complaints nobody needs.",
-            options: [
-              {
-                id: "ge-open-marcus-policy",
-                label: "Frame it immediately as a professionalism issue, not a personality issue.",
-                outcome: "The store gets a standard to point at instead of a vague feeling.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 1, 3, {
-                  marcus: st(2, 3),
-                  jake: st(-2, -1)
-                })
-              },
-              {
-                id: "ge-open-marcus-wait",
-                label: "Tell Marcus to stay calm while you see whether a real customer incident is already brewing.",
-                outcome: "You avoid overcorrecting too early, though the room still feels slippery.",
-                nextNodeId: "incident-log",
-                effects: fx(0, 0, 1, {
-                  marcus: st(0, 1),
-                  jake: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "incident-log": {
-        title: "It is not one joke; it is a pattern now",
-        body: "Multiple staff can name awkward comments Jake made to customers this week, and one customer even asked Nina if the store 'always does this.'",
-        consultants: {
-          nina: {
-            prompt: "Nina wants the problem tied clearly to customer comfort before the team shrugs it off as harmless Jake behavior.",
-            options: [
-              {
-                id: "ge-log-nina-specific",
-                label: "Collect a few specific examples and use them in a direct coaching talk.",
-                outcome: "Your correction will be harder for Jake to dismiss as vague overreaction.",
-                nextNodeId: "customer-moment",
-                effects: fx(0, 2, 3, {
-                  nina: st(2, 2),
-                  jake: st(-1, -2)
-                })
-              },
-              {
-                id: "ge-log-nina-teamline",
-                label: "Reset the whole team's customer-facing tone instead of isolating Jake immediately.",
-                outcome: "The dealership gets a broader standard, though Jake may miss that he is the center of it.",
-                nextNodeId: "customer-moment",
-                effects: fx(0, 1, 2, {
-                  nina: st(1, 2),
-                  jake: st(0, 0),
-                  elena: st(1, 1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake says everybody is too sensitive and claims customers laugh because they like him.",
-            options: [
-              {
-                id: "ge-log-jake-feedback",
-                label: "Tell Jake that charm only counts if the customer feels comfortable, not trapped in his self-talk.",
-                outcome: "You connect the issue to sales skill rather than humiliation.",
-                nextNodeId: "customer-moment",
-                effects: fx(1, 1, 2, {
-                  jake: st(-1, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "ge-log-jake-dismiss",
-                label: "Let Jake keep his swagger for now and trust the numbers to tell you if it is really a problem.",
-                outcome: "The correction is delayed, and the team notices.",
-                nextNodeId: "customer-moment",
-                effects: fx(1, -1, -2, {
-                  jake: st(2, 2),
-                  nina: st(-2, -2),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "customer-moment": {
-        title: "A real customer interaction now forces the issue",
-        body: "Jake jokes to a browsing couple that he could probably 'carry the front end of this thing' and the customer laughs awkwardly while the partner looks ready to leave.",
-        consultants: {
-          jake: {
-            prompt: "Jake wants to smooth it over himself and prove he can recover the moment.",
-            options: [
-              {
-                id: "ge-customer-jake-recover",
-                label: "Let Jake recover it himself, but warn him this is his last chance.",
-                outcome: "You preserve his dignity, though the store is still trusting Jake to clean up Jake's mess.",
-                nextNodeId: "team-friction",
-                effects: fx(1, 0, 0, {
-                  jake: st(1, 1),
-                  nina: st(-1, -1)
-                })
-              },
-              {
-                id: "ge-customer-jake-pull",
-                label: "Pull Jake out immediately and take over the customer interaction yourself.",
-                outcome: "The customer feels safer, even if Jake is furious at the embarrassment.",
-                nextNodeId: "team-friction",
-                effects: fx(0, 3, 3, {
-                  jake: st(-3, -4),
-                  elena: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena thinks the biggest risk is the customer leaving with a story about the dealership being weird, not impressive.",
-            options: [
-              {
-                id: "ge-customer-elena-reframe",
-                label: "Re-center the moment on the customer's needs and quietly reset the tone.",
-                outcome: "The couple feels seen again instead of stuck inside Jake's performance.",
-                nextNodeId: "team-friction",
-                effects: fx(1, 3, 4, {
-                  elena: st(2, 3),
-                  jake: st(-1, -2)
-                })
-              },
-              {
-                id: "ge-customer-elena-joke",
-                label: "Use humor to defuse it and move on before it hardens into discomfort.",
-                outcome: "The tension drops, but the standard is still fuzzy underneath it.",
-                nextNodeId: "team-friction",
-                effects: fx(1, 1, 1, {
-                  elena: st(1, 1),
-                  jake: st(0, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "team-friction": {
-        title: "Now the staff wants to know whether confidence buys special treatment",
-        body: "Nina and Marcus both think Jake keeps getting grace because he sells. Tasha says she is tired of the floor acting like professionalism is optional if you are funny enough.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants a real standard that applies whether the problem comes from bad math or a loud personality.",
-            options: [
-              {
-                id: "ge-team-marcus-standard",
-                label: "Set a blunt customer-conduct standard for everyone and tie Jake's issue to that rule.",
-                outcome: "The rule lands as structure, not just a mood swing.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 1, 4, {
-                  marcus: st(2, 3),
-                  nina: st(1, 1),
-                  jake: st(-2, -2)
-                })
-              },
-              {
-                id: "ge-team-marcus-private",
-                label: "Handle Jake privately and avoid making a broad store policy out of a weird personal phase.",
-                outcome: "The store stays quieter, though some people will still wonder whether standards depend on who broke them.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 0, 1, {
-                  marcus: st(-1, -1),
-                  jake: st(0, 1)
-                })
-              }
+              opt("fhr-open-marisol", "Start with Marisol and map how the room is reading the competitor from the front door out.", "You begin with mood, optics, and what guests are already quietly comparing.", "staff-anxiety", fx(1, 1, 2, { elena: st(2, 3), devon: st(1, 1), jake: st(1, 1) })),
+              opt("fhr-open-marisol-line", "Tell Marisol this only matters if guests actually leave and refuse to feed the panic early.", "The calm is intentional, but the room may hear it as denial instead of steadiness.", "staff-anxiety", fx(0, -1, -1, { elena: st(-1, -2), devon: st(-1, -1) }))
             ]
           },
           tasha: {
-            prompt: "Tasha wants proof that management will protect the room from clown behavior before everyone just starts ignoring it.",
+            prompt: "Chef Renata takes the rival personally and says the only answer is to out-execute them every single night.", 
             options: [
-              {
-                id: "ge-team-tasha-direct",
-                label: "Be direct that Jake's behavior is not harmless if the rest of the team is carrying the discomfort.",
-                outcome: "The team feels seen, though Jake takes it personally.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 1, 3, {
-                  tasha: st(2, 3),
-                  nina: st(1, 1),
-                  jake: st(-3, -3)
-                })
-              },
-              {
-                id: "ge-team-tasha-soft",
-                label: "Ask the team for patience while you coach Jake instead of turning this into a public correction.",
-                outcome: "You buy time, though patience is getting thin.",
-                nextNodeId: "final-reset",
-                effects: fx(0, -1, -1, {
-                  tasha: st(-1, -2),
-                  nina: st(-1, -1),
-                  jake: st(1, 1)
-                })
-              }
+              opt("fhr-open-renata", "Let Renata explain where the kitchen can realistically compete without burning itself alive.", "You respect the pride without blindly swallowing the adrenaline.", "staff-anxiety", fx(1, 1, 2, { tasha: st(2, 3), luis: st(1, 1), priya: st(1, 1) })),
+              opt("fhr-open-renata-push", "Back Renata's urgency and tell the team this is war now.", "The energy spike is real, but so is the risk that fear becomes policy.", "staff-anxiety", fx(2, -1, -2, { tasha: st(2, 2), luis: st(1, 1), priya: st(-1, -1), devon: st(-1, -1) }))
             ]
           }
         }
       },
-      "final-reset": {
-        title: "The last move is deciding whether Jake leaves this as better coached or just more resentful",
-        body: "Jake can tell the building is fed up. What happens now determines whether this becomes a professionalism reset or the start of a deeper sales-floor resentment.",
-        consultants: {
-          jake: {
-            prompt: "Jake wants one clean chance to keep his swagger without feeling like management broke him in front of the team.",
-            options: [
-              {
-                id: "ge-final-jake-coach",
-                label: "Coach Jake around confidence, customer reading, and when charm becomes self-obsession.",
-                outcome: "The lesson has teeth without turning into humiliation.",
-                nextNodeId: null,
-                effects: fx(2, 2, 4, {
-                  jake: st(1, 2),
-                  nina: st(1, 1),
-                  elena: st(1, 1)
-                })
-              },
-              {
-                id: "ge-final-jake-bench",
-                label: "Bench Jake from the floor briefly so the message cannot be misunderstood.",
-                outcome: "The line becomes unmistakable, though Jake's trust takes a real hit.",
-                nextNodeId: null,
-                effects: fx(-1, 1, 3, {
-                  jake: st(-4, -5),
-                  nina: st(2, 2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants the recovery to be visible enough that customers and staff both feel the room has changed.",
-            options: [
-              {
-                id: "ge-final-elena-reset",
-                label: "Pair Jake's coaching with a visible showroom tone reset for the full team.",
-                outcome: "The dealership comes out looking more intentional than reactive.",
-                nextNodeId: null,
-                effects: fx(1, 3, 5, {
-                  elena: st(2, 3),
-                  nina: st(1, 2),
-                  jake: st(-1, 0)
-                })
-              },
-              {
-                id: "ge-final-elena-minimal",
-                label: "Keep the correction quiet and trust the awkward week to fade out on its own.",
-                outcome: "The incident cools down, though the store never fully hears a standard from you.",
-                nextNodeId: null,
-                effects: fx(1, 0, 0, {
-                  elena: st(-1, -1),
-                  nina: st(-1, -1),
-                  jake: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "airpods-ultimatum",
-    category: "Service Meltdown",
-    pressure: "High",
-    headline: "Tasha lost her AirPods in a customer's car and is spiraling into open anger",
-    body:
-      "Tasha cannot find her AirPods after an oil change, nobody is helping her contact the customer, and she has started muttering that she is going to burn the place down if she cannot listen to Jelly Roll while she works.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "This is partly about lost AirPods, but mostly about whether the store helps people when a small problem starts turning into a big one.",
-        consultants: {
-          tasha: {
-            prompt: "Tasha is furious, embarrassed, and convinced nobody cares because it is her problem instead of the dealership's.",
-            options: [
-              {
-                id: "ap-open-tasha-hear",
-                label: "Hear Tasha out fully before you decide what the dealership owes her.",
-                outcome: "She feels seen, which lowers the heat enough to think clearly.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, 1, 1, {
-                  tasha: st(2, 3),
-                  jake: st(0, 0)
-                })
-              },
-              {
-                id: "ap-open-tasha-language",
-                label: "Address the threat language immediately before anything else.",
-                outcome: "The line is clear, but Tasha feels you cared more about tone than help.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, -1, 1, {
-                  tasha: st(-3, -3),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          nina: {
-            prompt: "Nina thinks the customer can probably be traced fast if people stop acting helpless and use the system properly.",
-            options: [
-              {
-                id: "ap-open-nina-trace",
-                label: "Have Nina pull the service records and customer contact trail immediately.",
-                outcome: "The situation becomes solvable instead of theatrical.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, 1, 2, {
-                  nina: st(2, 3),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "ap-open-nina-later",
-                label: "Tell Nina to stay on sales work while you decide whether this deserves dealership time.",
-                outcome: "You preserve workflow, but Tasha sees that as one more brush-off.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, -1, -1, {
-                  nina: st(0, 1),
-                  tasha: st(-2, -3)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake thinks this is becoming a whole store drama over earbuds, but he admits some people have been teasing Tasha instead of helping.",
-            options: [
-              {
-                id: "ap-open-jake-names",
-                label: "Use Jake to find out who ignored the issue and who turned it into a joke.",
-                outcome: "You start seeing the culture problem around the missing AirPods, not just the missing AirPods themselves.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, 0, 1, {
-                  jake: st(1, 1),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "ap-open-jake-shrug",
-                label: "Tell Jake this is not a sales problem and keep him out of it.",
-                outcome: "The room stays simpler, but you lose a chance to understand how the teasing started spreading.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, 0, 0, {
-                  jake: st(-1, -1),
-                  tasha: st(-1, -1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus wants to know whether the dealership is about to own a personal-property claim because no one followed clean checkout habits.",
-            options: [
-              {
-                id: "ap-open-marcus-policy",
-                label: "Treat it immediately as a process and liability issue, not just a missing item.",
-                outcome: "The store gets more serious fast, even if Tasha still wants empathy first.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, 0, 2, {
-                  marcus: st(2, 3),
-                  tasha: st(-1, 0)
-                })
-              },
-              {
-                id: "ap-open-marcus-soft",
-                label: "Tell Marcus to hold the policy lecture until you know whether the AirPods are even in the car.",
-                outcome: "You keep the situation more human, though Marcus thinks the store is drifting.",
-                nextNodeId: "customer-trace",
-                effects: fx(0, 1, 0, {
-                  marcus: st(-1, -1),
-                  tasha: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "customer-trace": {
-        title: "The customer can probably be reached, but nobody took ownership of doing it",
-        body: "The records are there. The real problem is that multiple people assumed somebody else would help Tasha, so nothing happened for days.",
+      "staff-anxiety": {
+        title: "The bigger problem is not guests leaving first, it is staff imagining a future without Feast Haven",
+        body: "People are comparing, speculating, and projecting their own frustrations onto the competitor. That makes every normal shift problem feel sharper.",
         consultants: {
           nina: {
-            prompt: "Nina can contact the customer cleanly and quickly if you want this handled like a real service recovery.",
+            prompt: "Celia thinks the staff need a believable internal plan or they will start treating every rough shift as proof the other place is better.", 
             options: [
-              {
-                id: "ap-trace-nina-call",
-                label: "Have Nina contact the customer professionally and ask them to check the car.",
-                outcome: "The request sounds respectful instead of desperate.",
-                nextNodeId: "bay-friction",
-                effects: fx(0, 2, 3, {
-                  nina: st(2, 2),
-                  tasha: st(1, 2)
-                })
-              },
-              {
-                id: "ap-trace-nina-text",
-                label: "Send a quick text and hope the customer responds without making it a bigger thing.",
-                outcome: "It is faster, though not especially reassuring to Tasha.",
-                nextNodeId: "bay-friction",
-                effects: fx(0, 1, 1, {
-                  nina: st(1, 1),
-                  tasha: st(0, 0)
-                })
-              }
+              opt("fhr-anxiety-celia", "Address the team directly and define what Feast Haven will compete on besides panic and pride.", "The room gets a real internal narrative instead of rumor and insecurity.", "guest-battle", fx(1, 3, 4, { nina: st(2, 3), devon: st(1, 1), elena: st(1, 1) })),
+              opt("fhr-anxiety-celia-silent", "Keep the staff talk minimal and focus only on guest-facing execution.", "You avoid overdramatizing it, but leave too much fear to breed quietly.", "guest-battle", fx(1, 0, 0, { nina: st(-1, -1), devon: st(-1, -1) }))
             ]
           },
-          marcus: {
-            prompt: "Marcus wants the contact logged and wants everyone to stop freelancing around personal property in customer vehicles.",
+          luis: {
+            prompt: "Theo is half-competitive and half-curious whether FOOD HEAVEN might actually value the kitchen more.", 
             options: [
-              {
-                id: "ap-trace-marcus-doc",
-                label: "Log the issue formally and make the customer contact part of a documented follow-up.",
-                outcome: "The store acts like a business, not a group chat.",
-                nextNodeId: "bay-friction",
-                effects: fx(0, 1, 3, {
-                  marcus: st(2, 3),
-                  tasha: st(0, 1)
-                })
-              },
-              {
-                id: "ap-trace-marcus-minimize",
-                label: "Tell Marcus not to turn missing AirPods into a whole incident report yet.",
-                outcome: "The paperwork stays lighter, though Marcus now thinks your standards are floating.",
-                nextNodeId: "bay-friction",
-                effects: fx(0, 0, -1, {
-                  marcus: st(-2, -2),
-                  tasha: st(1, 1)
-                })
-              }
+              opt("fhr-anxiety-theo", "Treat Theo's curiosity seriously and talk about what would make the current kitchen worth staying loyal to.", "The conversation gets more honest than the usual 'be grateful you work here' line.", "guest-battle", fx(0, 2, 2, { luis: st(2, 3), tasha: st(1, 1), priya: st(1, 1) })),
+              opt("fhr-anxiety-theo-loyalty", "Shut down any talk of leaving and frame it as disloyal during a competitive moment.", "It may sound strong, but insecurity rarely gets healthier when cornered.", "guest-battle", fx(1, -2, -2, { luis: st(-3, -4), tasha: st(1, 1), priya: st(-1, -1) }))
             ]
           }
         }
       },
-      "bay-friction": {
-        title: "The service bay is now fighting about the response more than the earbuds",
-        body: "Tasha is convinced the store only acted because she blew up. Other employees are split between feeling sorry for her and feeling exhausted by the drama.",
+      "guest-battle": {
+        title: "Now the question is whether Feast Haven responds with identity, fear, or theater",
+        body: "Guests are already comparing menus, energy, and staff mood. One bad overreaction could make FOOD HEAVEN look stronger than they actually are.",
         consultants: {
-          tasha: {
-            prompt: "Tasha wants to know whether the dealership is actually backing her or just calming her down until she shuts up.",
-            options: [
-              {
-                id: "ap-bay-tasha-support",
-                label: "Tell Tasha directly that the store should have helped sooner and you are correcting that.",
-                outcome: "The anger softens because she finally hears accountability from management.",
-                nextNodeId: "threat-fallout",
-                effects: fx(0, 2, 3, {
-                  tasha: st(3, 4),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "ap-bay-tasha-boundary",
-                label: "Tell Tasha the store can help, but not while she talks like she wants to torch the building.",
-                outcome: "The boundary is fair, though she still feels half-abandoned.",
-                nextNodeId: "threat-fallout",
-                effects: fx(0, 0, 1, {
-                  tasha: st(-2, -3),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
           jake: {
-            prompt: "Jake knows who teased Tasha and who decided helping her was not worth stopping work.",
+            prompt: "Adrian wants a visible answer that makes the room feel alive and confident again, not defensive and twitchy.", 
             options: [
-              {
-                id: "ap-bay-jake-stop",
-                label: "Use Jake to shut down the teasing and make the room act like adults.",
-                outcome: "The service bay loses some of the cheap comedy, which is good for everybody.",
-                nextNodeId: "threat-fallout",
-                effects: fx(0, 1, 2, {
-                  jake: st(1, 1),
-                  tasha: st(1, 2)
-                })
-              },
-              {
-                id: "ap-bay-jake-ignore",
-                label: "Ignore the teasing and focus only on whether the AirPods are recovered.",
-                outcome: "The practical problem stays central, but the disrespect underneath it remains fully alive.",
-                nextNodeId: "threat-fallout",
-                effects: fx(0, -1, -2, {
-                  tasha: st(-2, -3),
-                  jake: st(1, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "threat-fallout": {
-        title: "Now you have to decide how serious the threat language really is",
-        body: "The AirPods may still turn up, but Tasha's threat is now part of the story too. The store wants to know whether you see it as venting, a real safety issue, or both.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus thinks threatening to burn the place down is not a colorful joke when customers and staff can hear it.",
-            options: [
-              {
-                id: "ap-threat-marcus-writeup",
-                label: "Issue a formal warning for the language while still helping resolve the loss.",
-                outcome: "The standard is consistent, though Tasha may feel punished on the same day she finally got help.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 0, 2, {
-                  marcus: st(2, 3),
-                  tasha: st(-3, -4)
-                })
-              },
-              {
-                id: "ap-threat-marcus-context",
-                label: "Treat the threat as meltdown language tied to feeling ignored, not as the whole problem.",
-                outcome: "You keep the response proportionate, though Marcus worries the store is going soft.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 1, 0, {
-                  marcus: st(-1, -1),
-                  tasha: st(2, 2)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena thinks the store needs a response that feels fair to bystanders too, not just to Tasha.",
-            options: [
-              {
-                id: "ap-threat-elena-both",
-                label: "Address both failures clearly: the store ignored her too long, and threatening language is not okay.",
-                outcome: "People hear both accountability and boundary, which gives the room a better chance to reset.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 2, 4, {
-                  elena: st(2, 3),
-                  tasha: st(1, 2),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "ap-threat-elena-soft",
-                label: "Keep it mostly restorative and avoid a formal discipline moment unless it happens again.",
-                outcome: "The room stays less tense, though some staff may feel the line got blurry.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 1, 1, {
-                  elena: st(1, 1),
-                  marcus: st(-1, -1),
-                  tasha: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "final-reset": {
-        title: "The last move decides whether this becomes an AirPods story or a trust story",
-        body: "By now the dealership has shown its hand. The final choice is whether you leave behind a stronger service culture or just a half-contained grudge.",
-        consultants: {
-          nina: {
-            prompt: "Nina thinks the best close is one that leaves a usable follow-up system instead of another weird memory everyone resents.",
-            options: [
-              {
-                id: "ap-final-nina-process",
-                label: "Create a clean follow-up rule for lost items and customer property contact going forward.",
-                outcome: "The problem turns into a real operating lesson instead of dealership folklore.",
-                nextNodeId: null,
-                effects: fx(0, 2, 5, {
-                  nina: st(2, 3),
-                  marcus: st(1, 2),
-                  tasha: st(1, 2)
-                })
-              },
-              {
-                id: "ap-final-nina-quiet",
-                label: "Keep the wrap-up quiet and trust the situation to cool off once the AirPods question is closed.",
-                outcome: "The drama fades, though the deeper lesson stays underbuilt.",
-                nextNodeId: null,
-                effects: fx(0, 0, 0, {
-                  nina: st(0, 1),
-                  tasha: st(-1, -1)
-                })
-              }
+              opt("fhr-battle-adrian", "Launch a calm, confident floor campaign built around what Feast Haven already does well.", "The room stops feeling hunted and starts sounding intentional again.", "final-position", fx(3, 2, 3, { jake: st(2, 3), elena: st(1, 1), nina: st(1, 1) })),
+              opt("fhr-battle-adrian-fomo", "Mirror the rival aggressively and try to beat them move for move right away.", "It may feel exciting, but it also makes Feast Haven look reactive instead of sure of itself.", "final-position", fx(2, -1, -2, { jake: st(1, 1), elena: st(-1, -1), tasha: st(-1, -1) }))
             ]
           },
           tasha: {
-            prompt: "Tasha wants to know whether she matters to the store only when she explodes loudly enough.",
+            prompt: "Chef Renata wants the kitchen to answer with quality and pacing, not gimmicky panic.", 
             options: [
-              {
-                id: "ap-final-tasha-rebuild",
-                label: "Rebuild trust directly with Tasha and make the support standard visible to the whole bay.",
-                outcome: "The ending feels more human and more durable.",
-                nextNodeId: null,
-                effects: fx(1, 3, 4, {
-                  tasha: st(3, 4),
-                  jake: st(1, 1),
-                  nina: st(1, 1)
-                })
-              },
-              {
-                id: "ap-final-tasha-hardline",
-                label: "Close the issue with a final reminder that personal items are personal responsibility.",
-                outcome: "The rule is clear, but Tasha hears it as the store learning almost nothing about why she snapped.",
-                nextNodeId: null,
-                effects: fx(0, -1, -2, {
-                  tasha: st(-4, -5),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "closet-side-hustle",
-    category: "Website Misuse",
-    pressure: "High",
-    headline: "Nina has been using the dealership website to sell her own luxury clothes and half the staff knows",
-    body:
-      "Nina has been quietly using the company website to list and sell her own high-end clothes. Elena stayed quiet for profit, Jake stayed quiet for a favor, Tasha respects the hustle, and Marcus does not know yet.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "This is no longer just Nina freelancing. It is quickly becoming an integrity problem with multiple people tangled in it.",
-        consultants: {
-          nina: {
-            prompt: "Nina says the listings were temporary, harmless, and honestly a smart use of dead website space.",
-            options: [
-              {
-                id: "cs-open-nina-full",
-                label: "Push Nina for the full truth immediately: what sold, who knew, and how long this has been happening.",
-                outcome: "The honesty comes faster, even if Nina feels cornered.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 0, 2, {
-                  nina: st(-1, -2),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "cs-open-nina-soft",
-                label: "Keep Nina calm first so she keeps talking instead of going defensive.",
-                outcome: "You get more openness, though the situation still looks bad on the facts.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 1, 1, {
-                  nina: st(1, 2),
-                  elena: st(0, 0)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena admits she knew, but she says the site looked more alive and she saw a chance to skim a little upside without hurting car sales.",
-            options: [
-              {
-                id: "cs-open-elena-admit",
-                label: "Make Elena explain exactly what she took and why she thought this was remotely acceptable.",
-                outcome: "You turn the issue into a leadership-and-judgment problem instead of just a website quirk.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 0, 2, {
-                  elena: st(-2, -2),
-                  nina: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-open-elena-brand",
-                label: "Treat Elena's part of it as a misuse-of-brand issue first.",
-                outcome: "The problem gets framed around the dealership's identity instead of just the money.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 1, 3, {
-                  elena: st(-1, 0),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake tries to laugh it off and acts like everybody keeps a side deal or two going when the store is quiet.",
-            options: [
-              {
-                id: "cs-open-jake-favor",
-                label: "Dig into what Jake wanted in exchange for his silence.",
-                outcome: "The situation gets uglier, but at least it stops pretending to be harmless hustle.",
-                nextNodeId: "profit-map",
-                effects: fx(0, -1, -2, {
-                  jake: st(-2, -3),
-                  nina: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-open-jake-culture",
-                label: "Use Jake to understand how normalized this has become around the building.",
-                outcome: "You get a better culture read than a cleaner moral read.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 0, 1, {
-                  jake: st(1, 1),
-                  tasha: st(1, 1)
-                })
-              }
-            ]
-          },
-          tasha: {
-            prompt: "Tasha respects the hustle and thinks the bigger question is why the store website was loose enough for this to happen at all.",
-            options: [
-              {
-                id: "cs-open-tasha-system",
-                label: "Treat Tasha's take as a clue that the process weakness may be bigger than Nina alone.",
-                outcome: "You start thinking beyond one employee's side hustle.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 1, 2, {
-                  tasha: st(1, 2),
-                  marcus: st(1, 1)
-                })
-              },
-              {
-                id: "cs-open-tasha-shrug",
-                label: "Ignore Tasha's admiration and keep the focus tight on Nina's conduct.",
-                outcome: "The accountability line is cleaner, though the broader culture lesson is still hiding.",
-                nextNodeId: "profit-map",
-                effects: fx(0, 0, 1, {
-                  tasha: st(-1, -1),
-                  nina: st(-1, -1)
-                })
-              }
+              opt("fhr-battle-renata", "Compete by tightening execution, reducing avoidable mistakes, and letting the room feel sharper for a week.", "It is not flashy, but it is the kind of answer staff can actually sustain.", "final-position", fx(2, 3, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1) })),
+              opt("fhr-battle-renata-war", "Push the kitchen into a prove-yourself sprint and dare them to outwork the competitor immediately.", "The pride lands, but so does the fatigue.", "final-position", fx(2, -1, -1, { tasha: st(2, 2), priya: st(-1, -1), luis: st(0, 1) }))
             ]
           }
         }
       },
-      "profit-map": {
-        title: "This was not solo misconduct; it was a small conspiracy",
-        body: "You now know Nina listed the items, Elena wanted profit, Jake wanted a date favor, and Tasha treated it like clever dealership folklore. The only person still in the dark is Marcus.",
-        consultants: {
-          nina: {
-            prompt: "Nina says the whole thing can still disappear quietly if you just pull the listings before Marcus sees them.",
-            options: [
-              {
-                id: "cs-map-nina-pull",
-                label: "Pull every listing immediately before the misuse spreads any further.",
-                outcome: "Containment starts now, even if accountability is still coming.",
-                nextNodeId: "exposure-risk",
-                effects: fx(0, 0, 2, {
-                  nina: st(-1, 0),
-                  elena: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-map-nina-keep",
-                label: "Leave the listings up briefly while you trace the full money flow.",
-                outcome: "The investigation gets cleaner, but the misuse continues under your watch.",
-                nextNodeId: "exposure-risk",
-                effects: fx(1, -1, -3, {
-                  nina: st(1, 1),
-                  marcus: st(-1, -1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena thinks the real danger is not the clothes themselves but Marcus discovering that multiple people treated the website like their own playground.",
-            options: [
-              {
-                id: "cs-map-elena-own",
-                label: "Have Elena help prepare a truthful account before Marcus finds fragments and explodes.",
-                outcome: "The story gets more coherent before the inevitable accountability conversation.",
-                nextNodeId: "exposure-risk",
-                effects: fx(0, 1, 3, {
-                  elena: st(1, 2),
-                  nina: st(0, 1)
-                })
-              },
-              {
-                id: "cs-map-elena-distance",
-                label: "Separate Elena from the problem and treat her silence as secondary to Nina's conduct.",
-                outcome: "The lines get simpler, though the selective accountability is obvious to the people who know more.",
-                nextNodeId: "exposure-risk",
-                effects: fx(0, -1, -2, {
-                  elena: st(-3, -4),
-                  nina: st(0, 0)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "exposure-risk": {
-        title: "Now the question is whether Marcus hears it from you or from the wreckage",
-        body: "Accounting is one weird report or one customer screenshot away from discovering that the dealership website has been moonlighting as a boutique.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus can either hear this cleanly from leadership or discover it sideways and assume the building is rotten.",
-            options: [
-              {
-                id: "cs-risk-marcus-tell",
-                label: "Tell Marcus the truth before he discovers it alone.",
-                outcome: "The blast is real, but at least it is not paired with betrayal by omission.",
-                nextNodeId: "culture-crack",
-                effects: fx(0, 0, 4, {
-                  marcus: st(1, 3),
-                  nina: st(-2, -3),
-                  elena: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-risk-marcus-delay",
-                label: "Delay Marcus until you have the whole problem cleaned up first.",
-                outcome: "You buy time, though the trust cost gets sharper if he finds out another way.",
-                nextNodeId: "culture-crack",
-                effects: fx(0, -1, -3, {
-                  marcus: st(-3, -4),
-                  nina: st(1, 1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake thinks the only thing that matters is whether the website mess becomes public enough to hurt showroom traffic.",
-            options: [
-              {
-                id: "cs-risk-jake-contain",
-                label: "Contain the website optics first, then come back for the internal reckoning.",
-                outcome: "The outside blast radius shrinks, but the inside ethics issue keeps simmering.",
-                nextNodeId: "culture-crack",
-                effects: fx(1, 0, 0, {
-                  jake: st(1, 1),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-risk-jake-clean",
-                label: "Tell Jake this is bigger than optics and you are done treating it like a funny hustle story.",
-                outcome: "The tone firms up, even if Jake thinks management has no sense of proportion.",
-                nextNodeId: "culture-crack",
-                effects: fx(0, 1, 2, {
-                  jake: st(-2, -2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "culture-crack": {
-        title: "The real damage is that too many people decided the rules were optional",
-        body: "This is now a culture question. Multiple people took something from the misconduct: money, leverage, entertainment, or admiration.",
-        consultants: {
-          tasha: {
-            prompt: "Tasha will respect almost any decision as long as it feels honest about the hustle and honest about the line.",
-            options: [
-              {
-                id: "cs-culture-tasha-wide",
-                label: "Treat this as a store culture failure, not just Nina's side hustle.",
-                outcome: "The responsibility spreads where it belongs, though more people feel the heat.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 1, 4, {
-                  tasha: st(2, 3),
-                  nina: st(-2, -2),
-                  elena: st(-2, -2),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-culture-tasha-nina",
-                label: "Keep the main consequence on Nina and stop the sprawl before it turns into a whole-store tribunal.",
-                outcome: "The response stays narrower, though the people who know the truth will feel the selectivity.",
-                nextNodeId: "final-reset",
-                effects: fx(0, -1, -2, {
-                  tasha: st(-1, -1),
-                  nina: st(-4, -4),
-                  elena: st(0, 0),
-                  jake: st(0, 0)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus thinks the only way to restore order is to make misuse, silence, and side deals all part of the same correction.",
-            options: [
-              {
-                id: "cs-culture-marcus-audit",
-                label: "Run a full misuse review of the site and make everybody involved answer for their piece.",
-                outcome: "The building gets cleaner, even if the week gets much more painful.",
-                nextNodeId: "final-reset",
-                effects: fx(-1, 0, 5, {
-                  marcus: st(3, 4),
-                  nina: st(-3, -4),
-                  elena: st(-2, -3),
-                  jake: st(-2, -2)
-                })
-              },
-              {
-                id: "cs-culture-marcus-fast",
-                label: "Shut the scheme down, return what you can, and avoid dragging the whole store through a long audit.",
-                outcome: "The store moves faster, though some rot stays less examined than Marcus would like.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 0, 1, {
-                  marcus: st(-1, -2),
-                  nina: st(-1, -1),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "final-reset": {
-        title: "The last choice decides whether this ends as a quiet cleanup or a real integrity reset",
-        body: "Everybody now understands what happened. What they remember next will come from the consequence structure you choose.",
-        consultants: {
-          nina: {
-            prompt: "Nina wants a way back that is serious without ending her credibility forever.",
-            options: [
-              {
-                id: "cs-final-nina-repair",
-                label: "Keep Nina employed but strip the side-hustle access, require repayment, and rebuild trust under strict guardrails.",
-                outcome: "The consequence is real and the store gets to test whether repair is possible.",
-                nextNodeId: null,
-                effects: fx(0, 1, 4, {
-                  nina: st(-1, 1),
-                  marcus: st(2, 2),
-                  elena: st(0, 1)
-                })
-              },
-              {
-                id: "cs-final-nina-burn",
-                label: "Make Nina the example and let everybody see exactly what misusing dealership assets costs.",
-                outcome: "The line becomes unmistakable, though fear replaces some trust.",
-                nextNodeId: null,
-                effects: fx(0, -1, 3, {
-                  nina: st(-5, -6),
-                  jake: st(-1, -2),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus wants the ending to prove that the dealership is not run by side deals and selective silence.",
-            options: [
-              {
-                id: "cs-final-marcus-process",
-                label: "Pair discipline with a hard reset on website permissions, approvals, and ethics expectations.",
-                outcome: "The store comes out stricter, but also more believable.",
-                nextNodeId: null,
-                effects: fx(0, 2, 6, {
-                  marcus: st(3, 4),
-                  nina: st(-2, 0),
-                  elena: st(-1, 0),
-                  jake: st(-1, -1)
-                })
-              },
-              {
-                id: "cs-final-marcus-quiet",
-                label: "Keep the consequence tight and quiet once the misuse is gone from the site.",
-                outcome: "The scandal stays smaller, though the building is left to guess which lessons really mattered.",
-                nextNodeId: null,
-                effects: fx(0, 0, 0, {
-                  marcus: st(-2, -2),
-                  nina: st(0, 1),
-                  elena: st(0, 0)
-                })
-              }
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "daycare-breakdown",
-    category: "Workplace Boundaries",
-    pressure: "High",
-    headline: "Marcus keeps bringing his sister's kids to the dealership and everyone is done with it",
-    body:
-      "Marcus has been bringing in his six- and seven-year-old niece and nephew. They run around the showroom, roast customers, drew on the walls, and broke the staff toilet. The whole store is fed up.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "The kids are a sympathy story and a professionalism disaster at the same time.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus says childcare fell apart and he is just trying to survive a rough family stretch without abandoning work.",
-            options: [
-              {
-                id: "dd-open-marcus-hear",
-                label: "Hear Marcus out fully before you draw a line.",
-                outcome: "You understand the human problem before you impose the workplace solution.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 1, 1, {
-                  marcus: st(2, 3),
-                  tasha: st(0, 0)
-                })
-              },
-              {
-                id: "dd-open-marcus-stop",
-                label: "Tell Marcus immediately that the kids cannot stay here anymore.",
-                outcome: "The boundary is clear, even if the compassion part comes later.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 0, 2, {
-                  marcus: st(-3, -4),
-                  tasha: st(1, 1),
-                  jake: st(1, 1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake says customers are noticing, and one of the kids just hit him with a 'your momma' joke in front of a live deal.",
-            options: [
-              {
-                id: "dd-open-jake-customer",
-                label: "Treat this first as a customer-experience crisis.",
-                outcome: "The business impact gets centered fast.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 1, 2, {
-                  jake: st(1, 2),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "dd-open-jake-humor",
-                label: "Tell Jake to stop clowning about it and help you understand the real disruption.",
-                outcome: "The tone gets more useful, though Jake is annoyed you did not just laugh with him.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 0, 1, {
-                  jake: st(-1, 0),
-                  marcus: st(0, 0)
-                })
-              }
-            ]
-          },
-          tasha: {
-            prompt: "Tasha thinks the kids are now a straight-up safety and sanity problem, especially after the toilet fiasco.",
-            options: [
-              {
-                id: "dd-open-tasha-safety",
-                label: "Treat Tasha's warning as a service-bay safety issue, not just a nuisance issue.",
-                outcome: "The standard gets more serious right away.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 1, 3, {
-                  tasha: st(2, 3),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "dd-open-tasha-soft",
-                label: "Ask Tasha for patience while you find out what Marcus is dealing with at home.",
-                outcome: "The empathy is real, but patience inside the bay is almost gone.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, -1, -1, {
-                  tasha: st(-2, -3),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena says the dealership is starting to feel chaotic in a way customers will remember for all the wrong reasons.",
-            options: [
-              {
-                id: "dd-open-elena-brand",
-                label: "Treat it as a professionalism and brand issue before another customer story leaves the building.",
-                outcome: "The room gets reminded that vibes are operational too.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 2, 3, {
-                  elena: st(2, 3),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "dd-open-elena-private",
-                label: "Keep the issue private and avoid turning Marcus's family emergency into gossip.",
-                outcome: "The dignity stays intact for now, even if the disruption keeps running.",
-                nextNodeId: "damage-scan",
-                effects: fx(0, 0, 1, {
-                  elena: st(1, 1),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "damage-scan": {
-        title: "The damage is wider than anybody was admitting",
-        body: "The walls are marked up, the staff toilet is out of service, and at least one customer complained after being roasted by children in the showroom.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus is embarrassed now, but he still wants you to see the childcare problem before you see only the mess.",
-            options: [
-              {
-                id: "dd-scan-marcus-own",
-                label: "Make Marcus own the full business impact instead of hiding behind the childcare emergency.",
-                outcome: "The empathy stays, but the facts stop getting softened.",
-                nextNodeId: "customer-flashpoint",
-                effects: fx(0, 0, 3, {
-                  marcus: st(-2, -2),
-                  jake: st(1, 1),
-                  tasha: st(1, 1)
-                })
-              },
-              {
-                id: "dd-scan-marcus-help",
-                label: "Focus first on finding Marcus a temporary path out of the childcare spiral.",
-                outcome: "The human side improves, though the rest of the staff still wants the damage acknowledged.",
-                nextNodeId: "customer-flashpoint",
-                effects: fx(0, 1, 0, {
-                  marcus: st(2, 3),
-                  tasha: st(-1, -1)
-                })
-              }
-            ]
-          },
-          jake: {
-            prompt: "Jake says the kids turning on customers is what moved this from annoying to untenable.",
-            options: [
-              {
-                id: "dd-scan-jake-customer",
-                label: "Document the customer-facing incidents and treat them as the line that got crossed.",
-                outcome: "The standard becomes obvious and defensible.",
-                nextNodeId: "customer-flashpoint",
-                effects: fx(0, 1, 3, {
-                  jake: st(1, 2),
-                  marcus: st(-1, -2)
-                })
-              },
-              {
-                id: "dd-scan-jake-downplay",
-                label: "Downplay the customer jokes for now and keep the focus on the property damage.",
-                outcome: "The facts stay simpler, though the customer side remains underplayed.",
-                nextNodeId: "customer-flashpoint",
-                effects: fx(0, -1, -2, {
-                  jake: st(-1, -1),
-                  elena: st(-1, -1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "customer-flashpoint": {
-        title: "A customer complaint now forces a decision",
-        body: "A parent customer says they do not care what Marcus is going through at home; they care that the dealership looked chaotic and unserious while they were trying to shop.",
+      "final-position": {
+        title: "The final move is what story Feast Haven tells itself about competition",
+        body: "A rival restaurant changes things most when your own staff start narrating your weaknesses for you. The last move has to change that story.",
         consultants: {
           elena: {
-            prompt: "Elena wants to recover the customer's trust without turning Marcus into a public villain in the middle of the showroom.",
+            prompt: "Marisol wants the front of house to feel proud again, not like it is secretly waiting to lose the comparison.", 
             options: [
-              {
-                id: "dd-customer-elena-recover",
-                label: "Recover the customer personally and separate the apology from Marcus's private hardship.",
-                outcome: "The customer sees leadership instead of excuses.",
-                nextNodeId: "staff-fairness",
-                effects: fx(1, 3, 4, {
-                  elena: st(2, 3),
-                  marcus: st(-1, -1)
-                })
-              },
-              {
-                id: "dd-customer-elena-explain",
-                label: "Explain the family hardship context and ask the customer for grace.",
-                outcome: "The appeal is human, though not every customer wants to process your staffing compassion story.",
-                nextNodeId: "staff-fairness",
-                effects: fx(0, 1, 0, {
-                  elena: st(1, 1),
-                  marcus: st(1, 1)
-                })
-              }
+              opt("fhr-final-marisol", "Unify the room around one identity: warmer service, steadier standards, and zero panic theater.", "The restaurant does not need to be louder than the rival if it sounds more sure of itself.", null, fx(3, 4, 4, { elena: st(2, 3), devon: st(1, 2), nina: st(1, 1), jake: st(1, 1) })),
+              opt("fhr-final-marisol-prove", "Keep the rivalry front and center and turn every preshift into an anti-FOOD-HEAVEN speech.", "That can energize some people, but also exhaust everyone else fast.", null, fx(2, -1, -1, { elena: st(1, 1), devon: st(-1, -1), nina: st(-1, -1) }))
             ]
           },
-          tasha: {
-            prompt: "Tasha thinks the customer should get a clean apology and the staff should get proof that rules still exist.",
+          luis: {
+            prompt: "Theo wants to know whether the restaurant will compete hard enough to be worth staying loyal to.", 
             options: [
-              {
-                id: "dd-customer-tasha-line",
-                label: "Apologize cleanly and make it obvious the situation will not repeat.",
-                outcome: "The response lands as competent instead of wobbly.",
-                nextNodeId: "staff-fairness",
-                effects: fx(0, 2, 4, {
-                  tasha: st(2, 3),
-                  marcus: st(-2, -2)
-                })
-              },
-              {
-                id: "dd-customer-tasha-soft",
-                label: "Keep the apology gentle and avoid promising a hard line until you talk to Marcus again.",
-                outcome: "The room stays kinder, though less confident.",
-                nextNodeId: "staff-fairness",
-                effects: fx(0, 0, 0, {
-                  tasha: st(-1, -1),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "staff-fairness": {
-        title: "Now the staff wants to know whether family hardship exempts someone from basic standards",
-        body: "The toilet is still broken, the walls still need cleaning, and everyone wants to know whether Marcus is being protected because he is usually the rule guy.",
-        consultants: {
-          tasha: {
-            prompt: "Tasha says people could tolerate almost anything if they believed the rule stayed the same for everybody.",
-            options: [
-              {
-                id: "dd-fairness-tasha-standard",
-                label: "Set a clear no-kids-at-work boundary and make it apply starting now.",
-                outcome: "The room exhales because the line finally exists.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 1, 4, {
-                  tasha: st(2, 3),
-                  jake: st(1, 1),
-                  marcus: st(-3, -4)
-                })
-              },
-              {
-                id: "dd-fairness-tasha-grace",
-                label: "Give Marcus one last temporary grace window, but make the boundary explicit after that.",
-                outcome: "The compassion stays alive, though some staff still feel the fairness wobble.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 0, 1, {
-                  tasha: st(-1, -2),
-                  marcus: st(1, 1)
-                })
-              }
-            ]
-          },
-          marcus: {
-            prompt: "Marcus wants a path that does not erase the fact that he was trying to keep showing up to work.",
-            options: [
-              {
-                id: "dd-fairness-marcus-plan",
-                label: "Work with Marcus on a short-term childcare plan that gets the kids out of the building immediately.",
-                outcome: "The problem gets solved with dignity instead of just punishment.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 2, 3, {
-                  marcus: st(2, 3),
-                  elena: st(1, 1),
-                  tasha: st(0, 0)
-                })
-              },
-              {
-                id: "dd-fairness-marcus-warning",
-                label: "Issue a formal warning and make Marcus solve the childcare issue entirely on his own.",
-                outcome: "The standard hardens fast, though Marcus may never quite hear care in it.",
-                nextNodeId: "final-reset",
-                effects: fx(0, 0, 2, {
-                  marcus: st(-4, -5),
-                  tasha: st(1, 1),
-                  jake: st(1, 1)
-                })
-              }
-            ]
-          }
-        }
-      },
-      "final-reset": {
-        title: "The ending decides whether this becomes a compassion story or a favoritism story",
-        body: "Everybody now knows what happened. What they remember will depend on whether your final move feels humane, fair, and believable at the same time.",
-        consultants: {
-          marcus: {
-            prompt: "Marcus wants to keep his job, his dignity, and some version of trust from the people who now think he let family chaos invade the store.",
-            options: [
-              {
-                id: "dd-final-marcus-repair",
-                label: "Require Marcus to repair the workplace damage and rebuild trust through visible follow-through.",
-                outcome: "The consequence is concrete without feeling purely punitive.",
-                nextNodeId: null,
-                effects: fx(0, 2, 4, {
-                  marcus: st(1, 2),
-                  tasha: st(1, 2),
-                  jake: st(1, 1)
-                })
-              },
-              {
-                id: "dd-final-marcus-bench",
-                label: "Bench Marcus from work until the childcare situation is stable and the damage is fully addressed.",
-                outcome: "The building sees a hard line, though Marcus's trust takes a serious shot.",
-                nextNodeId: null,
-                effects: fx(-1, 0, 3, {
-                  marcus: st(-5, -6),
-                  tasha: st(1, 1),
-                  jake: st(1, 1)
-                })
-              }
-            ]
-          },
-          elena: {
-            prompt: "Elena wants the store to come out of this with a clearer sense that compassion and professionalism can coexist.",
-            options: [
-              {
-                id: "dd-final-elena-balance",
-                label: "Close with a balanced team message: compassion for hardship, zero ambiguity on workplace standards.",
-                outcome: "The dealership sounds steadier and more adult than it did when the chaos started.",
-                nextNodeId: null,
-                effects: fx(0, 3, 5, {
-                  elena: st(2, 3),
-                  marcus: st(0, 1),
-                  tasha: st(1, 1),
-                  jake: st(1, 1)
-                })
-              },
-              {
-                id: "dd-final-elena-quiet",
-                label: "Keep the wrap-up quiet and hope the building moves on once the kids stop appearing.",
-                outcome: "The mess fades, though the standards lesson never lands with full force.",
-                nextNodeId: null,
-                effects: fx(0, 0, 0, {
-                  elena: st(0, 1),
-                  marcus: st(1, 1),
-                  tasha: st(-1, -1)
-                })
-              }
+              opt("fhr-final-theo", "Show the staff a real improvement plan so loyalty feels earned, not demanded.", "The room settles because the future stops sounding like empty pride and starts sounding like direction.", null, fx(2, 3, 3, { luis: st(2, 3), priya: st(1, 1), tasha: st(1, 1), nina: st(1, 1) })),
+              opt("fhr-final-theo-loyalty", "Demand loyalty first and promise the restaurant will figure out the rest through attitude.", "That may sound bold, but mostly to the people who are not the most tempted to leave.", null, fx(1, -2, -2, { luis: st(-3, -4), devon: st(-1, -1), nina: st(-1, -1) }))
             ]
           }
         }
