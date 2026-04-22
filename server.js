@@ -38,6 +38,9 @@ const DEFAULT_STUDENT_STATE = {
 const PREDICTION_MARKET_START_CASH = 40;
 const PREDICTION_MARKET_SEED_LIQUIDITY = 120;
 const PREDICTION_MARKET_TIMEZONE = process.env.PREDICTION_MARKET_TIMEZONE || "America/Detroit";
+const DEFAULT_PREDICTION_ASSIGNMENT_TITLE = "Daily Class Assignment";
+const DEFAULT_PREDICTION_ASSIGNMENT_DESCRIPTION = "Today’s teacher assignment is still due unless you buy out using only surplus GOLD MARKET cash earned above your protected $40 floor.";
+const DEFAULT_PREDICTION_ASSIGNMENT_BUYOUT_COST = 8;
 const PREDICTION_MARKET_WORK_TEMPLATES = [
   {
     id: "evidence-quiz",
@@ -5755,6 +5758,21 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/prediction-markets/assignment/buyout") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to buy out of today’s assignment." });
+      return;
+    }
+
+    try {
+      runInTransaction(() => executePredictionAssignmentBuyout(session.userId));
+      sendJson(res, 200, buildPredictionMarketPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/register") {
     const body = await readJsonBody(req);
     const username = normalizeUsername(body.username);
@@ -6014,6 +6032,39 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/admin/prediction-markets/assignment") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+    const title = toShortText(body.title, "", 120);
+    const description = toShortText(body.description, "", 280);
+    const buyoutCost = roundNumber(Number(body.buyoutCost), 2);
+
+    if (!title) {
+      sendJson(res, 400, { error: "Add a short title for the daily assignment." });
+      return;
+    }
+
+    if (!description) {
+      sendJson(res, 400, { error: "Add a short description so students understand the buyout rule." });
+      return;
+    }
+
+    if (!Number.isFinite(buyoutCost) || buyoutCost < 1 || buyoutCost > 25) {
+      sendJson(res, 400, { error: "Buyout cost must be between $1 and $25." });
+      return;
+    }
+
+    setSetting("prediction_assignment_title", title);
+    setSetting("prediction_assignment_description", description);
+    setSetting("prediction_assignment_buyout_cost", String(buyoutCost));
+    sendJson(res, 200, buildBootstrapPayload(session));
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/admin/student/password") {
     if (!session?.isAdmin) {
       sendJson(res, 401, { error: "Teacher access required." });
@@ -6241,6 +6292,17 @@ function initializeDatabase() {
       FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS prediction_market_assignment_buyouts (
+      user_id TEXT NOT NULL,
+      assignment_date TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      buyout_cost REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (user_id, assignment_date),
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS case_files (
       id TEXT PRIMARY KEY,
       round_id TEXT NOT NULL,
@@ -6311,6 +6373,7 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_prediction_market_positions_user ON prediction_market_positions (user_id, market_id);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_trades_market ON prediction_market_trades (market_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_work_user ON prediction_market_work (user_id, work_date);
+    CREATE INDEX IF NOT EXISTS idx_prediction_market_assignment_buyouts_date ON prediction_market_assignment_buyouts (assignment_date, user_id);
   `);
 
   ensureUserAvatarColumn();
@@ -6345,6 +6408,9 @@ function seedDatabase() {
     setSetting("teacher_username", DEFAULT_TEACHER_USERNAME);
     setSetting("teacher_password_hash", hashPassword(DEFAULT_TEACHER_PASSWORD));
     setSetting("sales_goal", String(DEFAULT_SALES_GOAL));
+    setSetting("prediction_assignment_title", DEFAULT_PREDICTION_ASSIGNMENT_TITLE);
+    setSetting("prediction_assignment_description", DEFAULT_PREDICTION_ASSIGNMENT_DESCRIPTION);
+    setSetting("prediction_assignment_buyout_cost", String(DEFAULT_PREDICTION_ASSIGNMENT_BUYOUT_COST));
     db.prepare(
       `INSERT INTO game_state (id, is_open, session_number, round_number, current_round_id, last_opened_at, last_closed_at)
        VALUES (1, 0, 0, 0, NULL, NULL, NULL)`
@@ -6354,6 +6420,7 @@ function seedDatabase() {
 
 function clearAllTables() {
   db.exec(`
+    DELETE FROM prediction_market_assignment_buyouts;
     DELETE FROM prediction_market_work;
     DELETE FROM prediction_market_trades;
     DELETE FROM prediction_market_positions;
@@ -6404,6 +6471,7 @@ function buildPredictionMarketPayload(session) {
     viewerRole,
     canTrade: viewerRole === "student",
     portfolio,
+    assignmentBoard: buildPredictionAssignmentBoard(session),
     workBoard: buildPredictionWorkBoard(session),
     markets: getPredictionMarketFeed(session),
     updatedAt: new Date().toISOString()
@@ -6416,7 +6484,25 @@ function getSettings() {
   return {
     teacherUsername: map.teacher_username || DEFAULT_TEACHER_USERNAME,
     teacherPasswordHash: map.teacher_password_hash || hashPassword(DEFAULT_TEACHER_PASSWORD),
-    salesGoal: Math.round(Number(map.sales_goal || DEFAULT_SALES_GOAL))
+    salesGoal: Math.round(Number(map.sales_goal || DEFAULT_SALES_GOAL)),
+    predictionAssignmentTitle: toShortText(
+      map.prediction_assignment_title,
+      DEFAULT_PREDICTION_ASSIGNMENT_TITLE,
+      120
+    ),
+    predictionAssignmentDescription: toShortText(
+      map.prediction_assignment_description,
+      DEFAULT_PREDICTION_ASSIGNMENT_DESCRIPTION,
+      280
+    ),
+    predictionAssignmentBuyoutCost: roundNumber(
+      clampNumber(
+        Number(map.prediction_assignment_buyout_cost || DEFAULT_PREDICTION_ASSIGNMENT_BUYOUT_COST),
+        1,
+        25
+      ),
+      2
+    )
   };
 }
 
@@ -6711,6 +6797,71 @@ function getPredictionMarketWorkDate(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function getPredictionAssignmentBuyout(userId, assignmentDate = getPredictionMarketWorkDate()) {
+  return db.prepare(
+    `SELECT user_id, assignment_date, title, description, buyout_cost, created_at
+     FROM prediction_market_assignment_buyouts
+     WHERE user_id = ? AND assignment_date = ?`
+  ).get(userId, assignmentDate);
+}
+
+function listPredictionAssignmentBuyouts(assignmentDate = getPredictionMarketWorkDate()) {
+  return db.prepare(
+    `SELECT user_id, assignment_date, title, description, buyout_cost, created_at
+     FROM prediction_market_assignment_buyouts
+     WHERE assignment_date = ?`
+  ).all(assignmentDate);
+}
+
+function buildPredictionAssignmentBoard(session) {
+  const assignmentDate = getPredictionMarketWorkDate();
+  const settings = getSettings();
+  const buyoutCost = roundNumber(settings.predictionAssignmentBuyoutCost, 2);
+  const title = settings.predictionAssignmentTitle;
+  const description = settings.predictionAssignmentDescription;
+  const viewerRole = session?.isAdmin ? "teacher" : session?.userId ? "student" : "guest";
+
+  if (viewerRole === "student") {
+    const portfolio = ensurePredictionPortfolio(session.userId);
+    const buyout = getPredictionAssignmentBuyout(session.userId, assignmentDate);
+    const cash = Number(portfolio?.cash || 0);
+    const surplusCash = roundNumber(Math.max(0, cash - PREDICTION_MARKET_START_CASH), 2);
+    const shortfall = roundNumber(Math.max(0, buyoutCost - surplusCash), 2);
+    return {
+      available: true,
+      viewerRole,
+      assignmentDate,
+      title,
+      description,
+      buyoutCost,
+      protectedFloor: PREDICTION_MARKET_START_CASH,
+      surplusCash,
+      shortfall,
+      status: buyout ? "bought_out" : "due",
+      canBuyOut: !buyout && surplusCash + 0.001 >= buyoutCost,
+      amountPaid: buyout ? roundNumber(buyout.buyout_cost, 2) : 0,
+      boughtOutAt: buyout?.created_at || null
+    };
+  }
+
+  const studentCount = db.prepare(`SELECT COUNT(*) AS count FROM users`).get().count;
+  const boughtOutCount = listPredictionAssignmentBuyouts(assignmentDate).length;
+  return {
+    available: true,
+    viewerRole,
+    assignmentDate,
+    title,
+    description,
+    buyoutCost,
+    protectedFloor: PREDICTION_MARKET_START_CASH,
+    summary: {
+      studentCount,
+      boughtOutCount,
+      remainingCount: Math.max(0, Number(studentCount || 0) - Number(boughtOutCount || 0))
+    }
+  };
+}
+
 function getPredictionMarketWorkSeed(workDate) {
   return workDate
     .replace(/-/g, "")
@@ -6942,6 +7093,39 @@ function executePredictionWork(userId, input) {
     payout,
     roundNumber(accuracyBonus, 2),
     choice.correct ? 1 : 0,
+    now
+  );
+}
+
+function executePredictionAssignmentBuyout(userId) {
+  const assignmentDate = getPredictionMarketWorkDate();
+  if (getPredictionAssignmentBuyout(userId, assignmentDate)) {
+    throw new Error("You already bought out of today’s assignment.");
+  }
+
+  const settings = getSettings();
+  const buyoutCost = roundNumber(settings.predictionAssignmentBuyoutCost, 2);
+  const portfolio = ensurePredictionPortfolio(userId);
+  const cash = Number(portfolio?.cash || 0);
+  const surplusCash = Math.max(0, cash - PREDICTION_MARKET_START_CASH);
+
+  if (surplusCash + 0.001 < buyoutCost) {
+    const shortfall = roundNumber(Math.max(0, buyoutCost - surplusCash), 2);
+    throw new Error(`You need ${formatCurrency(shortfall)} more in surplus market cash above the protected floor to buy out today.`);
+  }
+
+  const now = new Date().toISOString();
+  updatePredictionPortfolioCash(userId, cash - buyoutCost, now);
+  db.prepare(
+    `INSERT INTO prediction_market_assignment_buyouts
+     (user_id, assignment_date, title, description, buyout_cost, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    userId,
+    assignmentDate,
+    settings.predictionAssignmentTitle,
+    settings.predictionAssignmentDescription,
+    buyoutCost,
     now
   );
 }
@@ -8095,7 +8279,10 @@ function buildAdminPayload() {
   return {
     settings: {
       teacherUsername: settings.teacherUsername,
-      salesGoal: settings.salesGoal
+      salesGoal: settings.salesGoal,
+      predictionAssignmentTitle: settings.predictionAssignmentTitle,
+      predictionAssignmentDescription: settings.predictionAssignmentDescription,
+      predictionAssignmentBuyoutCost: settings.predictionAssignmentBuyoutCost
     },
     metrics: {
       studentCount: students.length,
@@ -8110,7 +8297,8 @@ function buildAdminPayload() {
     recentResponses,
     leaderboards,
     analytics: timingAnalytics,
-    predictionMarkets: listPredictionMarkets().map(serializePredictionMarket)
+    predictionMarkets: listPredictionMarkets().map(serializePredictionMarket),
+    predictionAssignment: buildPredictionAssignmentBoard({ isAdmin: true })
   };
 }
 
@@ -10512,4 +10700,15 @@ function clampPercent(value) {
 function roundNumber(value, digits = 0) {
   const factor = 10 ** digits;
   return Math.round(Number(value || 0) * factor) / factor;
+}
+
+function clampNumber(value, min, max) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatCurrency(value) {
+  return `$${roundNumber(value, 2).toFixed(2)}`;
 }

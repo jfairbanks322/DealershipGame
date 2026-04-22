@@ -201,6 +201,7 @@ function createBaseState(mode) {
     },
     journal: [],
     markets: [],
+    assignmentBoard: null,
     workBoard: null,
     popupAlert: null,
     finalReport: null,
@@ -225,6 +226,7 @@ function createDemoState() {
     lastDelta: 0,
     finalHoldings: null
   }));
+  nextState.assignmentBoard = null;
   nextState.workBoard = null;
   return nextState;
 }
@@ -238,7 +240,7 @@ async function bootstrapBoard(showErrors = true, preserveState = true, announceU
     const payload = await response.json();
     const liveMarkets = Array.isArray(payload.markets) ? payload.markets : [];
 
-    if (liveMarkets.length || payload.viewerRole !== "guest" || payload.workBoard?.available) {
+    if (liveMarkets.length || payload.viewerRole !== "guest" || payload.workBoard?.available || payload.assignmentBoard?.available) {
       state = createLiveState(payload, preserveState ? state : null, announceUpdates);
     } else if (state.mode !== "demo") {
       state = createDemoState();
@@ -267,6 +269,7 @@ function createLiveState(payload, previousState, announceUpdates = true) {
   nextState.viewerRole = viewerRole;
   nextState.canTrade = canTrade;
   nextState.cash = Number.isFinite(liveCash) ? liveCash : 0;
+  nextState.assignmentBoard = normalizeAssignmentBoard(payload?.assignmentBoard);
   nextState.workBoard = normalizeWorkBoard(payload?.workBoard);
   nextState.discipline = priorLiveState?.discipline ?? 100;
   nextState.stress = priorLiveState?.stress ?? 16;
@@ -398,6 +401,44 @@ function normalizeWorkBoard(workBoard) {
   };
 }
 
+function normalizeAssignmentBoard(assignmentBoard) {
+  if (!assignmentBoard || typeof assignmentBoard !== "object") {
+    return {
+      available: false,
+      viewerRole: state?.viewerRole || "guest",
+      assignmentDate: null,
+      title: "",
+      description: "",
+      buyoutCost: 0,
+      protectedFloor: INITIAL_CASH,
+      surplusCash: 0,
+      shortfall: 0,
+      status: "unavailable",
+      canBuyOut: false,
+      amountPaid: 0,
+      boughtOutAt: null,
+      summary: null
+    };
+  }
+
+  return {
+    available: Boolean(assignmentBoard.available),
+    viewerRole: assignmentBoard.viewerRole || "guest",
+    assignmentDate: assignmentBoard.assignmentDate || null,
+    title: assignmentBoard.title || "",
+    description: assignmentBoard.description || "",
+    buyoutCost: roundToTwo(assignmentBoard.buyoutCost),
+    protectedFloor: roundToTwo(assignmentBoard.protectedFloor || INITIAL_CASH),
+    surplusCash: roundToTwo(assignmentBoard.surplusCash),
+    shortfall: roundToTwo(assignmentBoard.shortfall),
+    status: assignmentBoard.status || "due",
+    canBuyOut: Boolean(assignmentBoard.canBuyOut),
+    amountPaid: roundToTwo(assignmentBoard.amountPaid),
+    boughtOutAt: assignmentBoard.boughtOutAt || null,
+    summary: assignmentBoard.summary || null
+  };
+}
+
 function settleResolvedLiveMarkets(nextState, previousById) {
   for (const market of nextState.markets) {
     if (market.status !== "resolved" || market.resolution === null) {
@@ -433,6 +474,12 @@ async function handleClick(event) {
   const workButton = event.target.closest("[data-work-task][data-work-choice]");
   if (workButton) {
     await completeWorkTask(workButton.dataset.workTask, workButton.dataset.workChoice);
+    return;
+  }
+
+  const assignmentButton = event.target.closest("[data-buyout-assignment]");
+  if (assignmentButton) {
+    await buyOutAssignment();
     return;
   }
 
@@ -518,6 +565,46 @@ async function completeWorkTask(taskId, choiceId) {
     state = nextState;
   } catch (error) {
     state.journal.unshift(createJournalEntry(error.message || "Could not complete that work task.", ["Work blocked"], "Work board"));
+    state.journal = state.journal.slice(0, 12);
+  } finally {
+    state.isSubmitting = false;
+    render();
+  }
+}
+
+async function buyOutAssignment() {
+  if (state.mode !== "live" || state.isSubmitting || !state.canTrade || !state.assignmentBoard?.available || !state.assignmentBoard.canBuyOut) {
+    return;
+  }
+
+  state.isSubmitting = true;
+  render();
+  try {
+    const response = await fetch("/api/prediction-markets/assignment/buyout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || "Could not buy out of today’s assignment.");
+    }
+
+    const nextState = createLiveState(payload, state, false);
+    nextState.discipline = clamp((state.discipline ?? 100) + 2, 0, 100);
+    nextState.stress = clamp((state.stress ?? 16) - 2, 0, 100);
+    nextState.journal.unshift(
+      createJournalEntry(
+        `You spent ${formatMoney(nextState.assignmentBoard?.amountPaid || 0)} of surplus market cash to buy out of today’s assignment.`,
+        ["Assignment bought out", "Surplus only"],
+        "Daily assignment"
+      )
+    );
+    nextState.journal = nextState.journal.slice(0, 12);
+    state = nextState;
+  } catch (error) {
+    state.journal.unshift(createJournalEntry(error.message || "Could not buy out of today’s assignment.", ["Assignment blocked"], "Daily assignment"));
     state.journal = state.journal.slice(0, 12);
   } finally {
     state.isSubmitting = false;
@@ -905,10 +992,14 @@ function renderMetrics() {
       ? Math.round(state.markets.reduce((sum, market) => sum + market.price, 0) / state.markets.length * 100)
       : 0;
     const totalPool = roundToTwo(state.markets.reduce((sum, market) => sum + Number(market.totalPool || 0), 0));
+    const assignment = state.assignmentBoard || normalizeAssignmentBoard(null);
+    const buyouts = assignment.summary?.boughtOutCount ?? 0;
+    const remaining = assignment.summary?.remainingCount ?? 0;
     return [
       renderMetricCard("Markets on board", `${state.markets.length}`, `${activeMarkets} active · ${resolvedMarkets} settled`),
       renderMetricCard("Average YES line", `${averageLine}c`, "Odds move when students trade into the shared pool"),
       renderMetricCard("Shared liquidity", `${totalPool}`, "Combined YES and NO pool size across visible markets"),
+      renderMetricCard("Assignment buyouts", `${buyouts}`, `${remaining} still owe the daily assignment`),
       renderMetricCard("Bettor privacy", "Private", "Students see the line move, not who moved it")
     ].join("");
   }
@@ -917,11 +1008,25 @@ function renderMetrics() {
   const profit = bankroll - INITIAL_CASH;
   const exposure = getTotalExposure(state);
   const correctOutcomes = state.finished ? countCorrectOutcomes(state) : "--";
+  const assignment = state.assignmentBoard || normalizeAssignmentBoard(null);
+  const assignmentValue = state.mode === "live" && assignment.available
+    ? assignment.status === "bought_out"
+      ? "Bought Out"
+      : "Due"
+    : "Preview";
+  const assignmentSubtext = state.mode === "live" && assignment.available
+    ? assignment.status === "bought_out"
+      ? `Paid ${formatMoney(assignment.amountPaid || assignment.buyoutCost)} today`
+      : assignment.canBuyOut
+        ? `Buyout ready at ${formatMoney(assignment.buyoutCost)}`
+        : `Need ${formatMoney(assignment.shortfall || 0)} more surplus`
+    : "Live board only";
 
   return [
     renderMetricCard("Portfolio value", formatMoney(bankroll), profit >= 0 ? `Up ${formatMoney(profit)}` : `Down ${formatMoney(Math.abs(profit))}`),
     renderMetricCard("Cash on hand", formatMoney(state.cash), `${formatMoney(exposure)} still at risk`),
     renderMetricCard("Discipline score", `${Math.round(state.discipline)}`, state.discipline >= 70 ? "Sizing still under control" : "Emotion is entering the room"),
+    renderMetricCard("Assignment", assignmentValue, assignmentSubtext),
     renderMetricCard("Correct calls", `${correctOutcomes}`, state.finished ? "Markets where your held side won" : state.mode === "live" ? "Teacher resolves these from the dashboard" : "Resolve the board to score")
   ].join("");
 }
@@ -952,6 +1057,17 @@ function renderMetricCard(label, value, subtext) {
 function renderWorkBoard() {
   if (state.mode !== "live") {
     return `
+      <article class="pm-work-card">
+        <img src="${GOLD_MARKET_ART.stayInCash}" alt="Assignment buyout graphic" />
+        <div class="pm-line-item">
+          <div>
+            <p class="pm-panel-label">Daily assignment</p>
+            <h3>Live classes add an assignment choice</h3>
+          </div>
+          <span class="pm-badge pm-badge-muted">Live only</span>
+        </div>
+        <p class="pm-subtext">In the live classroom version, each day starts with a teacher assignment due. Students can only buy out of it if they earn enough surplus market cash above the protected floor.</p>
+      </article>
       <article class="pm-work-summary">
         <img src="${GOLD_MARKET_ART.walletRefilled}" alt="Wallet refilled graphic" />
         <strong>Daily work opens on the live classroom board</strong>
@@ -961,18 +1077,22 @@ function renderWorkBoard() {
   }
 
   if (!state.canTrade) {
+    const assignment = state.assignmentBoard || normalizeAssignmentBoard(null);
     return `
+      ${assignment.available ? renderObserverAssignmentCard(assignment) : ""}
       <article class="pm-work-summary">
         <img src="${GOLD_MARKET_ART.walletRefilled}" alt="Wallet refilled graphic" />
         <strong>Students can earn steady money here</strong>
-        <p class="pm-subtext">The class work board gives each student one dependable way to add cash each day. It is slower than a lucky trade, but much more reliable.</p>
+        <p class="pm-subtext">The class work board gives each student one dependable way to add cash each day. That steady money can help them build enough surplus to buy out of the assignment responsibly.</p>
       </article>
     `;
   }
 
   const workBoard = state.workBoard || normalizeWorkBoard(null);
+  const assignment = state.assignmentBoard || normalizeAssignmentBoard(null);
   if (!workBoard.available) {
     return `
+      ${assignment.available ? renderStudentAssignmentCard(assignment) : ""}
       <article class="pm-work-summary">
         <img src="${GOLD_MARKET_ART.waitingForTeacher}" alt="Waiting for teacher graphic" />
         <strong>No off-market work board yet</strong>
@@ -984,6 +1104,7 @@ function renderWorkBoard() {
   if (!workBoard.canWork && workBoard.completedTask) {
     const completed = workBoard.completedTask;
     return `
+      ${assignment.available ? renderStudentAssignmentCard(assignment) : ""}
       <article class="pm-work-summary">
         <img src="${GOLD_MARKET_ART.walletRefilled}" alt="Wallet refilled graphic" />
         <strong>Today’s steady-pay work is complete</strong>
@@ -1001,6 +1122,7 @@ function renderWorkBoard() {
   }
 
   return `
+    ${assignment.available ? renderStudentAssignmentCard(assignment) : ""}
     <article class="pm-work-summary">
       <img src="${GOLD_MARKET_ART.walletRefilled}" alt="Wallet refilled graphic" />
       <strong>Reliable money beats desperate money</strong>
@@ -1014,6 +1136,93 @@ function renderWorkBoard() {
     <div class="pm-work-grid">
       ${workBoard.tasks.map(renderWorkTaskCard).join("")}
     </div>
+  `;
+}
+
+function renderObserverAssignmentCard(assignment) {
+  return `
+    <article class="pm-work-card">
+      <img src="${GOLD_MARKET_ART.stayInCash}" alt="Daily assignment board graphic" />
+      <div class="pm-line-item">
+        <div>
+          <p class="pm-panel-label">Daily assignment</p>
+          <h3>${escapeHtml(assignment.title)}</h3>
+        </div>
+        <span class="pm-badge pm-badge-warn">Buyout ${formatMoney(assignment.buyoutCost)}</span>
+      </div>
+      <p class="pm-subtext">${escapeHtml(assignment.description)}</p>
+      <div class="pm-position-grid">
+        <div class="pm-mini-tile">
+          <span>Bought out</span>
+          <strong>${assignment.summary?.boughtOutCount ?? 0}</strong>
+        </div>
+        <div class="pm-mini-tile">
+          <span>Still due</span>
+          <strong>${assignment.summary?.remainingCount ?? 0}</strong>
+        </div>
+        <div class="pm-mini-tile">
+          <span>Protected floor</span>
+          <strong>${formatMoney(assignment.protectedFloor)}</strong>
+        </div>
+        <div class="pm-mini-tile">
+          <span>Rule</span>
+          <strong>Surplus only</strong>
+        </div>
+      </div>
+      <p class="pm-subtext">Students cannot spend their protected starting wallet on a buyout. They must earn enough extra first.</p>
+    </article>
+  `;
+}
+
+function renderStudentAssignmentCard(assignment) {
+  const boughtOut = assignment.status === "bought_out";
+  const buttonLabel = boughtOut
+    ? "Bought out for today"
+    : assignment.canBuyOut
+      ? `Buy Out For ${formatMoney(assignment.buyoutCost)}`
+      : `Need ${formatMoney(assignment.shortfall || 0)} More Surplus`;
+
+  return `
+    <article class="pm-work-card">
+      <img src="${boughtOut ? GOLD_MARKET_ART.walletRefilled : GOLD_MARKET_ART.stayInCash}" alt="${boughtOut ? "Assignment bought out graphic" : "Daily assignment graphic"}" />
+      <div class="pm-line-item">
+        <div>
+          <p class="pm-panel-label">Daily assignment</p>
+          <h3>${escapeHtml(assignment.title)}</h3>
+        </div>
+        <span class="pm-badge ${boughtOut ? "pm-badge-good" : "pm-badge-warn"}">${boughtOut ? "Bought out" : `Buyout ${formatMoney(assignment.buyoutCost)}`}</span>
+      </div>
+      <p class="pm-subtext">${escapeHtml(assignment.description)}</p>
+      <div class="pm-position-grid">
+        <div class="pm-mini-tile">
+          <span>Status</span>
+          <strong>${boughtOut ? "Not due" : "Still due"}</strong>
+        </div>
+        <div class="pm-mini-tile">
+          <span>Surplus cash</span>
+          <strong>${formatMoney(assignment.surplusCash || 0)}</strong>
+        </div>
+        <div class="pm-mini-tile">
+          <span>Protected floor</span>
+          <strong>${formatMoney(assignment.protectedFloor)}</strong>
+        </div>
+        <div class="pm-mini-tile">
+          <span>Buyout rule</span>
+          <strong>Surplus only</strong>
+        </div>
+      </div>
+      <div class="pm-warning-list">
+        <span class="pm-pill ${boughtOut ? "pm-pill-good" : "pm-pill-warn"}">${boughtOut ? "Today cleared" : "Today still due"}</span>
+        <span class="pm-pill pm-pill-muted">Assignment date ${escapeHtml(assignment.assignmentDate || "")}</span>
+        <span class="pm-pill pm-pill-muted">${boughtOut ? `Paid ${formatMoney(assignment.amountPaid || assignment.buyoutCost)}` : `Shortfall ${formatMoney(assignment.shortfall || 0)}`}</span>
+      </div>
+      <div class="pm-button-row">
+        <button class="pm-button ${boughtOut ? "pm-button-secondary" : "pm-button-primary"}" type="button" data-buyout-assignment="true" ${boughtOut || !assignment.canBuyOut || state.isSubmitting ? "disabled" : ""}>
+          ${buttonLabel}
+        </button>
+      </div>
+      <p class="pm-subtext">${boughtOut ? "You earned enough extra market money to buy flexibility today, so the assignment is cleared." : "If you do not buy out here, the teacher assignment still belongs to you outside the game."}</p>
+    </article>
   `;
 }
 
@@ -1185,7 +1394,7 @@ function renderBehaviorPanel() {
   const mentor = getMentorAdvice(state);
   const positiveArt = state.mode === "live" && state.canTrade && state.discipline >= 70
     ? renderArtCard(GOLD_MARKET_ART.disciplinedTrader, "Disciplined trader badge", "Disciplined trader", "Strong sessions come from patience, sizing discipline, and not treating every move like a dare.")
-    : renderArtCard(GOLD_MARKET_ART.stayInCash, "Stay in cash graphic", "Stay in cash", "Sitting out is sometimes the smartest play. A disciplined no-trade decision still teaches the lesson.");
+    : renderArtCard(GOLD_MARKET_ART.stayInCash, "Protected cash graphic", "Protect cash", "Keeping a protected floor matters, but flexibility now has to be earned. Surplus cash can buy options without turning every day into a chase.");
   const riskCards = [
     renderArtCard(GOLD_MARKET_ART.fomo, "FOMO warning badge", "FOMO risk", "When excitement outruns evidence, a market can feel certain long before it deserves to."),
     renderArtCard(GOLD_MARKET_ART.chasingLosses, "Chasing losses badge", "Chasing losses", "Trying to win your feelings back after a bad move is where forecasting starts to slide into gambling.")
@@ -1274,7 +1483,14 @@ function getWarnings(targetState) {
     warnings.push({ label: "Comeback behavior detected", level: "warn" });
   }
 
-  if (targetState.stress < 55 && warnings.length === 1) {
+  if (targetState.mode === "live" && targetState.assignmentBoard?.available) {
+    warnings.push({
+      label: targetState.assignmentBoard.status === "bought_out" ? "Assignment cleared" : "Assignment still due",
+      level: targetState.assignmentBoard.status === "bought_out" ? "muted" : "warn"
+    });
+  }
+
+  if (targetState.stress < 55 && warnings.filter((warning) => warning.level === "warn").length === 0) {
     warnings.push({ label: "Emotions still under control", level: "muted" });
   }
 
@@ -1287,6 +1503,12 @@ function getMentorAdvice(targetState) {
   }
   if (targetState.mode === "live" && !targetState.markets.length) {
     return "No live class markets are published right now. Once your teacher posts one from the dashboard, this board will switch over automatically.";
+  }
+  if (targetState.mode === "live" && targetState.assignmentBoard?.available && targetState.assignmentBoard.status !== "bought_out" && targetState.assignmentBoard.canBuyOut) {
+    return "You have earned enough surplus cash to buy out of today’s assignment. That only works because you protected the floor and created real flexibility first.";
+  }
+  if (targetState.mode === "live" && targetState.assignmentBoard?.available && targetState.assignmentBoard.status !== "bought_out") {
+    return "Today’s assignment is still due. If you want the buyout option, you need to build surplus above the protected floor instead of torching your whole wallet.";
   }
   if (targetState.stress >= 72) {
     return "Your stress level is high. In a real market, this is where people stop forecasting and start trying to win their feelings back.";
@@ -1554,6 +1776,17 @@ function renderGameToText() {
     discipline: Math.round(state.discipline),
     stress: Math.round(state.stress),
     flags: state.flags,
+    assignmentBoard: state.assignmentBoard
+      ? {
+          available: state.assignmentBoard.available,
+          status: state.assignmentBoard.status,
+          buyoutCost: state.assignmentBoard.buyoutCost,
+          surplusCash: state.assignmentBoard.surplusCash,
+          shortfall: state.assignmentBoard.shortfall,
+          canBuyOut: state.assignmentBoard.canBuyOut,
+          summary: state.assignmentBoard.summary || null
+        }
+      : null,
     markets: state.markets.map((market) => {
       const frame = getMarketFrame(state, market);
       return {
