@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "fetch:wrestlepad-portraits": "node scripts/fetch-wrestlepad-portraits.js",
+    "build:wrestlepad-stats": "node scripts/build-wrestlepad-stats-snapshot.js",
     "rehearse:class": "node scripts/rehearse-class-session.js"
   },
   "engines": {

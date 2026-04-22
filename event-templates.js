@@ -17,90 +17,90 @@ const opt = (id, label, outcome, nextNodeId, effects) => ({
 
 module.exports = [
   {
-    id: "open-close-kitchen-feud",
-    category: "Kitchen Culture",
-    pressure: "High",
-    headline: "Morning kitchen staff walked into a disaster and closing staff says leadership set them up to fail",
+    id: "allergen-near-miss",
+    category: "Guest Safety",
+    pressure: "Extreme",
+    headline: "A teen at a birthday table used an EpiPen after your staff promised the fries were allergen-safe",
     body:
-      "Opening cooks say the kitchen was left filthy, half-stocked, and impossible to start from clean. Closing staff says the restaurant stayed open an extra hour, nobody got backup, and they were already drowning when they were finally cut loose.",
+      "The guest is breathing again, but the parents are furious, the server is crying, and the kitchen insists cross-contact was always possible. Nobody knows yet whether this was a bad promise, a bad process, or both.",
     rootNodeId: "opening",
     nodes: {
       opening: {
-        title: "Who do you talk to first?",
-        body: "The morning line wants accountability. The closing team wants someone to admit they were pushed too far.",
+        title: "Who do you pull in first?",
+        body: "This is already bigger than a comped dessert. One wrong instinct turns a near-miss into a trust collapse.",
         consultants: {
+          nina: {
+            prompt: "Celia admits she told the table the fries were safe because the kitchen had served them to 'careful' guests before.",
+            options: [
+              opt("an-open-celia-audit", "Freeze the table conversation and reconstruct exactly what Celia promised and what she was told.", "You slow the panic down long enough to find out whether the promise was invented or inherited.", "triage", fx(0, 1, 2, { nina: st(1, 2), tasha: st(-1, 0), priya: st(0, 1) })),
+              opt("an-open-celia-protect", "Protect Celia first and treat this as an unlucky guest reaction until proven otherwise.", "You buy her emotional cover, but the family immediately senses the restaurant is choosing itself first.", "triage", fx(0, -2, -2, { nina: st(2, 2), tasha: st(-1, -1), devon: st(-1, -1) }))
+            ]
+          },
           tasha: {
-            prompt: "Chef Renata wants photos, prep sheets, and a real timeline before anyone starts acting offended.",
+            prompt: "Chef Renata says the kitchen never approved a blanket allergy guarantee and wants the ingredient chain pulled apart immediately.",
             options: [
-              opt("ocf-open-renata", "Audit the close with Renata and compare the kitchen state to actual closing expectations.", "You start with standards instead of emotion, which gives the whole shift a better chance to stay grounded.", "closing-audit", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 2), luis: st(0, 1) })),
-              opt("ocf-open-renata-line", "Back Renata immediately and treat the messy close as obvious kitchen failure.", "The standard sounds strong, but the closing crew feels condemned before anyone hears why they stayed late.", "blame-spillover", fx(1, -1, 1, { tasha: st(1, 2), luis: st(-3, -3), priya: st(-1, -1) }))
-            ]
-          },
-          luis: {
-            prompt: "Theo says closing got buried after the dining room stayed open late and the manager kept seating tables.",
-            options: [
-              opt("ocf-open-theo", "Walk the close from Theo's side and ask exactly where the extra hour broke the routine.", "The closing team feels heard, which lowers the chance of pure kitchen mutiny.", "closing-audit", fx(0, 1, 2, { luis: st(2, 3), tasha: st(-1, -1), priya: st(0, 1) })),
-              opt("ocf-open-theo-push", "Tell Theo that staying late explains fatigue, not leaving the next shift a disaster.", "You keep the accountability line clear, but Theo instantly hears it as another lecture.", "blame-spillover", fx(1, -1, 1, { luis: st(-2, -3), priya: st(0, 0), tasha: st(1, 1) }))
+              opt("an-open-renata-trace", "Audit the fryer, ingredients, and prep flow with Chef Renata before anyone speaks in absolutes again.", "You start with hard facts, which may anger the family in the moment but protects the truth.", "triage", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 1), nina: st(-1, -1) })),
+              opt("an-open-renata-deflect", "Tell Renata to stay in the background while the floor tries to keep the family calm.", "The dining room gets attention fast, but the kitchen now feels like leadership is afraid of the facts.", "triage", fx(1, -1, -1, { tasha: st(-2, -3), nina: st(1, 1) }))
             ]
           }
         }
       },
-      "closing-audit": {
-        title: "Both sides are right in the most annoying possible way",
-        body: "The close was sloppy, but it also ran almost an hour beyond normal because the floor kept taking tables. The failure was shared, but nobody wants shared blame.",
+      triage: {
+        title: "The family wants an answer before they decide whether to call a lawyer, an ambulance, or the internet",
+        body: "You do not yet know whether the restaurant caused the reaction, but you do know your staff spoke more confidently than your systems deserved.",
         consultants: {
-          priya: {
-            prompt: "Imani wants a reset that protects the next open without pretending the close was working under normal conditions.",
-            options: [
-              opt("ocf-audit-priya", "Create a split responsibility fix: kitchen resets, plus a hard last-seat cutoff for the floor.", "The solution feels fair because it changes the system instead of naming one villain.", "manager-fault", fx(1, 3, 4, { priya: st(3, 4), luis: st(1, 2), tasha: st(1, 1), devon: st(1, 1) })),
-              opt("ocf-audit-priya-tough", "Require the close to stay until the kitchen is reset no matter how late the floor runs.", "It protects tomorrow, but the kitchen hears more punishment than support.", "manager-fault", fx(2, -1, 1, { priya: st(1, 1), luis: st(-2, -2), tasha: st(1, 1) }))
-            ]
-          },
           devon: {
-            prompt: "Parker says this became a kitchen war because nobody wants to admit the front kept feeding late tickets into a sinking ship.",
+            prompt: "Parker thinks the family needs visible care right now, even if the final facts are still moving.",
             options: [
-              opt("ocf-audit-parker", "Trace exactly who kept seating tables late and how that changed the close.", "The room gets uncomfortable, but suddenly the story is more accurate.", "manager-fault", fx(0, 2, 3, { devon: st(2, 3), elena: st(1, 1), luis: st(1, 1) })),
-              opt("ocf-audit-parker-soft", "Handle the floor's role quietly so the kitchen team can move on fast.", "You protect people from embarrassment, but risk the same bad pattern next week.", "manager-fault", fx(1, 0, 0, { devon: st(1, 1), elena: st(-1, -1), tasha: st(-1, -1) }))
+              opt("an-triage-parker-care", "Cover the medical bill tonight, document everything, and tell the family you are treating this like a real safety failure until proven otherwise.", "You look serious and humane, but you also expose the restaurant to a costly admission if the facts shift later.", "fallout", fx(-1, 3, 3, { devon: st(2, 3), nina: st(1, 1), tasha: st(0, 1) })),
+              opt("an-triage-parker-tight", "Offer immediate care and documentation, but stop short of admitting the restaurant caused the reaction.", "The balance is careful, though the family may hear caution as self-protection and the staff may hear legal fear outranking human clarity.", "fallout", fx(1, -2, -2, { devon: st(0, 1), nina: st(-1, -1), tasha: st(-1, -2) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks the room is watching and worries one loud scene could make every table feel unsafe.",
+            options: [
+              opt("an-triage-adrian-room", "Move nearby tables, own that there was an allergen incident, and protect the rest of the room from guessing badly.", "You lose some immediate revenue, but you stop the dining room from building its own version of the story.", "fallout", fx(-1, 2, 3, { jake: st(2, 2), elena: st(1, 1), nina: st(0, 1) })),
+              opt("an-triage-adrian-hide", "Contain the scene as tightly as possible and hope the rest of the dining room never understands what happened.", "If it works, the night survives. If it leaks, the concealment becomes part of the offense.", "fallout", fx(1, -2, -3, { jake: st(1, 1), devon: st(-1, -1), elena: st(-1, -1) }))
             ]
           }
         }
       },
-      "blame-spillover": {
-        title: "Now the room is choosing sides instead of solving the close",
-        body: "Opening staff feel disrespected. Closing staff feel scapegoated. The next move will decide whether this becomes a standards reset or a kitchen cold war.",
+      fallout: {
+        title: "Now the real issue is whether Feast Haven had an unsafe system or just an unsafe conversation",
+        body: "The fryer may be risky, the staff training may be weak, and the family may post before your internal story is even settled.",
         consultants: {
           priya: {
-            prompt: "Imani thinks the only way out is a written close-open handoff that nobody can fake next time.",
+            prompt: "Imani wants allergen language stripped down to only what the kitchen can actually guarantee under pressure.",
             options: [
-              opt("ocf-blame-priya", "Launch a written close-open checklist and require both sides to sign it for the next week.", "You turn a feelings fight into an operational receipt everyone can see.", "manager-fault", fx(1, 2, 4, { priya: st(2, 3), luis: st(1, 1), tasha: st(1, 1) })),
-              opt("ocf-blame-priya-side", "Let opening staff vent now and worry about systems later.", "The pressure releases briefly, but the kitchen still has no new structure.", "manager-fault", fx(0, -1, -1, { priya: st(-1, -2), luis: st(-1, -1) }))
+              opt("an-fallout-imani-system", "Ban all verbal allergen guarantees unless a manager and kitchen lead both clear the item in writing.", "It is heavy-handed, but nobody can casually improvise safety again.", "final", fx(1, 3, 4, { priya: st(2, 3), tasha: st(1, 2), nina: st(-1, 0), devon: st(1, 1) })),
+              opt("an-fallout-imani-soft", "Retrain quietly and keep the public message focused on a one-time misunderstanding.", "It sounds calmer, but the room knows the underlying system is still mostly trust-based and the family may feel the restaurant learned just enough to survive the headlines.", "final", fx(1, -2, -3, { priya: st(-1, -2), tasha: st(-1, -1), nina: st(0, -1) }))
             ]
           },
           elena: {
-            prompt: "Marisol says the host stand heard all of this and the floor is now treating kitchen chaos like gossip content.",
+            prompt: "Marisol thinks the restaurant's name will live or die on whether people hear honesty or spin in the next few hours.",
             options: [
-              opt("ocf-blame-marisol", "Address the whole team before preshift and frame it as a service-system failure, not a personality war.", "The room gets one clear story instead of three emotional versions.", "manager-fault", fx(1, 2, 3, { elena: st(2, 2), devon: st(1, 1), tasha: st(1, 1) })),
-              opt("ocf-blame-marisol-private", "Keep the conversation behind the kitchen doors and try to contain the embarrassment.", "It protects dignity, but the floor still senses something ugly happened.", "manager-fault", fx(0, 0, 1, { elena: st(1, 1), devon: st(-1, -1) }))
+              opt("an-fallout-marisol-honest", "Publish a brief, factual statement that a guest safety incident occurred and Feast Haven is reviewing procedures immediately.", "The transparency hurts, but it also keeps the restaurant from sounding slippery.", "final", fx(0, 2, 4, { elena: st(2, 3), jake: st(-1, -1), devon: st(1, 1) })),
+              opt("an-fallout-marisol-silent", "Say nothing publicly until every internal fact is nailed down.", "That protects against overstatement, but silence rarely sounds caring after a safety scare.", "final", fx(1, -1, -2, { elena: st(-1, -2), jake: st(1, 1) }))
             ]
           }
         }
       },
-      "manager-fault": {
-        title: "The final question is whether leadership will own the extra-hour decision",
-        body: "Everyone now knows the kitchen mess did not happen in a vacuum. If you dodge that part, nobody will trust the rest of the fix.",
+      final: {
+        title: "The final call is whether you punish a person, rebuild a system, or try to survive both",
+        body: "Celia made the promise, but leadership allowed a culture where confidence outran certainty. The staff are watching whether you understand that difference.",
         consultants: {
-          tasha: {
-            prompt: "Chef Renata wants you to own the bad late-seat decision without erasing the kitchen's sloppy close.",
+          nina: {
+            prompt: "Celia is ashamed, but she also says she learned the bad habit from watching other people reassure tables the same way.",
             options: [
-              opt("ocf-final-own", "Own the extra-hour leadership mistake and pair it with new close standards for everyone.", "The kitchen hears both accountability and respect, which gives the repair a chance to stick.", null, fx(3, 4, 4, { tasha: st(2, 3), luis: st(2, 3), priya: st(2, 2), devon: st(1, 1) })),
-              opt("ocf-final-half", "Acknowledge the long close, but keep most of the blame on the team that left the mess.", "You sound partially fair, but not fully brave enough to calm the resentment.", null, fx(2, 0, 0, { tasha: st(0, 1), luis: st(-2, -3), priya: st(-1, -1) }))
+              opt("an-final-celia-system", "Discipline Celia, but pair it with a restaurant-wide allergen protocol reset so the blame does not stop at the weakest link.", "The accountability lands because it is individual and systemic at the same time.", null, fx(2, 3, 4, { nina: st(0, 1), tasha: st(1, 1), priya: st(1, 1), devon: st(1, 1) })),
+              opt("an-final-celia-sacrifice", "Make Celia the clear public lesson and end the incident there.", "The staff understand the warning, but many also decide leadership learned less than it claimed.", null, fx(1, -1, -2, { nina: st(-4, -4), devon: st(-1, -2), jake: st(-1, -1) }))
             ]
           },
-          devon: {
-            prompt: "Parker thinks the restaurant needs one practical concession now so the next close does not immediately become a loyalty test.",
+          tasha: {
+            prompt: "Chef Renata wants you to accept slower service and fewer promises if that is what real safety requires from now on.",
             options: [
-              opt("ocf-final-support", "Add a hard last-seat cutoff and emergency backup help when the room runs late.", "People still grumble, but now they believe leadership learned something concrete.", null, fx(2, 3, 3, { devon: st(2, 3), elena: st(1, 2), luis: st(1, 2), priya: st(1, 1) })),
-              opt("ocf-final-toughness", "Keep the staffing model exactly the same and demand tougher closes from now on.", "It sounds tough, but the next bad night will probably explode faster.", null, fx(2, -2, -2, { devon: st(-2, -2), luis: st(-2, -2), priya: st(-1, -1) }))
+              opt("an-final-renata-slower", "Choose the slower, harder allergen standard and tell the team guest safety now outranks speed and charm.", "You lose some flexibility, but gain a standard people can defend under pressure.", null, fx(1, 4, 4, { tasha: st(2, 3), priya: st(1, 2), nina: st(-1, 0), jake: st(-1, -1) })),
+              opt("an-final-renata-balance", "Keep the language softer so the room can still move fast on normal nights.", "It feels practical, but the next close call will look like proof you chose convenience again.", null, fx(2, 0, -2, { tasha: st(-2, -3), priya: st(-1, -1), nina: st(0, 1) }))
             ]
           }
         }
@@ -108,727 +108,454 @@ module.exports = [
     }
   },
   {
-    id: "hard-burger-ticket-war",
-    category: "Execution Failure",
-    pressure: "High",
-    headline: "Wait staff says the kitchen keeps sending out wrong dishes, and the line says the tickets are unreadable",
+    id: "payroll-overtime-freeze",
+    category: "Labor Crisis",
+    pressure: "Extreme",
+    headline: "Weekend overtime is missing and the staff are threatening to walk before a sold-out Saturday",
     body:
-      "Guests are getting bad plates and everyone has an explanation. The line says the tickets look like a ransom note. The floor says nobody should mistake 'hamburger' for 'hard burger' and send out an overcooked hockey puck.",
+      "Dozens of overtime hours did not show up on checks. Some staff say it is a payroll glitch. Others say this is exactly what employers call theft when they think people are too busy to fight it.",
     rootNodeId: "opening",
     nodes: {
       opening: {
-        title: "Who do you talk to first?",
-        body: "The whole service chain is blaming the step before it, and guests are already feeling it.",
+        title: "Who do you meet first?",
+        body: "You can either calm the room, find the truth, or accidentally prove the worst version of both.",
         consultants: {
-          nina: {
-            prompt: "Celia says the kitchen is using bad handwriting as an excuse for sloppy attention.",
+          marcus: {
+            prompt: "Omar says support staff lost real money they needed for bills and nobody trusts a promise to 'fix it Monday' anymore.",
             options: [
-              opt("hbt-open-celia", "Review the floor tickets with Celia and compare them to the plates that actually hit the table.", "You make the argument evidence-based fast, which keeps the dining room from becoming pure finger-pointing.", "ticket-audit", fx(0, 1, 2, { nina: st(2, 3), luis: st(-1, -1), priya: st(0, 1) })),
-              opt("hbt-open-celia-line", "Back the floor immediately and tell the kitchen a burger should never become a charcoal brick.", "Guests feel defended, but the line hears disrespect before the facts are sorted.", "kitchen-pushback", fx(1, 1, 1, { nina: st(1, 2), luis: st(-3, -3), priya: st(-2, -2) }))
-            ]
-          },
-          luis: {
-            prompt: "Theo says the tickets are so messy that the line is basically deciphering them under fire.",
-            options: [
-              opt("hbt-open-theo", "Stand at the line and have Theo show you exactly which tickets are causing the worst misses.", "The kitchen finally feels like someone is looking at the real bottleneck.", "ticket-audit", fx(0, 1, 2, { luis: st(2, 3), nina: st(-1, -1), priya: st(1, 1) })),
-              opt("hbt-open-theo-guest", "Tell Theo that unreadable tickets are still less embarrassing than wrong food landing in front of guests.", "The standard is fair, but Theo hears it as another front-of-house loyalty test.", "kitchen-pushback", fx(1, -1, 0, { luis: st(-2, -3), nina: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "ticket-audit": {
-        title: "The tickets are messy, but the line is also guessing too confidently",
-        body: "Handwriting is a problem. So is kitchen pride. The mistakes are happening because two weak habits are colliding under pressure.",
-        consultants: {
-          priya: {
-            prompt: "Imani wants a system change that slows the mistakes without slowing the whole kitchen into a crawl.",
-            options: [
-              opt("hbt-audit-imani", "Standardize ticket marks, circles, and modifier shorthand before the next rush.", "The restaurant suddenly has one language instead of six improvised ones.", "guest-fallout", fx(1, 3, 4, { priya: st(3, 4), nina: st(1, 1), luis: st(1, 1) })),
-              opt("hbt-audit-imani-verify", "Require verbal read-backs on any ticket that looks even slightly unclear.", "It is slower, but the kitchen can no longer hide behind bad guesses.", "guest-fallout", fx(0, 2, 3, { priya: st(2, 3), luis: st(1, 2), nina: st(1, 1) }))
-            ]
-          },
-          jake: {
-            prompt: "Adrian thinks the guest-facing damage matters most because tables do not care whose handwriting started it.",
-            options: [
-              opt("hbt-audit-adrian", "Focus first on table recovery and coach the internal process after the rush.", "You protect the room in the short term, but the workflow fix gets delayed.", "guest-fallout", fx(2, 2, 1, { jake: st(2, 2), nina: st(0, 1), luis: st(-1, -1) })),
-              opt("hbt-audit-adrian-team", "Have Adrian help rewrite guest-facing order checks so the floor shares more of the fix.", "The floor loses some innocence, but the kitchen stops feeling dumped on.", "guest-fallout", fx(1, 2, 3, { jake: st(1, 2), luis: st(1, 1), nina: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "kitchen-pushback": {
-        title: "Now the line and floor are arguing about respect, not just tickets",
-        body: "Once the tone hardened, everyone started remembering old slights. The actual food problem is at risk of becoming secondary.",
-        consultants: {
-          devon: {
-            prompt: "Parker thinks the only way to cool this down is to rebuild the handoff in public so both sides stop rewriting history.",
-            options: [
-              opt("hbt-push-parker", "Run a mock handoff with floor and line together so everyone sees where the confusion begins.", "The room hates how awkward it is, which is exactly why it works.", "guest-fallout", fx(1, 2, 4, { devon: st(2, 3), nina: st(1, 1), luis: st(1, 1), priya: st(1, 1) })),
-              opt("hbt-push-parker-soft", "Correct the tone privately and hope the service chain calms itself down.", "The temperature falls a little, but the broken handoff is still broken.", "guest-fallout", fx(0, 0, 0, { devon: st(1, 1), nina: st(-1, -1), luis: st(-1, -1) }))
-            ]
-          },
-          tasha: {
-            prompt: "Chef Renata wants one clear standard that lets the line say no to unreadable tickets without sounding insubordinate.",
-            options: [
-              opt("hbt-push-renata", "Give the kitchen permission to reject unreadable tickets once, but require the floor to rewrite them immediately.", "It creates friction up front, but far less embarrassment once food starts leaving the pass.", "guest-fallout", fx(1, 2, 3, { tasha: st(2, 3), luis: st(2, 3), nina: st(-1, 0) })),
-              opt("hbt-push-renata-hard", "Tell Renata the kitchen still has to make judgment calls because the floor cannot stop to rewrite every mess.", "Speed survives, but trust in the handoff erodes even more.", "guest-fallout", fx(1, -2, -2, { tasha: st(-2, -2), luis: st(-2, -3), nina: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "guest-fallout": {
-        title: "The dining room now wants to know whether the restaurant learned anything",
-        body: "A few guests have already had dishes remade. You need a closing move that stabilizes both the room and the team behind it.",
-        consultants: {
-          nina: {
-            prompt: "Celia wants the final answer to prove the floor will not be left holding the embarrassment alone next rush.",
-            options: [
-              opt("hbt-final-celia", "Train the full service chain together before the next shift and document the new ticket rules.", "The restaurant looks more serious because everyone shares the repair.", null, fx(3, 4, 4, { nina: st(2, 3), luis: st(1, 2), priya: st(1, 1), devon: st(1, 1) })),
-              opt("hbt-final-celia-fast", "Patch tonight's mistakes, refund a few plates, and trust the team to work it out naturally.", "Guests may calm down, but the staff still knows the process is shaky.", null, fx(2, 1, 0, { nina: st(-1, -2), luis: st(-1, -1) }))
+              opt("po-open-omar-ledger", "Audit every missing hour with Omar and start building a public correction list immediately.", "You show the room this is not being buried in management language.", "triage", fx(0, 2, 2, { marcus: st(2, 3), nina: st(1, 1), devon: st(1, 1) })),
+              opt("po-open-omar-delay", "Ask Omar to calm people down until accounting verifies the total quietly.", "You buy a little time, but also ask the wronged people to become your shield.", "triage", fx(1, -2, -2, { marcus: st(-3, -4), devon: st(-1, -1), nina: st(-1, -1) }))
             ]
           },
           priya: {
-            prompt: "Imani wants to end this with a system everyone will remember under pressure.",
+            prompt: "Imani says the kitchen is deciding right now whether the restaurant values precision only when it protects management.",
             options: [
-              opt("hbt-final-imani", "Create one visual ticket cheat sheet and make it part of every preshift for a week.", "The solution is a little boring, which is exactly why it might survive the rush.", null, fx(2, 3, 4, { priya: st(2, 3), luis: st(1, 1), nina: st(1, 1) })),
-              opt("hbt-final-imani-hard", "Punish the loudest offenders and move on without formalizing anything else.", "The message lands, but the restaurant is still one bad scribble away from repeating itself.", null, fx(2, -1, -1, { priya: st(-1, -1), nina: st(-2, -2), luis: st(-2, -2) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "viral-gossip-backfire",
-    category: "Reputation",
-    pressure: "High",
-    headline: "The hostess keeps filming behind-the-scenes gossip videos and now the staff cannot tell what is real anymore",
-    body:
-      "Marisol says the behind-the-scenes clips are helping Feast Haven go viral, but she keeps revealing staff drama and inventing wild claims when the real gossip is not juicy enough. Now the staff are furious, suspicious, and watching each other differently.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "This is not just a social media problem. It is a trust problem hiding inside a marketing excuse.",
-        consultants: {
-          elena: {
-            prompt: "Marisol insists she is building hype and says the staff should be grateful someone is making the restaurant interesting.",
-            options: [
-              opt("vgb-open-marisol", "Review the actual clips with Marisol before deciding whether this is bold marketing or reckless gossip.", "You start with evidence, which gives you a chance to separate attention from damage.", "staff-trust-crack", fx(0, 1, 2, { elena: st(1, 2), devon: st(1, 1), nina: st(-1, -1) })),
-              opt("vgb-open-marisol-line", "Tell Marisol immediately that staff drama is not content and she needs to stop filming.", "The line is clear, but Marisol instantly shifts into self-defense mode.", "staff-trust-crack", fx(0, 0, 1, { elena: st(-2, -2), devon: st(-1, -1), nina: st(1, 1) }))
-            ]
-          },
-          devon: {
-            prompt: "Parker says Marisol crossed a line, but also worries a public crackdown will turn this into even bigger drama.",
-            options: [
-              opt("vgb-open-parker", "Use Parker to understand what staff think was revealed, exaggerated, and fully invented.", "You map the emotional damage before choosing the punishment.", "staff-trust-crack", fx(0, 2, 2, { devon: st(2, 3), nina: st(1, 1), elena: st(0, 1) })),
-              opt("vgb-open-parker-cover", "Ask Parker to quietly help Marisol pull the worst clips down before anyone else sees them.", "The cleanup starts fast, but it also risks looking like protection for the wrong person.", "staff-trust-crack", fx(0, 0, -1, { devon: st(1, 1), elena: st(1, 1), nina: st(-1, -2) }))
+              opt("po-open-imani-hours", "Have Imani help verify kitchen clocks, cut sheets, and overtime gaps before anybody works another unpaid minute.", "The room respects the seriousness, even if it makes the crisis feel larger.", "triage", fx(0, 2, 3, { priya: st(2, 3), tasha: st(1, 1), luis: st(1, 1) })),
+              opt("po-open-imani-trust", "Tell Imani the restaurant will make this right and needs the kitchen to trust leadership through service first.", "That request might have worked before the missing checks landed.", "triage", fx(1, -2, -2, { priya: st(-3, -4), luis: st(-1, -1), tasha: st(-1, -1) }))
             ]
           }
         }
       },
-      "staff-trust-crack": {
-        title: "Now the staff want to know whether any of their private moments are safe here",
-        body: "Some clips are real, some are exaggerated, and one or two are total fiction. That mix is what makes the betrayal so hard to calm down.",
-        consultants: {
-          nina: {
-            prompt: "Celia wants this treated like a trust violation, not a cute social media accident.",
-            options: [
-              opt("vgb-crack-celia", "Take staff statements and address the fabricated claims as seriously as the real gossip.", "The room finally hears that lying for virality is its own offense.", "public-fallout", fx(0, 3, 4, { nina: st(2, 3), elena: st(-1, -1), devon: st(1, 1) })),
-              opt("vgb-crack-celia-soft", "Focus only on the clips that are objectively untrue and ignore the real gossip for now.", "It is cleaner legally, but emotionally flatter than the staff hoped for.", "public-fallout", fx(0, 1, 1, { nina: st(0, 1), elena: st(0, 1) }))
-            ]
-          },
-          jake: {
-            prompt: "Adrian thinks the real danger is that guests or ex-staff will start quoting the videos back to the room.",
-            options: [
-              opt("vgb-crack-adrian", "Prepare one guest-facing line and one staff-facing line so nobody improvises the story badly.", "You stop the damage from spreading in six different versions at once.", "public-fallout", fx(1, 2, 3, { jake: st(2, 2), elena: st(0, 1), devon: st(1, 1) })),
-              opt("vgb-crack-adrian-hide", "Treat it purely as an internal issue and hope the clips die before the public notices.", "It keeps things quieter short-term, but the restaurant now depends on luck.", "public-fallout", fx(0, -1, -2, { jake: st(-1, -1), nina: st(-1, -1) }))
-            ]
-          }
-        }
-      },
-      "public-fallout": {
-        title: "The final damage depends on whether this is framed as recklessness, betrayal, or forgivable chaos",
-        body: "The staff do not all want the same thing. Some want discipline. Some want privacy restored. Some want to know whether leadership will protect favorites.",
-        consultants: {
-          devon: {
-            prompt: "Parker wants Marisol held accountable without destroying every good thing she has built at the front door.",
-            options: [
-              opt("vgb-fallout-parker", "Suspend the filming, force a direct apology, and rebuild a real content policy before anything goes live again.", "The restaurant loses the chaos, keeps a future path, and sounds like it finally has standards.", "final-standard", fx(1, 3, 4, { devon: st(2, 3), elena: st(-1, 0), nina: st(2, 2), jake: st(1, 1) })),
-              opt("vgb-fallout-parker-save", "Let Marisol stay visible publicly, but quietly strip her access to staff spaces and private moments.", "It protects brand momentum, but the staff may still smell favoritism.", "final-standard", fx(1, 0, 0, { devon: st(0, 1), elena: st(1, 1), nina: st(-2, -3) }))
-            ]
-          },
-          elena: {
-            prompt: "Marisol says the restaurant only cares now because the videos worked, and that hurts almost as much as being accused.",
-            options: [
-              opt("vgb-fallout-marisol", "Acknowledge the creative upside, but make it clear that fabricated staff stories killed the trust budget.", "You sound fair without being weak, which gives the apology a chance to matter.", "final-standard", fx(1, 2, 3, { elena: st(1, 2), devon: st(1, 1), nina: st(1, 1) })),
-              opt("vgb-fallout-marisol-hard", "Treat the whole thing as disloyalty and remove Marisol from anything brand-facing immediately.", "The message is clear, but the punishment may feel more emotional than strategic.", "final-standard", fx(0, 0, 1, { elena: st(-3, -4), devon: st(-2, -2), nina: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "final-standard": {
-        title: "The final move decides whether the restaurant feels safer or just quieter",
-        body: "By now, the videos matter less than the culture signal you leave behind.",
-        consultants: {
-          nina: {
-            prompt: "Celia wants one final move that tells the staff their private life is not just raw content waiting to happen.",
-            options: [
-              opt("vgb-final-celia", "Publish a strict no-gossip content rule and train the whole team on what can and cannot ever be filmed.", "It feels bigger than one person, which is exactly why the room can finally breathe again.", null, fx(2, 4, 4, { nina: st(2, 3), devon: st(1, 1), elena: st(0, 1) })),
-              opt("vgb-final-celia-small", "End the incident with a one-time warning and a promise to be more careful.", "The scandal may end, but the trust repair does not really begin.", null, fx(1, -1, -2, { nina: st(-2, -3), devon: st(-1, -1), elena: st(1, 1) }))
-            ]
-          },
-          jake: {
-            prompt: "Adrian thinks the restaurant also needs a new story fast so the scandal is not the only thing people remember this week.",
-            options: [
-              opt("vgb-final-adrian", "Pair the discipline with a cleaner, guest-facing campaign that puts the focus back on the food and room.", "You close the wound faster because the restaurant stops staring at it.", null, fx(3, 2, 3, { jake: st(2, 2), elena: st(1, 1), nina: st(1, 1) })),
-              opt("vgb-final-adrian-quiet", "Stay silent publicly and make this a purely internal repair.", "That can work, but only if the clips truly stop traveling.", null, fx(1, 1, 0, { jake: st(0, 1), nina: st(1, 1) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "emotional-support-date",
-    category: "Guest Policy",
-    pressure: "Medium",
-    headline: "The host seated a guest with a badly behaved dog because he called it his emotional support date",
-    body:
-      "A man charmed his way in and Parker let him sit with his dog at a table after he called it his 'emotional support date.' Now the dog is barking, lunging for food, and making the whole room question whether Feast Haven has any standards.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "The room is split between thinking this is absurd, awkward, or somehow still manageable.",
-        consultants: {
-          devon: {
-            prompt: "Parker says the guest sounded persuasive, the room was backed up, and the dog only started acting wild after it was seated.",
-            options: [
-              opt("esd-open-parker", "Get Parker's full read before deciding whether this was kindness, bad judgment, or both.", "You start by understanding the decision instead of only reacting to the spectacle.", "policy-gap", fx(0, 1, 2, { devon: st(2, 3), elena: st(-1, 0), jake: st(0, 1) })),
-              opt("esd-open-parker-line", "Tell Parker immediately that funny explanations are not the same thing as policy.", "The lesson is obvious, but Parker feels hung out to dry before the fix is even clear.", "dining-room-chaos", fx(0, -1, 1, { devon: st(-2, -3), elena: st(1, 1) }))
-            ]
-          },
-          elena: {
-            prompt: "Marisol is embarrassed because the front door standard just dissolved in full view of the dining room.",
-            options: [
-              opt("esd-open-marisol", "Have Marisol walk you through what the host stand should have done and where the judgment slipped.", "You anchor the incident in front-door standards instead of just vibes.", "policy-gap", fx(0, 1, 3, { elena: st(2, 3), devon: st(-1, -1) })),
-              opt("esd-open-marisol-room", "Put Marisol on guest recovery immediately before the dog wrecks another table.", "The room gets attention fast, but the internal lesson gets delayed.", "dining-room-chaos", fx(1, 2, 1, { elena: st(1, 1), devon: st(0, 1) }))
-            ]
-          }
-        }
-      },
-      "policy-gap": {
-        title: "It turns out nobody can explain the policy the same way",
-        body: "Some people think emotional support claims should be treated like service animals. Others think this was obviously nonsense. Guests now care less about the law than whether the restaurant looks serious.",
+      triage: {
+        title: "Now you have to decide whether money, service, or trust takes the first hit",
+        body: "If you pay fast, the cash pinch gets ugly. If you wait, the walkout risk gets ugly. If you split the difference, everyone may hate the half-measure.",
         consultants: {
           jake: {
-            prompt: "Adrian wants the dog out before the room turns this into the only thing anyone remembers tonight.",
+            prompt: "Adrian says a floor walkout on a sold-out night could damage the brand in one public, unforgettable swing.",
             options: [
-              opt("esd-gap-adrian", "Move fast, apologize to affected tables, and relocate or remove the guest before the room gets uglier.", "The dining room sees action instead of endless policy confusion.", "staff-standard", fx(2, 3, 2, { jake: st(2, 2), elena: st(1, 1), devon: st(-1, -1) })),
-              opt("esd-gap-adrian-soft", "Try to compromise by moving the guest to a quieter corner and hoping the dog settles.", "It feels gentler, but the dog has not actually agreed to the plan.", "staff-standard", fx(0, -2, -1, { jake: st(-1, -1), elena: st(-1, -1) }))
+              opt("po-triage-adrian-advance", "Issue emergency advances tonight and accept the financial pain before the dining room sees staff fury.", "It is expensive and slightly chaotic, but it proves the restaurant understands whose money was missing.", "fallout", fx(-2, 3, 2, { jake: st(2, 2), nina: st(1, 1), elena: st(1, 1) })),
+              opt("po-triage-adrian-service", "Hold the line through service and promise corrected pay on the next cycle.", "Revenue survives tonight, but every smile on the floor now has a grudge under it.", "fallout", fx(2, -2, -3, { jake: st(-1, -1), nina: st(-2, -3), marcus: st(-2, -2) }))
             ]
           },
           tasha: {
-            prompt: "Chef Renata says the kitchen should not have to guess whether a barking dog belongs in a room full of food.",
+            prompt: "Chef Renata says asking people to cook through stolen time is how kitchens decide they are done trusting you.",
             options: [
-              opt("esd-gap-renata", "Treat it as a food and room-control issue and remove the dog from the equation quickly.", "The standard sounds less sentimental, but much more defensible under pressure.", "staff-standard", fx(1, 2, 3, { tasha: st(2, 3), elena: st(1, 1), devon: st(-1, -1) })),
-              opt("esd-gap-renata-policy", "Pause and verify the exact accommodation policy before forcing the next move.", "The caution protects you legally, but the room gets more time to unravel.", "staff-standard", fx(0, 0, 2, { tasha: st(1, 1), devon: st(0, 1) }))
+              opt("po-triage-renata-close", "Reduce service capacity, pay what you can now, and stop pretending a full rush matters more than the payroll breach.", "You sacrifice short-term money to keep the moral hierarchy straight.", "fallout", fx(-1, 3, 4, { tasha: st(2, 3), priya: st(2, 3), luis: st(1, 2) })),
+              opt("po-triage-renata-full", "Keep full service, ask for professionalism, and argue that the restaurant needs tonight's revenue to repair the checks.", "The logic may even be true, but the room will hear it as their pain funding its own apology.", "fallout", fx(2, -3, -3, { tasha: st(-3, -4), priya: st(-2, -3), luis: st(-1, -2) }))
             ]
           }
         }
       },
-      "dining-room-chaos": {
-        title: "Now the issue is not the dog alone, it is whether the room thinks you are in control",
-        body: "Nearby tables are reacting. Staff are improvising explanations. The guest keeps acting like everyone else is the problem.",
+      fallout: {
+        title: "The staff now care as much about respect as the missing dollars themselves",
+        body: "Some people can survive a payroll mistake. Fewer can survive being told the mistake mattered less than service.",
         consultants: {
-          nina: {
-            prompt: "Celia wants one clean guest-facing script so nobody says something dumb while trying to help.", 
+          elena: {
+            prompt: "Marisol thinks the room needs one clear message that does not sound like legal cover written by a coward.",
             options: [
-              opt("esd-chaos-celia", "Give the floor one guest script and one internal line so the room stops getting six versions.", "The restaurant suddenly sounds coordinated again, which calms more than one table.", "staff-standard", fx(1, 3, 3, { nina: st(2, 3), jake: st(1, 1), elena: st(1, 1) })),
-              opt("esd-chaos-celia-free", "Let each table be handled naturally so the service feels less robotic.", "It sounds nicer in theory than it plays in a barking dining room.", "staff-standard", fx(0, -1, -1, { nina: st(-1, -2), jake: st(-1, -1) }))
+              opt("po-fallout-marisol-own", "Tell the whole staff the restaurant failed them, outline the repayment path, and invite questions in public.", "The vulnerability is expensive, but the honesty creates room for trust to come back.", "final", fx(0, 3, 4, { elena: st(2, 3), devon: st(1, 1), nina: st(1, 1), marcus: st(1, 1) })),
+              opt("po-fallout-marisol-controlled", "Keep the message short, legal, and highly controlled so leadership does not overpromise.", "It protects management language better than it protects the room.", "final", fx(1, -1, -2, { elena: st(-1, -2), devon: st(-1, -1), marcus: st(-1, -1) }))
             ]
           },
           devon: {
-            prompt: "Parker wants a path that corrects the mistake without making the whole front door feel publicly incompetent.",
+            prompt: "Parker says the swing staff are deciding whether this is a bad accident or the moment they start job hunting.",
             options: [
-              opt("esd-chaos-parker", "Own that the host stand made the wrong judgment and fix it calmly without turning Parker into a spectacle.", "The correction lands cleaner because it is honest without being cruel.", "staff-standard", fx(1, 2, 3, { devon: st(1, 2), elena: st(1, 1), nina: st(1, 1) })),
-              opt("esd-chaos-parker-cover", "Protect Parker publicly and describe the issue as a one-off guest misunderstanding.", "It saves face, but the staff may quietly call it favoritism.", "staff-standard", fx(1, 0, 0, { devon: st(2, 2), elena: st(-1, -2), nina: st(-1, -1) }))
+              opt("po-fallout-parker-stay", "Offer retention pay or extra protected hours to the most shaken staff so they do not bolt after the correction lands.", "It buys time and goodwill, but also tells everyone how scared leadership really is.", "final", fx(-1, 2, 2, { devon: st(2, 3), marcus: st(1, 1), nina: st(1, 1) })),
+              opt("po-fallout-parker-principle", "Refuse special treatment and argue the repaired checks should be enough once the mistake is fixed.", "It sounds clean, but people do not always leave because the math is wrong; they leave because the meaning is.", "final", fx(1, -2, -2, { devon: st(-2, -3), marcus: st(-1, -1), nina: st(-1, -1) }))
             ]
           }
         }
       },
-      "staff-standard": {
-        title: "The final move is whether this becomes a joke, a precedent, or a real standard",
-        body: "Everyone will remember what happened here the next time a charming guest tries to freestyle the rules.",
-        consultants: {
-          elena: {
-            prompt: "Marisol wants the front door protected by a rule that still leaves room for real compassion when it matters.",
-            options: [
-              opt("esd-final-marisol", "Write a front-door animal policy, train the stand, and make escalation mandatory on edge cases.", "The next weird guest will still happen, but the room will no longer wing it.", null, fx(2, 3, 4, { elena: st(2, 3), devon: st(1, 2), nina: st(1, 1) })),
-              opt("esd-final-marisol-soft", "Tell the host stand to use better judgment next time and leave the rest unwritten.", "It sounds flexible, but not especially safe.", null, fx(1, -1, -1, { elena: st(-1, -1), devon: st(0, 1) }))
-            ]
-          },
-          devon: {
-            prompt: "Parker wants to recover from the mistake without losing all confidence at the front door.",
-            options: [
-              opt("esd-final-parker", "Coach Parker directly, let them own the recovery, and keep them visible in the next clean service moment.", "You correct the error without turning one bad call into permanent panic.", null, fx(2, 2, 2, { devon: st(2, 3), elena: st(1, 1) })),
-              opt("esd-final-parker-pull", "Pull Parker off the stand for a while and let someone steadier hold the door.", "The immediate risk drops, but Parker may hear it as trust leaving the room.", null, fx(1, 0, 1, { devon: st(-2, -3), elena: st(1, 1) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "buffalo-breakdown",
-    category: "Inventory Failure",
-    pressure: "High",
-    headline: "The buffalo wing special is out of buffalo sauce and it is only Wednesday",
-    body:
-      "Feast Haven pushed the weekly special hard and now one of the core ingredients is gone halfway through the week. No one wants to own the slip-up, and the room is trying to decide whether this was ordering, overselling, or pure negligence.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "The special is already printed, guests are asking for it, and every department has a reason this is someone else's fault.",
-        consultants: {
-          tasha: {
-            prompt: "Chef Renata wants inventory counts, ticket volume, and the exact moment the kitchen realized the special was living on borrowed time.",
-            options: [
-              opt("bb-open-renata", "Audit the actual inventory and sales pace with Chef Renata before blaming the floor.", "You start with facts and avoid a fake certainty that would only inflame the next argument.", "supply-trace", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
-              opt("bb-open-renata-line", "Back the kitchen immediately and assume the floor oversold the special irresponsibly.", "The cooks feel protected, but the floor hears blame arriving before the count is even done.", "service-scramble", fx(0, -1, 0, { tasha: st(1, 1), nina: st(-2, -2), elena: st(-1, -1) }))
-            ]
-          },
-          elena: {
-            prompt: "Marisol says the host stand was still seating people with the special pitch because nobody told the front door to stop.",
-            options: [
-              opt("bb-open-marisol", "Trace exactly when the front should have been told to stop selling the special.", "You shift the question from blame to communication failure, which is much more useful.", "supply-trace", fx(0, 2, 3, { elena: st(2, 3), devon: st(1, 1), tasha: st(0, 1) })),
-              opt("bb-open-marisol-room", "Focus first on how to speak to guests now that the special is effectively fake.", "The room gets triage fast, but the root cause waits in the dark.", "service-scramble", fx(1, 2, 1, { elena: st(1, 1), nina: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "supply-trace": {
-        title: "Everyone contributed one small piece to the failure",
-        body: "Ordering lagged, the kitchen stretched the stock optimistically, and the front kept selling it longer than anyone should have. Nobody is innocent enough to lecture everyone else.",
-        consultants: {
-          priya: {
-            prompt: "Imani wants the fix to be boring, visible, and impossible to misunderstand next time.",
-            options: [
-              opt("bb-trace-imani", "Create a live special-count board that the kitchen and floor both update during service.", "It sounds almost too simple, which is exactly why people might finally use it.", "guest-recovery", fx(1, 3, 4, { priya: st(3, 4), tasha: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
-              opt("bb-trace-imani-kitchen", "Give the kitchen full control over when a special is cut off, even if the floor hates the timing.", "It protects supply better, but centralizes the resentment too.", "guest-recovery", fx(1, 1, 2, { priya: st(1, 2), tasha: st(2, 2), nina: st(-1, -1) }))
-            ]
-          },
-          nina: {
-            prompt: "Celia wants the floor looped in earlier so guests stop hearing great pitches for things that are already half gone.",
-            options: [
-              opt("bb-trace-celia", "Set a mandatory floor alert the moment stock hits the final third of any promoted item.", "Guests still hear the special, just not after the truth has changed.", "guest-recovery", fx(1, 2, 3, { nina: st(2, 3), elena: st(1, 1), tasha: st(0, 1) })),
-              opt("bb-trace-celia-blunt", "Tell the floor to sell smarter and stop relying on kitchen rescue when specials get tight.", "There is truth in it, but not much teamwork.", "guest-recovery", fx(1, -1, -1, { nina: st(-1, -1), elena: st(-1, -1), tasha: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "service-scramble": {
-        title: "Guests are still ordering something the restaurant does not fully have",
-        body: "If the guest script is weak, the inventory problem becomes a trust problem in under ten minutes.",
-        consultants: {
-          jake: {
-            prompt: "Adrian wants a substitution path that feels generous, not like a desperate save after a bad sell.",
-            options: [
-              opt("bb-scramble-adrian", "Offer a clear substitute and a small comp so tables do not feel baited.", "The room takes the pivot better when it feels intentional instead of evasive.", "guest-recovery", fx(1, 3, 2, { jake: st(2, 2), nina: st(1, 1), elena: st(1, 1) })),
-              opt("bb-scramble-adrian-tight", "Push the remaining stock to the loudest tables and quietly steer everyone else elsewhere.", "It may save a few check averages, but the fairness cost is ugly if people compare notes.", "guest-recovery", fx(2, -2, -2, { jake: st(1, 1), nina: st(-1, -2), elena: st(-2, -2) }))
-            ]
-          },
-          tasha: {
-            prompt: "Chef Renata wants the kitchen protected from a wave of improvisation that will only create new mistakes.", 
-            options: [
-              opt("bb-scramble-renata", "Cut the special cleanly and stop any half-measure improvisations before they reach the pass.", "It costs some sales now, but saves a bigger mess ten tickets later.", "guest-recovery", fx(0, 2, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
-              opt("bb-scramble-renata-stretch", "Tell the kitchen to stretch what is left into modified versions for the rest of the night.", "You buy time, but invite inconsistency the second the room gets busy again.", "guest-recovery", fx(1, -1, -2, { tasha: st(-2, -2), priya: st(-1, -1), luis: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "guest-recovery": {
-        title: "The final move is whether this feels like scarcity, incompetence, or a restaurant that adjusted well under pressure",
-        body: "By the end of tonight, guests will remember either the shortage or the recovery. Staff will remember whether the fix was fair.",
-        consultants: {
-          elena: {
-            prompt: "Marisol wants the final standard to stop the host stand from ever selling blind into a dead special again.",
-            options: [
-              opt("bb-final-marisol", "Make special inventory visible across the whole room and require real-time updates from kitchen to floor.", "It is not glamorous, but it would have prevented almost every part of this disaster.", null, fx(2, 3, 4, { elena: st(2, 3), nina: st(1, 2), tasha: st(1, 1), priya: st(1, 1) })),
-              opt("bb-final-marisol-quiet", "Patch the communication privately and avoid announcing a bigger policy reset.", "It may work once, but it also keeps the lesson soft and forgettable.", null, fx(1, 0, 0, { elena: st(0, 1), nina: st(-1, -1) }))
-            ]
-          },
-          tasha: {
-            prompt: "Chef Renata wants leadership to admit the shortage was shared, not just dropped on the kitchen at the last second.", 
-            options: [
-              opt("bb-final-renata", "Own the shared failure publicly and pair it with a simple special-tracking system everyone must use.", "The accountability lands because nobody gets to pretend they were the only responsible adult in the room.", null, fx(3, 3, 4, { tasha: st(2, 3), priya: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
-              opt("bb-final-renata-kitchen", "Frame the kitchen as the main control point and let the floor adapt around that.", "It sounds decisive, but the floor may feel blamed for a problem it could not fully see.", null, fx(2, 0, 1, { tasha: st(2, 2), nina: st(-2, -2), elena: st(-1, -1) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "busser-flirt-slowdown",
-    category: "Floor Discipline",
-    pressure: "Medium",
-    headline: "The busser keeps flirting with customers and they love it, but the room is falling behind",
-    body:
-      "Omar has started charming customers so much that some tables now expect him to stop and banter. The guests enjoy it, but resets are slower, other staff are jealous, and Feast Haven is starting to feel uneven.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "This is one of those annoying problems where the behavior is good for the vibe right up until it becomes bad for the shift.",
+      final: {
+        title: "The last choice is what Feast Haven learns about power when payroll breaks",
+        body: "You can survive this as a cash problem, a trust problem, or both. The final signal decides which version sticks.",
         consultants: {
           marcus: {
-            prompt: "Omar says he is building the guest experience, not doing anything wrong, and nobody complained until coworkers got salty about it.",
+            prompt: "Omar wants leadership to act like labor is not a favor the restaurant gives out when convenient.",
             options: [
-              opt("bfs-open-omar", "Hear Omar out and find out how much of this is hospitality versus how much is missed reset work.", "You treat the issue like a real leadership call instead of instant jealousy management.", "room-jealousy", fx(0, 2, 2, { marcus: st(2, 3), jake: st(-1, -1), nina: st(-1, -1) })),
-              opt("bfs-open-omar-line", "Tell Omar immediately that charm stops being charming when tables are not reset on time.", "The standard is fair, but Omar hears it as punishment for being naturally good with people.", "room-jealousy", fx(0, -1, 0, { marcus: st(-2, -2), jake: st(1, 1), nina: st(1, 1) }))
-            ]
-          },
-          nina: {
-            prompt: "Celia thinks Omar is getting away with something nobody else would be allowed to do during a rush.",
-            options: [
-              opt("bfs-open-celia", "Let Celia explain exactly how the flirting is slowing the service chain, not just annoying the floor.", "The complaint becomes more credible when it is tied to actual missed duties.", "room-jealousy", fx(0, 1, 2, { nina: st(2, 3), marcus: st(-1, -1), jake: st(0, 1) })),
-              opt("bfs-open-celia-jealous", "Call out the jealousy angle immediately and make Celia prove the problem is operational.", "You challenge the tone, but risk making a real service issue sound petty.", "room-jealousy", fx(0, -1, -1, { nina: st(-2, -2), marcus: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "room-jealousy": {
-        title: "The room is now arguing about fairness, charisma, and who gets judged by different rules",
-        body: "Omar is not the only person affected anymore. Adrian feels shown up, Celia feels standards are uneven, and guests are starting to notice who gets extra attention.",
-        consultants: {
-          jake: {
-            prompt: "Adrian thinks Omar is freelancing the floor role without taking the harder guest-facing consequences servers live with all shift.",
-            options: [
-              opt("bfs-jealous-adrian", "Redraw the line between friendly table touchpoints and actual busser duties so nobody is guessing.", "The room suddenly has language for what crossed the line and what did not.", "guest-signal", fx(1, 2, 3, { jake: st(2, 2), marcus: st(1, 1), nina: st(1, 1) })),
-              opt("bfs-jealous-adrian-side", "Protect the servers' territory and tell Omar to stop any table lingering immediately.", "It solves the jealousy fast, but also erases the one part guests actually liked.", "guest-signal", fx(0, -1, -1, { jake: st(1, 1), marcus: st(-2, -3) }))
-            ]
-          },
-          elena: {
-            prompt: "Marisol says the real issue is that the room now feels inconsistent depending on which table Omar likes best.", 
-            options: [
-              opt("bfs-jealous-marisol", "Treat this like a service-consistency problem, not a morality problem, and rebalance the floor touchpoints.", "The standard lands better because it sounds guest-focused instead of personal.", "guest-signal", fx(1, 3, 3, { elena: st(2, 3), marcus: st(1, 1), nina: st(1, 1) })),
-              opt("bfs-jealous-marisol-quiet", "Leave the guest banter mostly alone and only push Omar harder on the resets.", "It may work if he adjusts, but the fairness question will still linger.", "guest-signal", fx(1, 0, 0, { elena: st(0, 1), nina: st(-1, -1) }))
-            ]
-          }
-        }
-      },
-      "guest-signal": {
-        title: "Now the guests are part of the story too",
-        body: "Some tables clearly love Omar. Others are noticing delays, uneven attention, and a room that looks less organized than it should.",
-        consultants: {
-          devon: {
-            prompt: "Parker thinks Omar can keep the warmth if someone else fixes the pacing and role clarity around him.", 
-            options: [
-              opt("bfs-signal-parker", "Keep Omar's guest warmth, but give him tighter reset triggers and a visible duty checklist.", "You preserve the upside without pretending hospitality has no timing cost.", "final-balance", fx(2, 3, 3, { devon: st(2, 3), marcus: st(2, 2), nina: st(1, 1) })),
-              opt("bfs-signal-parker-shift", "Move Omar further off the floor and use him mostly on back-end resets for a while.", "The room gets faster, but the human spark disappears with it.", "final-balance", fx(1, 0, 1, { devon: st(0, 1), marcus: st(-2, -2) }))
-            ]
-          },
-          marcus: {
-            prompt: "Omar still thinks the attention is good for business and says nobody is angry when they are flirting back.", 
-            options: [
-              opt("bfs-signal-omar", "Coach Omar on 'fast charm' instead of 'full conversation' so the room still moves.", "The correction feels respectful because it keeps his strength while trimming the excess.", "final-balance", fx(2, 2, 2, { marcus: st(2, 3), jake: st(1, 1), nina: st(1, 1) })),
-              opt("bfs-signal-omar-hard", "Frame the whole thing as unprofessional and strip the warmth out of it entirely.", "The room gets safer, but also flatter and more resentful.", "final-balance", fx(0, -1, -1, { marcus: st(-3, -3), jake: st(1, 1), nina: st(1, 1) }))
-            ]
-          }
-        }
-      },
-      "final-balance": {
-        title: "The final move is whether the room learns balance or just fear",
-        body: "Omar is not a villain. The room is not crazy. Your job is deciding what kind of hospitality Feast Haven actually rewards.",
-        consultants: {
-          elena: {
-            prompt: "Marisol wants one final standard everyone can live with, not just a weird one-time talk about flirting.", 
-            options: [
-              opt("bfs-final-marisol", "Define a guest-warmth standard that still protects role clarity, reset timing, and fairness on the floor.", "The room gets a real cultural answer instead of another whispered exception.", null, fx(3, 3, 4, { elena: st(2, 3), marcus: st(2, 2), nina: st(1, 1), jake: st(1, 1) })),
-              opt("bfs-final-marisol-warning", "End it with a one-time warning and trust people to self-correct.", "That may calm tonight, but it leaves the same fairness debate waiting for the next rush.", null, fx(1, 0, -1, { elena: st(-1, -1), nina: st(-1, -1) }))
-            ]
-          },
-          marcus: {
-            prompt: "Omar wants to know whether being genuinely great with guests counts for anything if it annoys coworkers.", 
-            options: [
-              opt("bfs-final-omar", "Tell Omar his guest warmth matters, but only when the role is still fully handled behind it.", "The message lands because it does not shame the strength, only the drift.", null, fx(2, 2, 2, { marcus: st(2, 3), nina: st(1, 1), jake: st(1, 1) })),
-              opt("bfs-final-omar-shut", "Make the issue purely about duty completion and refuse to discuss the guest upside at all.", "The clarity is real, but so is the missed coaching opportunity.", null, fx(1, -1, 0, { marcus: st(-2, -2), nina: st(1, 1) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "chef-mad-scientist-menu",
-    category: "Menu Innovation",
-    pressure: "Medium",
-    headline: "Chef Renata's wild weekly experiments are exciting customers and breaking the kitchen's brain",
-    body:
-      "Chef Renata keeps forcing ambitious new dishes into the menu cycle: peanut-butter sloppy joes, BBQ chip tacos, chicken and pancakes. Some become cult hits. Some bomb immediately. The bigger problem is that ordering, prep, and training are turning into weekly chaos.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "The creativity is real. So is the operational drag. The restaurant now has to decide what kind of chaos it is willing to romanticize.",
-        consultants: {
-          tasha: {
-            prompt: "Chef Renata says the restaurant will die boring if every new idea is strangled by spreadsheet fear.",
-            options: [
-              opt("cms-open-renata", "Hear Renata out and separate the creative upside from the operational damage it is causing.", "You avoid reducing the whole issue to 'chef bad' and give the conversation real shape.", "line-friction", fx(0, 1, 2, { tasha: st(2, 3), luis: st(1, 1), priya: st(-1, -1) })),
-              opt("cms-open-renata-line", "Tell Renata immediately that the menu is not a weekly science fair if the line cannot execute it.", "The constraint is real, but it lands as disrespect before it lands as leadership.", "line-friction", fx(0, -1, 0, { tasha: st(-2, -3), luis: st(1, 1), priya: st(1, 1) }))
+              opt("po-final-omar-guardrail", "Build a visible overtime verification rule and let staff see the protection before they need it again.", "You turn the crisis into a worker-facing safeguard instead of a one-time apology tour.", null, fx(1, 3, 4, { marcus: st(2, 3), devon: st(1, 2), nina: st(1, 1), priya: st(1, 1) })),
+              opt("po-final-omar-moveon", "Fix the checks and push hard to put the whole thing behind the room quickly.", "The money may be restored, but the memory is now free to harden however people like.", null, fx(2, -1, -2, { marcus: st(-2, -3), devon: st(-1, -1), priya: st(-1, -1) }))
             ]
           },
           priya: {
-            prompt: "Imani says the experiments might be fine if they did not keep ambushing prep, pars, and line memory every week.",
+            prompt: "Imani wants to know whether the restaurant will protect labor when doing so is annoying, expensive, and operationally inconvenient.",
             options: [
-              opt("cms-open-imani", "Walk the prep and supply burden with Imani before deciding how much innovation the kitchen can actually absorb.", "You start with execution reality, which is exactly where the strain is hiding.", "line-friction", fx(0, 2, 3, { priya: st(2, 3), tasha: st(0, 1), luis: st(1, 1) })),
-              opt("cms-open-imani-speed", "Tell Imani the kitchen simply needs to adapt faster if Feast Haven wants to stay interesting.", "That may sound visionary, but it mostly sounds like extra work with no guardrails.", "line-friction", fx(0, -1, -1, { priya: st(-2, -2), tasha: st(1, 1) }))
+              opt("po-final-imani-principle", "Choose the worker-protection standard even if it limits future scheduling flexibility.", "The room may not love every future rule, but it will understand what the rules are protecting.", null, fx(1, 4, 4, { priya: st(2, 3), tasha: st(1, 1), marcus: st(1, 1), luis: st(1, 1) })),
+              opt("po-final-imani-lean", "Keep the protection softer so leadership can still move fast during rough weeks.", "That preserves managerial comfort better than worker confidence.", null, fx(2, -1, -2, { priya: st(-2, -3), tasha: st(-1, -1), marcus: st(-1, -1) }))
             ]
           }
         }
-      },
-      "line-friction": {
-        title: "The deeper issue is not creativity, it is how often the room has to relearn itself",
-        body: "Theo loves the swings when they land. Imani hates the instability. The floor hates selling things that may vanish or confuse guests midweek.",
+      }
+    }
+  },
+  {
+    id: "anonymous-health-tip",
+    category: "Inspection Threat",
+    pressure: "Extreme",
+    headline: "An anonymous tip says Feast Haven is about to get a surprise health inspection in the middle of a slammed service",
+    body:
+      "Nobody knows whether the tip is real, but everyone suddenly sees every unlabeled container, every rushed sanitizer bucket, and every weak shortcut as a possible disaster waiting at the door.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you trust first?",
+        body: "You have very little time to decide whether this is paranoia, a sabotage rumor, or the warning that saves the restaurant.",
         consultants: {
-          luis: {
-            prompt: "Theo thinks the weird dishes are worth it because they make Feast Haven feel alive instead of generic.",
+          tasha: {
+            prompt: "Chef Renata says if the inspector walks in right now, the kitchen will pass some things and absolutely not pass others.",
             options: [
-              opt("cms-friction-theo", "Keep the experiments, but cut them down to one controlled launch at a time with full prep buy-in.", "You preserve the spark without making every week feel like kitchen roulette.", "floor-consequence", fx(2, 2, 3, { luis: st(2, 3), tasha: st(1, 1), priya: st(1, 1) })),
-              opt("cms-friction-theo-free", "Give Renata broad room to keep experimenting and tell the line to embrace the identity shift.", "The passion is real, but the chaos becomes policy instead of a side effect.", "floor-consequence", fx(1, -1, -2, { luis: st(2, 2), priya: st(-3, -3), nina: st(-1, -1) }))
+              opt("ah-open-renata-honest", "Get the blunt kitchen truth from Renata before anyone plays brave.", "You start with the facts people usually avoid until the clipboard is already in the room.", "triage", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
+              opt("ah-open-renata-confidence", "Tell Renata not to spook the staff until you know the tip is real.", "You protect the mood, but also spend precious minutes pretending uncertainty is safety.", "triage", fx(1, -1, -2, { tasha: st(-2, -3), priya: st(-1, -1) }))
             ]
           },
           elena: {
-            prompt: "Marisol says the host stand is tired of selling items that sound like jokes unless the room is actually ready to stand behind them.", 
+            prompt: "Marisol thinks a visible panic spiral at the host stand will tell guests something is badly wrong even before any inspector appears.",
             options: [
-              opt("cms-friction-marisol", "Require a front-of-house sign-off before any experimental dish goes public.", "The launch gets slower, but the room stops promising things it does not understand.", "floor-consequence", fx(1, 3, 4, { elena: st(2, 3), nina: st(1, 2), tasha: st(-1, 0) })),
-              opt("cms-friction-marisol-late", "Let the kitchen experiment first and teach the floor after the dish proves itself.", "That sounds efficient until the room is blindsided mid-service again.", "floor-consequence", fx(1, -1, -1, { elena: st(-1, -2), nina: st(-2, -2) }))
+              opt("ah-open-marisol-calm", "Keep the front calm while quietly triggering an internal compliance check in the back.", "The room stays graceful on the surface while you decide how deep the problem really is.", "triage", fx(1, 1, 2, { elena: st(2, 2), devon: st(1, 1), jake: st(1, 1) })),
+              opt("ah-open-marisol-hide", "Say almost nothing and hope the rumor dies before it turns into visible scrambling.", "If the tip is fake, you look composed. If it is real, you just burned your warning shot.", "triage", fx(2, -2, -3, { elena: st(-1, -2), devon: st(-1, -1) }))
             ]
           }
         }
       },
-      "floor-consequence": {
-        title: "The restaurant now has to choose whether weird is worth being difficult",
-        body: "Guests are intrigued, but not always delighted. The kitchen is energized, but not always ready. The room is living inside that contradiction.",
+      triage: {
+        title: "Now you must choose whether to cut capacity, correct honestly, or gamble on getting lucky",
+        body: "The real cost of doing the right thing may be immediate revenue. The real cost of gambling may be far worse.",
         consultants: {
-          nina: {
-            prompt: "Celia wants the menu to stop making the floor sound ridiculous when a guest asks the obvious follow-up question.", 
+          priya: {
+            prompt: "Imani wants service slowed and weak points corrected now, even if it wrecks the pace of the night.",
             options: [
-              opt("cms-floor-celia", "Create a limited innovation board with simple scripts, ingredients, and fallback swaps before launch.", "The dishes stay playful, but the room no longer sounds like it is improvising the explanation.", "final-identity", fx(2, 3, 4, { nina: st(2, 3), elena: st(1, 1), tasha: st(0, 1), priya: st(1, 1) })),
-              opt("cms-floor-celia-cut", "Pull the strangest dishes entirely and make the menu more stable for a while.", "The room gets calmer, but the chef may hear it as creative surrender.", "final-identity", fx(1, 1, 2, { nina: st(1, 1), tasha: st(-2, -3), luis: st(-1, -1) }))
+              opt("ah-triage-imani-slow", "Reduce output, relabel everything, refresh sanitizer, and accept a brutal hit to service flow.", "You trade speed for survivability and make the restaurant look intentionally serious instead of accidentally dirty.", "fallout", fx(-1, 3, 4, { priya: st(2, 3), tasha: st(1, 2), luis: st(1, 1) })),
+              opt("ah-triage-imani-patch", "Correct only the most obvious problems and keep most of service moving.", "It is practical if luck holds and humiliating if luck walks in with a badge.", "fallout", fx(1, -1, -2, { priya: st(-2, -3), tasha: st(-1, -1), luis: st(-1, -1) }))
             ]
           },
-          tasha: {
-            prompt: "Chef Renata says the restaurant should not chase personality only when it is easy and safe.", 
+          jake: {
+            prompt: "Adrian worries guests will punish Feast Haven tonight if the floor suddenly feels clipped, apologetic, and behind.",
             options: [
-              opt("cms-floor-renata", "Keep the innovation identity, but cap it with prep discipline, ordering limits, and one test window at a time.", "You finally make creativity pay rent instead of living free in operations.", "final-identity", fx(3, 2, 3, { tasha: st(2, 3), luis: st(1, 1), priya: st(1, 2) })),
-              opt("cms-floor-renata-chaos", "Back Renata's instinct almost completely and let the room adapt around the chef's imagination.", "If it works, it sings. If it misses, it misses in public.", "final-identity", fx(2, -2, -2, { tasha: st(2, 2), luis: st(1, 1), priya: st(-2, -3), nina: st(-1, -1) }))
+              opt("ah-triage-adrian-honest", "Tell the floor to under-promise, stretch ticket times, and protect the standard over the vibe.", "You may lose a chunk of tonight's goodwill, but you stop service charm from hiding operational risk.", "fallout", fx(0, 2, 2, { jake: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
+              opt("ah-triage-adrian-vibe", "Keep the dining room lively and trust the back of house to catch up without anyone feeling the slowdown too hard.", "The room may stay warm, but it also becomes one more place where the truth is delayed for optics.", "fallout", fx(2, -2, -3, { jake: st(1, 1), nina: st(-1, -2), tasha: st(-1, -1) }))
             ]
           }
         }
       },
-      "final-identity": {
-        title: "This is really a decision about what Feast Haven is trying to be",
-        body: "A safer room. A stranger room. A more famous room. A more disciplined room. The final call shapes more than a menu.",
+      fallout: {
+        title: "Whether or not the inspector shows, the restaurant now knows what kind of standards it really keeps under fear",
+        body: "A fake tip can still reveal a real weakness. A real inspection can still become survivable if leadership stops pretending image and safety are the same thing.",
+        consultants: {
+          devon: {
+            prompt: "Parker thinks the worst version of this night is staff realizing Feast Haven only takes rules seriously when it thinks punishment is near.",
+            options: [
+              opt("ah-fallout-parker-culture", "Address the whole team and admit the rumor exposed habits leadership should have fixed before fear forced the issue.", "The honesty stings, but it keeps the lesson from shrinking into gossip about whoever placed the tip.", "final", fx(0, 3, 4, { devon: st(2, 3), elena: st(1, 1), priya: st(1, 1), marcus: st(1, 1) })),
+              opt("ah-fallout-parker-source", "Focus the team on finding who tipped and why before you dig too deeply into the habits it exposed.", "That may satisfy the hurt pride of the room, but it turns attention away from the weakness everybody just saw.", "final", fx(1, -1, -2, { devon: st(-1, -2), elena: st(-1, -1), priya: st(-1, -1) }))
+            ]
+          },
+          marcus: {
+            prompt: "Omar says hidden labor always gets ignored until somebody with authority might finally notice it.",
+            options: [
+              opt("ah-fallout-omar-support", "Protect the sanitation and reset labor that actually keeps the room passing-ready, even if it means leaner service for a while.", "It is not glamorous, but it tells the invisible parts of the restaurant they finally matter in planning.", "final", fx(0, 3, 3, { marcus: st(2, 3), devon: st(1, 1), tasha: st(1, 1) })),
+              opt("ah-fallout-omar-reset", "Return to normal staffing as fast as possible once the scare passes.", "You recover speed, but also teach the room that standards are a temporary mood, not a structure.", "final", fx(2, -1, -2, { marcus: st(-2, -3), devon: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      final: {
+        title: "The final move is deciding whether Feast Haven learns from a threat or merely survives one",
+        body: "A restaurant can pass an inspection and still fail the deeper test of what it expects from itself when nobody is watching.",
         consultants: {
           tasha: {
-            prompt: "Renata wants to know whether leadership still believes Feast Haven should feel alive and surprising.", 
+            prompt: "Chef Renata wants a smaller, stricter kitchen if that is what it takes to stop flirting with preventable violations.",
             options: [
-              opt("cms-final-renata", "Commit to creative identity, but only inside a strict pilot system the whole restaurant can support.", "The restaurant keeps its edge and finally builds a frame strong enough to carry it.", null, fx(3, 3, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
-              opt("cms-final-renata-narrow", "Shrink experimentation sharply and tell Renata the room needs predictability more than flair right now.", "The shift gets calmer fast, but some of Feast Haven's personality goes with it.", null, fx(2, 1, 1, { tasha: st(-3, -4), luis: st(-1, -1), priya: st(1, 1) }))
+              opt("ah-final-renata-standard", "Adopt the stricter operating standard even though it will slow prep and expose sloppy habits more often.", "You become harder to run and harder to embarrass in the same move.", null, fx(1, 4, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1), marcus: st(1, 1) })),
+              opt("ah-final-renata-flex", "Keep the standard looser so the room can still move with improvisational speed.", "That protects tonight's identity better than tomorrow's credibility.", null, fx(2, 0, -2, { tasha: st(-2, -3), priya: st(-1, -1), marcus: st(-1, -1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol wants the guest experience protected, but not by pretending the back of house can live forever on adrenaline and half-compliance.",
+            options: [
+              opt("ah-final-marisol-balance", "Rebuild the standard in a way guests can feel through steadier pacing, cleaner details, and fewer frantic saves.", "The room stays elegant because the operation underneath it gets less dishonest.", null, fx(2, 3, 4, { elena: st(2, 3), jake: st(1, 1), devon: st(1, 1), tasha: st(1, 1) })),
+              opt("ah-final-marisol-mask", "Keep most of the visible polish and trust the rough edges not to cost you too much later.", "That may hold for a while, but only if luck stays more loyal than standards.", null, fx(2, -1, -2, { elena: st(-1, -2), devon: st(-1, -1), tasha: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "double-booked-private-room",
+    category: "Reservation Crisis",
+    pressure: "Extreme",
+    headline: "A wedding rehearsal dinner and a memorial dinner were both promised the same private room",
+    body:
+      "Both parties have emails, deposits, and strong emotions. One group is celebrating a beginning. The other is honoring a death. There is no clean solution, only damage you get to choose.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you pull in first?",
+        body: "The facts matter, but so does the emotional weight of who hears what, when, and from whom.",
+        consultants: {
+          elena: {
+            prompt: "Marisol says the booking notes are a mess and the front door will be the first thing both families punish if the explanation sounds weak.",
+            options: [
+              opt("db-open-marisol-record", "Rebuild the reservation trail with Marisol before speaking to either party in detail.", "You avoid improvising a lie, even if it buys neither family any comfort in the moment.", "triage", fx(0, 1, 2, { elena: st(2, 3), devon: st(1, 1), jake: st(0, 1) })),
+              opt("db-open-marisol-fast", "Speak to the louder family first and hope speed feels more respectful than certainty.", "You may buy one side's patience, but the weaker fact pattern can still destroy both conversations.", "triage", fx(1, -2, -2, { elena: st(-2, -3), devon: st(-1, -1) }))
+            ]
+          },
+          devon: {
+            prompt: "Parker thinks the first party you contact will remember your tone as much as your solution.",
+            options: [
+              opt("db-open-parker-order", "Decide who has the stronger documentation and speak to them first from a position of clarity.", "It sounds cold, but it prevents a sympathy-first conversation from collapsing under bad facts.", "triage", fx(0, 1, 3, { devon: st(2, 3), elena: st(1, 1) })),
+              opt("db-open-parker-grief", "Speak to the memorial family first because the emotional stakes feel harder to relocate cleanly.", "The instinct is humane, but the wedding family may later hear that emotion overruled the paper trail and the room may now owe two explanations instead of one.", "triage", fx(0, -2, -1, { devon: st(1, 1), elena: st(-1, -1), jake: st(-1, -2) }))
+            ]
+          }
+        }
+      },
+      triage: {
+        title: "Now you have to choose what kind of unfairness you can live with",
+        body: "Someone will lose the room they thought they had. The real question is whether you displace grief, joy, money, or all three at once.",
+        consultants: {
+          jake: {
+            prompt: "Adrian thinks the wedding party will cause the louder public blast if they feel their night was hijacked.",
+            options: [
+              opt("db-triage-adrian-buyout", "Offer the wedding party the private room and create an expensive, highly personal recovery plan for the memorial dinner.", "You choose the louder damage to avoid and inherit the quieter damage that may feel morally worse.", "fallout", fx(-2, -1, -2, { jake: st(1, 1), elena: st(-1, -1), devon: st(-1, -1) })),
+              opt("db-triage-adrian-community", "Protect the memorial dinner in the private room and ask the wedding party to accept a lavish public-space recovery instead.", "The moral logic is clear to some and outrageous to others, which is what makes it so dangerous.", "fallout", fx(-1, 1, 0, { jake: st(-1, -2), devon: st(1, 1), elena: st(1, 1) }))
+            ]
+          },
+          nina: {
+            prompt: "Celia thinks splitting the room or staggering both events may save money while insulting everyone equally.",
+            options: [
+              opt("db-triage-celia-split", "Offer a carefully redesigned split plan and let both parties decide whether they prefer compromise to displacement.", "It is creative and practical, but can also sound like leadership forgot what either event means.", "fallout", fx(1, -1, -1, { nina: st(2, 2), elena: st(-1, -1), devon: st(-1, -1) })),
+              opt("db-triage-celia-fullcomp", "Own the double-book, relocate one party entirely, and absorb the brutal financial recovery hit yourself.", "It is expensive and painful, but at least one family experiences a clean standard instead of a weird half-fix.", "fallout", fx(-3, 2, 3, { nina: st(1, 2), elena: st(1, 1), devon: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      fallout: {
+        title: "The bigger issue now is whether Feast Haven responds like a business, a neighbor, or a coward",
+        body: "The displaced party may forgive a loss more easily than they forgive feeling processed. Staff are also watching which values leadership hides behind when money and humanity clash.",
+        consultants: {
+          marcus: {
+            prompt: "Omar says the staff can help carry dignity for whichever family loses the room if leadership stops speaking like a spreadsheet first.", 
+            options: [
+              opt("db-fallout-omar-dignity", "Build a high-touch recovery team around the displaced party so the night feels cared for even if it is no longer ideal.", "You cannot erase the mistake, but you can keep it from feeling casual.", "final", fx(-1, 3, 3, { marcus: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
+              opt("db-fallout-omar-transaction", "Keep the recovery tight, efficient, and compensation-focused so the logistics stay under control.", "The money may be fair, but the emotional temperature stays colder than the room needs.", "final", fx(0, -1, -2, { marcus: st(-1, -2), devon: st(-1, -1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol thinks the restaurant's character is now on trial, not just its booking process.",
+            options: [
+              opt("db-fallout-marisol-own", "State plainly that Feast Haven failed both parties and explain the recovery without euphemisms.", "The honesty hurts, but it keeps the apology from sounding machine-made.", "final", fx(0, 2, 4, { elena: st(2, 3), devon: st(1, 1), jake: st(-1, -1) })),
+              opt("db-fallout-marisol-soft", "Use softer language about miscommunication and overlapping expectations to lower the heat.", "It may reduce the immediate sting, but can also sound like nobody is really owning the wound.", "final", fx(1, 0, -1, { elena: st(-1, -2), devon: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      final: {
+        title: "The last choice is whether Feast Haven learns compassion, process, or both",
+        body: "A double-book can happen anywhere. The lasting judgment comes from what the restaurant protects when it cannot protect everyone.",
+        consultants: {
+          devon: {
+            prompt: "Parker wants a booking standard that never lets emotional events get handled like generic table blocks again.",
+            options: [
+              opt("db-final-parker-protocol", "Build a stricter private-event confirmation system with human verification before any emotionally high-stakes booking is finalized.", "It adds friction to the process, but protects the room from exactly this kind of moral wreckage.", null, fx(1, 3, 4, { devon: st(2, 3), elena: st(1, 1), nina: st(1, 1) })),
+              opt("db-final-parker-light", "Keep the booking system flexible and trust better attention to solve what went wrong here.", "That may save time, but it teaches the room the lesson only halfway.", null, fx(2, -1, -2, { devon: st(-2, -3), elena: st(-1, -1) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks the restaurant also has to decide whether it values clean process more than emotional instinct the next time this kind of call arrives.",
+            options: [
+              opt("db-final-adrian-values", "Write a values-based escalation rule so grief, community, and once-in-a-lifetime events are not treated as interchangeable bookings.", "The standard gets messier on paper and much clearer in the soul of the room.", null, fx(1, 4, 4, { jake: st(1, 2), devon: st(1, 1), elena: st(1, 1) })),
+              opt("db-final-adrian-business", "Keep the future rule centered on deposits, contracts, and commercial clarity alone.", "It is defensible and efficient, but the room will quietly understand what compassion is worth when it costs money.", null, fx(2, 0, 0, { jake: st(1, 1), devon: st(-1, -1), elena: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "refrigeration-blackout",
+    category: "Food Safety",
+    pressure: "Extreme",
+    headline: "The walk-in cooler died overnight and thousands of dollars in food may no longer be safe to serve",
+    body:
+      "The repair tech is delayed, reservations are packed, and the kitchen is staring at product that might still be cold enough to use or might be one reckless gamble away from making people sick.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you turn to first?",
+        body: "This is the kind of problem that makes every later explanation sound cheap if the early judgment is weak.",
+        consultants: {
+          tasha: {
+            prompt: "Chef Renata says some of the product is gone no matter how much it hurts, and she wants leadership to say that out loud now.",
+            options: [
+              opt("rb-open-renata-safe", "Start with the strictest safe-use assumption and let Renata mark what is dead before anyone counts lost dollars.", "You choose fear over wishful thinking, which is often how safety survives.", "triage", fx(-1, 2, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
+              opt("rb-open-renata-salvage", "Push Renata to identify every borderline item that might still be saveable.", "The money pressure is real, but you start the day teaching the kitchen what kind of gamble leadership is willing to ask for.", "triage", fx(1, -1, -2, { tasha: st(-3, -4), priya: st(-1, -1), luis: st(-1, -1) }))
             ]
           },
           priya: {
-            prompt: "Imani wants one final answer she can actually trust while she is standing in the middle of a rush.", 
+            prompt: "Imani wants temperature logs, timestamps, and actual evidence before the room gets bullied by panic or optimism.",
             options: [
-              opt("cms-final-imani", "Set one launch calendar, one prep standard, and one fallback rule for every future experiment.", "It sounds rigid enough to save the room without killing the chef.", null, fx(2, 3, 4, { priya: st(2, 3), tasha: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
-              opt("cms-final-imani-handwave", "Keep the conversation inspirational and trust the kitchen to feel its way through it week by week.", "That may sound supportive, but it solves almost none of the repeated pain.", null, fx(1, -1, -2, { priya: st(-2, -3), nina: st(-1, -1) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "silverware-collapse",
-    category: "Supply Failure",
-    pressure: "High",
-    headline: "Someone ordered one fork, one knife, and one spoon instead of one hundred of each",
-    body:
-      "The new silverware shipment arrived and the entire restaurant now effectively has one place setting. The person responsible says it was a computer error. The rest of the staff says a real adult should have noticed before the order went through.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "It is funny for maybe ten seconds and then instantly becomes a full service catastrophe.",
-        consultants: {
-          elena: {
-            prompt: "Marisol handled or approved the front-of-house order flow and says the system glitched in a way nobody would have caught.",
-            options: [
-              opt("sc-open-marisol", "Walk the order trail with Marisol before deciding whether this was negligence, bad software, or both.", "You resist the urge to laugh and start with the kind of fact pattern that might actually help.", "service-improv", fx(0, 1, 2, { elena: st(1, 2), devon: st(1, 1), nina: st(0, 1) })),
-              opt("sc-open-marisol-line", "Tell Marisol a whole restaurant does not end up with one fork unless someone was not paying attention.", "The frustration is fair, but the accusation lands before the system story is tested.", "service-improv", fx(0, -1, 0, { elena: st(-2, -3), devon: st(-1, -1) }))
-            ]
-          },
-          devon: {
-            prompt: "Parker says they saw the order screen at some point and also thought something looked strange, but nobody stopped to verify it.", 
-            options: [
-              opt("sc-open-parker", "Use Parker to reconstruct who saw the order, who shrugged, and when the bad assumption became policy.", "You turn one absurd mistake into a chain-of-attention problem, which is closer to the truth.", "service-improv", fx(0, 2, 3, { devon: st(2, 3), elena: st(0, 1) })),
-              opt("sc-open-parker-protect", "Protect Parker from the blame map and focus only on the final approver.", "It keeps things cleaner politically, but maybe cleaner than the real failure deserves.", "service-improv", fx(0, 0, 0, { devon: st(1, 1), elena: st(-1, -1) }))
+              opt("rb-open-imani-logs", "Use Imani to build the fact pattern before deciding what gets dumped and what survives.", "You delay the emotional reaction long enough to find out whether the food is unsafe or merely expensive.", "triage", fx(0, 1, 3, { priya: st(2, 3), tasha: st(1, 1) })),
+              opt("rb-open-imani-fast", "Skip the deep log work and make a quick leadership call so the room can move.", "Speed feels strong until you realize it mostly means fewer facts with the same liability.", "triage", fx(1, -1, -2, { priya: st(-2, -3), tasha: st(-1, -1) }))
             ]
           }
         }
       },
-      "service-improv": {
-        title: "Now the restaurant has to survive service with almost no silverware",
-        body: "Guests still need to eat. The fix you choose now will decide whether this becomes a funny story or a humiliating one.",
+      triage: {
+        title: "Now you decide whether Feast Haven eats the loss, trims the menu, or quietly rolls the dice",
+        body: "The safest path is financially brutal. The most profitable path is morally radioactive if it goes badly.",
         consultants: {
           nina: {
-            prompt: "Celia wants a guest-facing plan immediately because the floor cannot keep saying 'we're working on it' to every table.", 
+            prompt: "Celia thinks the floor can survive a brutal menu cut if guests hear the truth before they hear excuses.",
             options: [
-              opt("sc-improv-celia", "Pivot to a visible rolling-sanitize system and explain the shortage before guests discover it by surprise.", "The room may not love it, but it respects being told the truth before the awkwardness lands.", "blame-accountability", fx(1, 2, 2, { nina: st(2, 3), jake: st(1, 1), elena: st(0, 1) })),
-              opt("sc-improv-celia-hide", "Try to quietly recycle silverware table to table and hope nobody notices the delay pattern.", "It feels slick until one frustrated table compares notes with another.", "blame-accountability", fx(1, -2, -2, { nina: st(-1, -2), jake: st(-1, -1) }))
+              opt("rb-triage-celia-cut", "Slash the menu hard, tell the room why, and stop selling anything even slightly doubtful.", "The revenue pain is immediate, but so is the relief of knowing you are not feeding people uncertainty.", "fallout", fx(-2, 3, 4, { nina: st(2, 3), jake: st(1, 1), elena: st(1, 1) })),
+              opt("rb-triage-celia-soft", "Keep the menu looking broad and quietly steer tables away from the riskiest items.", "It feels commercially clever, but one slip makes the concealment part of the crime.", "fallout", fx(1, -2, -3, { nina: st(-2, -3), jake: st(-1, -1), elena: st(-1, -1) }))
             ]
           },
-          marcus: {
-            prompt: "Omar wants the bussing loop redesigned immediately because the whole room now depends on his reset timing.", 
+          jake: {
+            prompt: "Adrian worries a huge menu collapse on a packed night will make guests feel like Feast Haven cannot run itself.",
             options: [
-              opt("sc-improv-omar", "Make bussing and reset the temporary heartbeat of the shift and reassign support to protect it.", "The dining room gets slower but far more survivable.", "blame-accountability", fx(1, 2, 3, { marcus: st(3, 4), devon: st(1, 1), nina: st(1, 1) })),
-              opt("sc-improv-omar-push", "Tell Omar to simply move faster and keep the current staffing pattern.", "It sounds decisive, but it mostly turns one bad order into burnout math.", "blame-accountability", fx(0, -1, -1, { marcus: st(-2, -3), nina: st(-1, -1) }))
+              opt("rb-triage-adrian-compete", "Use creativity to rebuild the night's menu around unquestionably safe product and sell confidence through adaptation.", "You still lose money, but not all dignity, and the room sees resilience instead of panic.", "fallout", fx(0, 2, 2, { jake: st(2, 2), nina: st(1, 1), tasha: st(0, 1) })),
+              opt("rb-triage-adrian-stretch", "Keep as much of the original menu as possible and trust the kitchen to judge close calls on the fly.", "If everyone is perfect, maybe it works. If one decision is wrong, the restaurant deserves what follows.", "fallout", fx(2, -3, -4, { jake: st(-1, -2), tasha: st(-3, -4), priya: st(-2, -3) }))
             ]
           }
         }
       },
-      "blame-accountability": {
-        title: "Once service is patched, everyone wants the same answer: who owns this",
-        body: "A funny systems error is still a systems error. The room is now watching whether leadership will solve the joke or just survive it.",
-        consultants: {
-          elena: {
-            prompt: "Marisol says she will own what is hers, but not every click that passed through three other sets of eyes too.", 
-            options: [
-              opt("sc-blame-marisol", "Treat it as a chain failure and fix the approval process instead of publicly hanging one person.", "The answer sounds grown-up enough that people may actually trust the fix.", "final-protocol", fx(1, 2, 4, { elena: st(1, 2), devon: st(1, 1), nina: st(1, 1), marcus: st(1, 1) })),
-              opt("sc-blame-marisol-direct", "Make the final approver own it publicly because someone needs to be visibly responsible.", "The room gets its villain, but maybe not its best lesson.", "final-protocol", fx(1, -1, 1, { elena: st(-3, -4), devon: st(-1, -1), nina: st(1, 1) }))
-            ]
-          },
-          devon: {
-            prompt: "Parker thinks the real embarrassment is how many people saw something odd and kept moving anyway.", 
-            options: [
-              opt("sc-blame-parker", "Use the mistake to create a two-person verification rule on every critical order.", "The room may groan, but it will never forget why the rule exists.", "final-protocol", fx(1, 2, 4, { devon: st(2, 3), elena: st(1, 1), nina: st(1, 1) })),
-              opt("sc-blame-parker-soft", "Keep the process light and trust people to be more careful after this humiliation.", "It saves time now, but invites future overconfidence.", "final-protocol", fx(1, 0, 0, { devon: st(0, 1), marcus: st(-1, -1) }))
-            ]
-          }
-        }
-      },
-      "final-protocol": {
-        title: "The final move is whether this becomes a one-night disaster or a permanent story about how Feast Haven learns",
-        body: "Staff will laugh about the one-fork night forever. The question is whether they also remember the rule that came out of it.",
+      fallout: {
+        title: "The room now understands what leadership chose to protect first",
+        body: "Staff can handle bad luck. They struggle more with discovering whether management's first reflex under pressure is caution, image, or margin.",
         consultants: {
           marcus: {
-            prompt: "Omar wants the last move to respect how much hidden labor carried the room through this absurd shift.", 
+            prompt: "Omar says the bussing and support crew will be the ones cleaning up the guest experience if leadership tried to act normal on a broken night.",
             options: [
-              opt("sc-final-omar", "Create a supply verification ritual and credit the support staff who kept service from collapsing entirely.", "The fix lands stronger because it honors both the lesson and the people who saved the room.", null, fx(2, 3, 4, { marcus: st(2, 3), devon: st(1, 1), nina: st(1, 1), elena: st(1, 1) })),
-              opt("sc-final-omar-funny", "Lean into the comedy of the night and trust the staff to remember the embarrassment on their own.", "It may become a legendary story, but not necessarily a better system.", null, fx(1, 0, -1, { marcus: st(-1, -1), devon: st(-1, -1) }))
+              opt("rb-fallout-omar-support", "Rebuild staffing and pacing around the reduced menu so the room does not break itself trying to fake normal.", "It is a quieter, smaller night, but a much more honest one.", "final", fx(0, 3, 3, { marcus: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
+              opt("rb-fallout-omar-pressure", "Keep the room running hot and ask support staff to absorb the weirdness as best they can.", "The night may look fuller from a distance, but the hidden labor will remember who was asked to carry the lie.", "final", fx(1, -2, -2, { marcus: st(-3, -4), devon: st(-1, -1) }))
             ]
           },
           elena: {
-            prompt: "Marisol wants to recover her credibility without pretending the order was no big deal.", 
+            prompt: "Marisol says guests will forgive scarcity faster than they forgive feeling tricked.",
             options: [
-              opt("sc-final-marisol", "Own the miss, help design the new verification path, and make the process correction part of your leadership reset.", "It gives the room a reason to trust that the embarrassment produced an adult response.", null, fx(2, 2, 3, { elena: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
-              opt("sc-final-marisol-protect", "Contain the blame tightly and move on once the new silverware finally arrives.", "The immediate wound may close, but the cultural lesson stays blurry.", null, fx(1, -1, -1, { elena: st(-1, -2), devon: st(-1, -1) }))
-            ]
-          }
-        }
-      }
-    }
-  },
-  {
-    id: "dirty-dishes-war",
-    category: "Operations Conflict",
-    pressure: "High",
-    headline: "Dirty dishes keep landing in front of guests and now the whole service chain is at war",
-    body:
-      "Plates are coming back with spots, lipstick, or stuck-on grime. The dish side says kitchen plates are impossible to wash when they come back caked. The floor says guests should never be the ones catching it. The kitchen is furious at both of them.",
-    rootNodeId: "opening",
-    nodes: {
-      opening: {
-        title: "Who do you talk to first?",
-        body: "The problem touches every handoff in the building, which is why nobody feels fully guilty and everybody feels fully annoyed.",
-        consultants: {
-          marcus: {
-            prompt: "Omar says the dishes are being sent back filthy enough to require a miracle, not a rinse cycle.", 
-            options: [
-              opt("ddw-open-omar", "Walk the dish flow with Omar and see exactly what is hitting the pit and what is leaving it.", "You start where the hidden labor lives, which usually makes the truth show up faster.", "handoff-failure", fx(0, 2, 3, { marcus: st(2, 3), tasha: st(-1, -1), nina: st(0, 1) })),
-              opt("ddw-open-omar-floor", "Tell Omar guest-visible dirty plates matter more than how impossible the pit feels right now.", "The guest standard is right, but the pit hears it as leadership seeing only the end of the chain.", "guest-embarrassment", fx(0, -1, 0, { marcus: st(-2, -3), nina: st(1, 1) }))
-            ]
-          },
-          nina: {
-            prompt: "Celia says the floor is catching the embarrassment while everyone else debates texture, grease, and excuses.", 
-            options: [
-              opt("ddw-open-celia", "Start with the guest-facing failures and document exactly what tables are seeing.", "The room gets immediate validation that guest embarrassment is not a side issue.", "handoff-failure", fx(0, 1, 2, { nina: st(2, 3), marcus: st(-1, -1), tasha: st(0, 1) })),
-              opt("ddw-open-celia-blame", "Treat the dish pit as the primary failure until someone proves otherwise.", "The simplicity feels satisfying right up until the rest of the chain pushes back hard.", "guest-embarrassment", fx(0, -1, -1, { nina: st(1, 1), marcus: st(-3, -4), tasha: st(-1, -1) }))
+              opt("rb-fallout-marisol-transparent", "Tell the affected tables there was a refrigeration failure and Feast Haven chose safety over pretending.", "You may look wounded, but not dishonest, and that matters more than a polished lie.", "final", fx(0, 2, 4, { elena: st(2, 3), nina: st(1, 1), jake: st(-1, -1) })),
+              opt("rb-fallout-marisol-vague", "Use softer 'supply issue' language and protect the restaurant from sounding operationally broken.", "It preserves image in the short term while quietly betting that nobody asks the next question.", "final", fx(1, 0, -1, { elena: st(0, 1), nina: st(-1, -1) }))
             ]
           }
         }
       },
-      "handoff-failure": {
-        title: "The restaurant is discovering that every station is dirty in a different way",
-        body: "Kitchen sends back rough plates, dish is rushed, and floor checks are inconsistent. The problem survives because each step thinks the next one should catch it.",
+      final: {
+        title: "The last call is what Feast Haven teaches itself about risk when money and safety collide",
+        body: "Every restaurant says guest safety comes first. The room has now watched what that sentence costs when it is suddenly true.",
         consultants: {
           tasha: {
-            prompt: "Chef Renata wants the kitchen held accountable for what hits the pit without pretending the dish side gets a free pass.", 
+            prompt: "Chef Renata wants a future rule that makes the expensive call easier, not just nobler, next time.",
             options: [
-              opt("ddw-handoff-renata", "Set a scrape-and-rinse standard before anything leaves kitchen hands for the pit.", "The kitchen hates it at first, which is usually how you know the standard mattered.", "guest-embarrassment", fx(1, 2, 4, { tasha: st(1, 2), marcus: st(2, 2), priya: st(1, 1), luis: st(1, 1) })),
-              opt("ddw-handoff-renata-pit", "Leave the kitchen flow alone and force dish to improve under the current mess load.", "That keeps the line moving, but asks the pit to solve everybody else's bad habits.", "guest-embarrassment", fx(1, -1, -1, { tasha: st(1, 1), marcus: st(-3, -4) }))
+              opt("rb-final-renata-rule", "Create a hard discard standard and emergency backup menu so no one ever has to negotiate safety from scratch again.", "You pay for the lesson in systems now instead of panic later.", null, fx(1, 4, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1), nina: st(1, 1) })),
+              opt("rb-final-renata-flex", "Keep more discretion in the hands of leadership so you can stay nimble during future shortages.", "That preserves freedom, but also preserves the temptation to talk yourself into risk when the dollars get loud.", null, fx(2, -1, -2, { tasha: st(-2, -3), priya: st(-1, -1), nina: st(-1, -1) }))
+            ]
+          },
+          priya: {
+            prompt: "Imani wants the room to know that evidence, not appetite, decides what stays on the line after a failure like this.",
+            options: [
+              opt("rb-final-imani-evidence", "Build the recovery standard around logs, temps, timestamps, and written approval, even if it feels bureaucratic.", "It is colder on paper and warmer for the people eating the food.", null, fx(1, 3, 4, { priya: st(2, 3), tasha: st(1, 1), marcus: st(1, 1) })),
+              opt("rb-final-imani-instinct", "Trust stronger judgment and better leadership attention next time instead of heavier rules.", "That sounds mature until stress, cost, and hope all show up together again.", null, fx(2, -1, -2, { priya: st(-2, -3), tasha: st(-1, -1), marcus: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "fake-id-liquor-night",
+    category: "Alcohol Liability",
+    pressure: "Extreme",
+    headline: "A guest with a fake ID was served alcohol and now there is video of the room realizing they might be underage",
+    body:
+      "The ID looked decent, the guest looked young in hindsight, and someone at a nearby table started filming the second the argument broke out. This can become a legal issue, a staffing issue, and a reputation issue before dessert.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you handle first?",
+        body: "The teenager, the server, the phone camera, and the rest of the dining room all feel urgent at once.",
+        consultants: {
+          nina: {
+            prompt: "Celia says the ID scanned, the table pressured her, and she is now terrified this mistake will follow her forever.",
+            options: [
+              opt("fi-open-celia-facts", "Get the serving sequence from Celia immediately before fear rewrites her memory.", "You center the facts first, which is kinder than it feels and safer than panic.", "triage", fx(0, 1, 2, { nina: st(1, 2), devon: st(1, 1), jake: st(0, 1) })),
+              opt("fi-open-celia-pull", "Pull Celia off the floor immediately and treat the whole thing like a probable serve-to-minor incident.", "It protects the room and the law, but also tells Celia you may already be done believing her.", "triage", fx(0, 0, 1, { nina: st(-3, -4), devon: st(1, 1) }))
             ]
           },
           devon: {
-            prompt: "Parker says the floor also needs a final plate check because no guest should be the true last quality control step.", 
+            prompt: "Parker thinks the filming is about to turn a messy judgment call into content.",
             options: [
-              opt("ddw-handoff-parker", "Build a quick plate-check habit into the floor handoff before anything touches the table.", "It adds seconds, but saves the room from full public embarrassment.", "guest-embarrassment", fx(1, 3, 3, { devon: st(2, 3), nina: st(1, 1), jake: st(1, 1) })),
-              opt("ddw-handoff-parker-speed", "Keep the floor moving fast and trust kitchen-plus-dish to solve it upstream.", "The pacing survives, but so do the ugly surprises.", "guest-embarrassment", fx(1, -1, -2, { devon: st(-1, -1), nina: st(-1, -1) }))
+              opt("fi-open-parker-room", "Use Parker to separate the filming table from the underage dispute before the whole room turns into an audience.", "You stop the spectacle from multiplying while the legal facts are still fragile.", "triage", fx(0, 2, 2, { devon: st(2, 3), elena: st(1, 1), jake: st(1, 1) })),
+              opt("fi-open-parker-focus", "Ignore the filming for now and treat the underage service question as the only issue that matters.", "Legally, that may be true. Socially, the camera is becoming its own problem in real time.", "triage", fx(1, -1, -2, { devon: st(-1, -1), elena: st(-1, -1) }))
             ]
           }
         }
       },
-      "guest-embarrassment": {
-        title: "Now guests are part of the story and the room wants visible control back",
-        body: "The staff conflict is no longer private. Dirty plates change how guests read the entire restaurant, not just the dish station.",
+      triage: {
+        title: "Now you choose between maximum legal caution and maximum room control",
+        body: "The strictest path may inflame the room. The smoothest path may look like concealment later.",
         consultants: {
           jake: {
-            prompt: "Adrian wants a recovery move that protects tables now, even if the internal fix takes another day to fully land.", 
+            prompt: "Adrian wants the alcohol off the table, the guest out of the room, and the rest of service saved before this becomes theater.", 
             options: [
-              opt("ddw-guest-adrian", "Comp affected tables, apologize directly, and slow the service chain just enough to protect the next hour.", "The room may lose some speed, but it stops bleeding dignity in public.", "final-standard", fx(1, 4, 3, { jake: st(2, 2), nina: st(1, 1), marcus: st(1, 1) })),
-              opt("ddw-guest-adrian-quiet", "Handle complaints table by table and avoid turning the issue into a whole-room slowdown.", "That can work if the dirty plates stop immediately. If they do not, the damage doubles.", "final-standard", fx(1, 0, 0, { jake: st(1, 1), nina: st(-1, -1) }))
+              opt("fi-triage-adrian-clean", "End the service immediately, remove the drinks, and move the table out before the rest of the room learns more than it should.", "The visible control is strong, but the guest may feel pushed instead of handled with proper care.", "fallout", fx(0, 1, 2, { jake: st(2, 2), devon: st(1, 1), nina: st(0, 1) })),
+              opt("fi-triage-adrian-soft", "Keep the scene calm, verify the ID issue further, and avoid turning the whole room into a legal stage.", "It sounds humane, but can look dangerously slow if the guest truly is underage.", "fallout", fx(1, -2, -2, { jake: st(-1, -1), nina: st(-1, -2), devon: st(-1, -1) }))
             ]
           },
-          marcus: {
-            prompt: "Omar wants the pit protected from becoming the single scapegoat for a three-stage failure.", 
+          elena: {
+            prompt: "Marisol thinks the restaurant has to look serious enough that no clip can plausibly accuse it of shrugging this off.",
             options: [
-              opt("ddw-guest-omar", "Frame the problem as a full-chain reset and make each station own one non-negotiable check.", "It sounds less dramatic than blame, but much more likely to survive next week.", "final-standard", fx(1, 2, 4, { marcus: st(2, 3), tasha: st(1, 1), devon: st(1, 1), nina: st(1, 1) })),
-              opt("ddw-guest-omar-pit", "Put the burden mainly on dish because guests do not care how the grime got there.", "The logic is clean, but the culture gets uglier instantly.", "final-standard", fx(1, -1, -1, { marcus: st(-3, -4), tasha: st(1, 1), nina: st(1, 1) }))
+              opt("fi-triage-marisol-serious", "Document everything, preserve the scan record, and make a visible managerial intervention that leaves no doubt this is being treated as real.", "You lose some vibe, but gain a cleaner public posture if the video spreads.", "fallout", fx(0, 2, 3, { elena: st(2, 3), devon: st(1, 1), nina: st(0, 1) })),
+              opt("fi-triage-marisol-mask", "Keep the intervention discreet so the room can keep pretending this was just a weird ID check at dinner.", "It may soften the moment, but only if nobody later asks why the room looked so determined not to notice.", "fallout", fx(1, -1, -2, { elena: st(-1, -2), devon: st(-1, -1) }))
             ]
           }
         }
       },
-      "final-standard": {
-        title: "The final move decides whether this becomes a quality standard or just another ugly service memory",
-        body: "Everyone now agrees the problem is real. The last question is whether the restaurant fixes the chain or only the loudest symptom.",
+      fallout: {
+        title: "The bigger question is whether this was a mistake, a systems gap, or a standard you were hoping luck would carry",
+        body: "The camera may move on. The staff will not. They are deciding whether ID policy at Feast Haven is real or performative.",
         consultants: {
-          tasha: {
-            prompt: "Chef Renata wants one full-chain standard, not a vague promise that everyone will try harder next time.", 
+          priya: {
+            prompt: "Imani wants the room to admit that 'it scanned' and 'it was safe' are not the same sentence.", 
             options: [
-              opt("ddw-final-renata", "Create a three-stop cleanliness standard: kitchen scrape, dish clarity, floor check.", "It is operationally obvious enough to actually outlive the argument.", null, fx(2, 3, 4, { tasha: st(2, 3), marcus: st(2, 2), devon: st(1, 1), nina: st(1, 1) })),
-              opt("ddw-final-renata-hard", "Punish the most visibly responsible people and trust the rest of the chain to self-correct.", "The blame lands, but the process still leaks.", null, fx(1, -1, -1, { tasha: st(-1, -1), marcus: st(-2, -2), nina: st(-1, -1) }))
+              opt("fi-fallout-imani-standard", "Tighten ID verification beyond scanning and require second-eyes review on borderline guests.", "It is slower and far more defensible, which is exactly the point.", "final", fx(1, 3, 4, { priya: st(2, 3), nina: st(1, 1), devon: st(1, 1) })),
+              opt("fi-fallout-imani-blame", "Treat this mainly as a server mistake and avoid overcomplicating the alcohol standard for everyone else.", "You get clarity fast, but maybe the wrong kind of clarity.", "final", fx(1, -1, -1, { priya: st(-1, -1), nina: st(-2, -3), devon: st(-1, -1) }))
             ]
           },
-          devon: {
-            prompt: "Parker wants guests to feel the restaurant got more serious, not more defensive.", 
+          nina: {
+            prompt: "Celia wants to know whether leadership understands how much social pressure lives inside an 'obvious' ID decision during a rush.", 
             options: [
-              opt("ddw-final-parker", "Pair the internal standard with one quiet guest-recovery protocol so embarrassment never lingers unanswered.", "The fix feels complete because it respects both the operation and the guest memory.", null, fx(2, 4, 4, { devon: st(2, 3), jake: st(1, 1), nina: st(1, 1), marcus: st(1, 1) })),
-              opt("ddw-final-parker-speed", "Restore full pace quickly and trust the new standards to work without much extra visibility.", "That may save time, but not necessarily confidence.", null, fx(1, 0, 0, { devon: st(0, 1), nina: st(-1, -1) }))
+              opt("fi-fallout-celia-coach", "Discipline the serve, but rebuild the culture so staff know management would rather absorb awkwardness than risk this again.", "The consequence lands without teaching the floor that smoothness matters more than law.", "final", fx(1, 2, 3, { nina: st(0, 1), jake: st(1, 1), devon: st(1, 1) })),
+              opt("fi-fallout-celia-harsh", "Make Celia the warning and lean on fear to tighten every future alcohol call.", "People may get stricter, but not necessarily wiser or more supported.", "final", fx(1, -2, -2, { nina: st(-4, -4), jake: st(-1, -1), devon: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      final: {
+        title: "The last move is whether Feast Haven chooses comfort, fear, or a real standard",
+        body: "A room can get faster after a scare, or safer after a scare. Sometimes those are not the same direction.",
+        consultants: {
+          devon: {
+            prompt: "Parker wants a clear alcohol standard that protects the room without making staff feel abandoned when guests push back.", 
+            options: [
+              opt("fi-final-parker-protocol", "Create a hard stop policy with visible manager backup anytime age feels remotely questionable.", "You may lose a few easy sales, but you stop asking frontline people to guess the legal line alone.", null, fx(1, 4, 4, { devon: st(2, 3), nina: st(1, 2), elena: st(1, 1) })),
+              opt("fi-final-parker-flex", "Keep more discretion at table level so the room can still feel smooth and adult when IDs get awkward.", "That preserves grace better than certainty.", null, fx(2, -1, -2, { devon: st(-2, -3), nina: st(-1, -2), elena: st(-1, -1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol wants the public-facing recovery to sound calm without sounding casual about the law.", 
+            options: [
+              opt("fi-final-marisol-public", "Pair the stronger alcohol standard with a direct internal message that Feast Haven would rather be embarrassed than illegal.", "The room may laugh nervously, but nobody will mistake the hierarchy of what matters.", null, fx(1, 3, 4, { elena: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
+              opt("fi-final-marisol-quiet", "Keep the standard stronger but the messaging softer so the restaurant can move on quickly.", "It reduces fatigue, though it also risks shrinking the lesson into folklore instead of policy and leaving the floor unsure whether leadership is embarrassed or merely eager to forget.", null, fx(1, -2, -2, { elena: st(0, 0), devon: st(-1, -2), nina: st(-1, -2) }))
             ]
           }
         }
@@ -836,90 +563,363 @@ module.exports = [
     }
   },
   {
-    id: "food-heaven-rivalry",
-    category: "Competitive Threat",
+    id: "cash-drawer-accusation",
+    category: "Trust Breach",
     pressure: "High",
-    headline: "A new restaurant called FOOD HEAVEN just opened across the street and the whole staff is rattled",
+    headline: "The front register is short $1,400 and two trusted employees are quietly blaming each other",
     body:
-      "The new place is visible from Feast Haven's front windows. Some staff are openly competitive. Some are anxious. Some are already wondering whether the better opportunity might be across the street. The room feels jumpy and personal.",
+      "The shortage is large enough to matter, small enough to create doubt, and ugly enough to poison the room. No one has proof. Everyone has a theory. The wrong move could punish innocence or reward theft.",
     rootNodeId: "opening",
     nodes: {
       opening: {
-        title: "Who do you talk to first?",
-        body: "A rival can energize a restaurant or hollow it out from the inside before the first guest even defects.",
+        title: "Who do you start with?",
+        body: "This is not just a money problem. It is a room-poison problem and a fairness problem at the same time.",
         consultants: {
           elena: {
-            prompt: "Marisol wants Feast Haven to respond visibly and confidently before FOOD HEAVEN defines the story for both restaurants.", 
+            prompt: "Marisol says she closed the register cleanly and thinks someone touched the cash after the host stand handed it off.",
             options: [
-              opt("fhr-open-marisol", "Start with Marisol and map how the room is reading the competitor from the front door out.", "You begin with mood, optics, and what guests are already quietly comparing.", "staff-anxiety", fx(1, 1, 2, { elena: st(2, 3), devon: st(1, 1), jake: st(1, 1) })),
-              opt("fhr-open-marisol-line", "Tell Marisol this only matters if guests actually leave and refuse to feed the panic early.", "The calm is intentional, but the room may hear it as denial instead of steadiness.", "staff-anxiety", fx(0, -1, -1, { elena: st(-1, -2), devon: st(-1, -1) }))
+              opt("cd-open-marisol-trace", "Rebuild the cash handoff from Marisol's side before anyone gets labeled a liar.", "You choose process before accusation, which is slower and safer.", "triage", fx(0, 1, 2, { elena: st(2, 3), devon: st(1, 1), marcus: st(0, 1) })),
+              opt("cd-open-marisol-believe", "Back Marisol's version early because she has earned trust and the shortage is too large to shrug off.", "You honor history, but history is not evidence, and the room knows it.", "triage", fx(0, -1, -1, { elena: st(2, 2), devon: st(-1, -2), marcus: st(-1, -1) }))
             ]
           },
-          tasha: {
-            prompt: "Chef Renata takes the rival personally and says the only answer is to out-execute them every single night.", 
+          devon: {
+            prompt: "Parker says they touched the area briefly but did not take anything and now feel like the flexible person is about to become the convenient suspect.",
             options: [
-              opt("fhr-open-renata", "Let Renata explain where the kitchen can realistically compete without burning itself alive.", "You respect the pride without blindly swallowing the adrenaline.", "staff-anxiety", fx(1, 1, 2, { tasha: st(2, 3), luis: st(1, 1), priya: st(1, 1) })),
-              opt("fhr-open-renata-push", "Back Renata's urgency and tell the team this is war now.", "The energy spike is real, but so is the risk that fear becomes policy.", "staff-anxiety", fx(2, -1, -2, { tasha: st(2, 2), luis: st(1, 1), priya: st(-1, -1), devon: st(-1, -1) }))
+              opt("cd-open-parker-timeline", "Get Parker's exact movements and who else floated through the zone before the cash was locked.", "You stop the room from turning flexibility into automatic guilt.", "triage", fx(0, 1, 2, { devon: st(2, 3), elena: st(0, 1), marcus: st(0, 1) })),
+              opt("cd-open-parker-distance", "Pull Parker off sensitive duties immediately until the shortage is resolved.", "It protects the drawer but also feels suspiciously close to a verdict.", "triage", fx(0, -1, 0, { devon: st(-3, -4), elena: st(1, 1) }))
             ]
           }
         }
       },
-      "staff-anxiety": {
-        title: "The bigger problem is not guests leaving first, it is staff imagining a future without Feast Haven",
-        body: "People are comparing, speculating, and projecting their own frustrations onto the competitor. That makes every normal shift problem feel sharper.",
+      triage: {
+        title: "Now you must choose whether privacy, certainty, or speed matters most",
+        body: "Searching people may be humiliating. Waiting may destroy evidence. Quietly eating the loss may reward whoever took it, if anyone did.",
+        consultants: {
+          marcus: {
+            prompt: "Omar says support staff already assume leadership will search the people with the least power first.", 
+            options: [
+              opt("cd-triage-omar-audit", "Lock the area down, review access, receipts, and time stamps, and refuse any bag searches without stronger cause.", "It preserves dignity, but may cost you the fastest path to an answer.", "fallout", fx(-1, 2, 3, { marcus: st(2, 3), devon: st(1, 1), elena: st(1, 1) })),
+              opt("cd-triage-omar-search", "Require immediate bag checks for anyone who touched the register zone.", "You may catch something, but you also teach the room what trust is worth the second cash goes missing.", "fallout", fx(0, -3, -3, { marcus: st(-3, -4), devon: st(-2, -3), elena: st(-2, -2) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks if you look indecisive, the whole staff will start writing their own scandal around the shortage.", 
+            options: [
+              opt("cd-triage-adrian-firm", "Suspend access, name the seriousness of the theft possibility, and make it clear the room is under review.", "The tone is strong, though not necessarily fair enough to keep innocent people steady.", "fallout", fx(0, -1, -1, { jake: st(2, 2), elena: st(-1, -1), devon: st(-1, -1) })),
+              opt("cd-triage-adrian-loss", "Absorb the shortage for now and avoid a public manhunt without better proof.", "You protect the room from humiliation, but maybe not from the lesson that theft is survivable.", "fallout", fx(-2, 1, -1, { jake: st(-1, -1), marcus: st(1, 1), devon: st(1, 1) }))
+            ]
+          }
+        }
+      },
+      fallout: {
+        title: "The staff now care less about the missing money than what your investigation says about justice",
+        body: "The room can survive financial loss. It struggles more when leadership looks either weak, biased, or casually willing to humiliate its own people.",
         consultants: {
           nina: {
-            prompt: "Celia thinks the staff need a believable internal plan or they will start treating every rough shift as proof the other place is better.", 
+            prompt: "Celia says front-of-house trust will rot fast if this becomes a vibes-based witch hunt.", 
             options: [
-              opt("fhr-anxiety-celia", "Address the team directly and define what Feast Haven will compete on besides panic and pride.", "The room gets a real internal narrative instead of rumor and insecurity.", "guest-battle", fx(1, 3, 4, { nina: st(2, 3), devon: st(1, 1), elena: st(1, 1) })),
-              opt("fhr-anxiety-celia-silent", "Keep the staff talk minimal and focus only on guest-facing execution.", "You avoid overdramatizing it, but leave too much fear to breed quietly.", "guest-battle", fx(1, 0, 0, { nina: st(-1, -1), devon: st(-1, -1) }))
+              opt("cd-fallout-celia-standard", "Create a cash-control standard immediately so the investigation is attached to a future fix, not just raw suspicion.", "The room hates the tighter controls less because they can at least see the lesson forming.", "final", fx(0, 2, 3, { nina: st(2, 3), elena: st(1, 1), devon: st(1, 1) })),
+              opt("cd-fallout-celia-whisper", "Keep the investigation narrow and discreet so the room does not spiral any further.", "It may lower noise, but also leaves people free to imagine whatever version of the truth wounds them most.", "final", fx(0, -1, -1, { nina: st(-1, -2), elena: st(-1, -1), devon: st(-1, -1) }))
             ]
           },
-          luis: {
-            prompt: "Theo is half-competitive and half-curious whether FOOD HEAVEN might actually value the kitchen more.", 
+          elena: {
+            prompt: "Marisol wants to know whether earned trust still counts for anything when the room gets ugly.", 
             options: [
-              opt("fhr-anxiety-theo", "Treat Theo's curiosity seriously and talk about what would make the current kitchen worth staying loyal to.", "The conversation gets more honest than the usual 'be grateful you work here' line.", "guest-battle", fx(0, 2, 2, { luis: st(2, 3), tasha: st(1, 1), priya: st(1, 1) })),
-              opt("fhr-anxiety-theo-loyalty", "Shut down any talk of leaving and frame it as disloyal during a competitive moment.", "It may sound strong, but insecurity rarely gets healthier when cornered.", "guest-battle", fx(1, -2, -2, { luis: st(-3, -4), tasha: st(1, 1), priya: st(-1, -1) }))
+              opt("cd-fallout-marisol-balance", "Say trust matters, but not enough to replace evidence, and hold everyone to the same process.", "It is not especially comforting, but it is fair in a way the room can understand.", "final", fx(1, 2, 4, { elena: st(1, 2), devon: st(1, 2), marcus: st(1, 1) })),
+              opt("cd-fallout-marisol-status", "Quietly weigh long-term loyalty more heavily than weaker staff standing when interpreting the evidence.", "It may feel practical, but the room will eventually learn what kind of hierarchy you really believe in.", "final", fx(1, -2, -3, { elena: st(1, 1), devon: st(-2, -3), marcus: st(-2, -2) }))
             ]
           }
         }
       },
-      "guest-battle": {
-        title: "Now the question is whether Feast Haven responds with identity, fear, or theater",
-        body: "Guests are already comparing menus, energy, and staff mood. One bad overreaction could make FOOD HEAVEN look stronger than they actually are.",
+      final: {
+        title: "The last move is deciding what Feast Haven values more: trust, proof, or deterrence",
+        body: "A room that loses cash can recover. A room that loses faith in justice usually recovers much slower.",
         consultants: {
-          jake: {
-            prompt: "Adrian wants a visible answer that makes the room feel alive and confident again, not defensive and twitchy.", 
+          devon: {
+            prompt: "Parker wants a system where flexible staff are not forever one shortage away from becoming the easiest suspect.", 
             options: [
-              opt("fhr-battle-adrian", "Launch a calm, confident floor campaign built around what Feast Haven already does well.", "The room stops feeling hunted and starts sounding intentional again.", "final-position", fx(3, 2, 3, { jake: st(2, 3), elena: st(1, 1), nina: st(1, 1) })),
-              opt("fhr-battle-adrian-fomo", "Mirror the rival aggressively and try to beat them move for move right away.", "It may feel exciting, but it also makes Feast Haven look reactive instead of sure of itself.", "final-position", fx(2, -1, -2, { jake: st(1, 1), elena: st(-1, -1), tasha: st(-1, -1) }))
+              opt("cd-final-parker-system", "Install stronger cash controls, dual verification, and cleaner shift boundaries so future suspicion has less room to breathe.", "You do not solve human nature, but you make it much harder to weaponize ambiguity.", null, fx(1, 3, 4, { devon: st(2, 3), elena: st(1, 1), nina: st(1, 1), marcus: st(1, 1) })),
+              opt("cd-final-parker-fear", "Lean on deterrence, surveillance, and zero-trust language so everyone feels the danger of touching cash carelessly.", "It may reduce theft and increase resentment in almost equal measure.", null, fx(1, -2, -1, { devon: st(-2, -3), marcus: st(-1, -2), nina: st(-1, -1) }))
+            ]
+          },
+          marcus: {
+            prompt: "Omar wants the final lesson to protect innocent people at least as much as it protects dollars.", 
+            options: [
+              opt("cd-final-omar-dignity", "Make dignity part of the rule: stronger controls, clearer proof thresholds, and no humiliating shortcuts without cause.", "The room still fears theft, but not quite as much as it fears leadership anymore.", null, fx(0, 4, 4, { marcus: st(2, 3), devon: st(1, 1), elena: st(1, 1) })),
+              opt("cd-final-omar-hardline", "Teach that money missing will always trigger an aggressive response because softness invites more of it.", "That may be true, but the room will now define safety and fear in very similar terms.", null, fx(2, -1, -1, { marcus: st(-2, -3), devon: st(-1, -2), elena: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "influencer-review-shakedown",
+    category: "Reputation Extortion",
+    pressure: "High",
+    headline: "A local influencer says she will bury Feast Haven online unless the restaurant comps her whole party and gives private kitchen access",
+    body:
+      "She has a large local following, enough reach to hurt, and exactly the kind of smirk that tells you she has done this before. If you fold, the room learns one lesson. If you refuse, the internet may learn another.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you bring in first?",
+        body: "This is part marketing problem, part ethics problem, and part courage problem.",
+        consultants: {
+          elena: {
+            prompt: "Marisol says the influencer can absolutely wound the room online, but rewarding extortion teaches a worse lesson if word gets around.", 
+            options: [
+              opt("ir-open-marisol-read", "Let Marisol assess whether this is bluff, ego, or a practiced shakedown before you answer.", "You start by reading the threat instead of merely reacting to it.", "triage", fx(0, 1, 2, { elena: st(2, 3), jake: st(1, 1), devon: st(1, 1) })),
+              opt("ir-open-marisol-hard", "Tell Marisol the restaurant will not be blackmailed and should answer with immediate firmness.", "The principle is clean. The consequences might not be, especially if firmness gets read as vanity instead of control.", "triage", fx(0, -2, -3, { elena: st(1, 1), jake: st(1, 1), devon: st(-1, -2) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks the optics are brutal if the influencer posts first and frames Feast Haven as rude, cheap, and scared.", 
+            options: [
+              opt("ir-open-adrian-room", "Map the guest-facing risk with Adrian before deciding how much public damage the room can absorb.", "You treat the threat like a reputational event instead of a personal insult.", "triage", fx(0, 1, 2, { jake: st(2, 2), elena: st(1, 1) })),
+              opt("ir-open-adrian-pride", "Refuse to let fear of a review control the answer at all.", "That protects dignity beautifully and strategy only if the review truly does not land. If it does, the room may discover leadership chose pride over positioning.", "triage", fx(1, -2, -3, { jake: st(1, 1), elena: st(-1, -2), devon: st(-1, -2) }))
+            ]
+          }
+        }
+      },
+      triage: {
+        title: "Now you must choose whether to pay the ransom, hold the line, or do something uncomfortably in between",
+        body: "A free meal is cheap. A public precedent is not. Neither is a nasty viral narrative if she decides to swing.",
+        consultants: {
+          nina: {
+            prompt: "Celia thinks a polite refusal with a legitimate hospitality offer is the only way to stay principled without sounding petty.", 
+            options: [
+              opt("ir-triage-celia-middle", "Offer a normal service recovery path but refuse any special treatment tied to review pressure.", "You stay polite without rewarding the tactic itself.", "fallout", fx(0, 2, 2, { nina: st(2, 3), elena: st(1, 1), jake: st(0, 1) })),
+              opt("ir-triage-celia-comp", "Comp most of the experience quietly and hope the review threat disappears with the bill.", "You may save the night, but the room just watched extortion work in real time.", "fallout", fx(-1, 0, -2, { nina: st(-2, -3), elena: st(-1, -1), jake: st(-1, -1) }))
             ]
           },
           tasha: {
-            prompt: "Chef Renata wants the kitchen to answer with quality and pacing, not gimmicky panic.", 
+            prompt: "Chef Renata is furious that somebody demanding leverage thinks the kitchen is a prop for content.", 
             options: [
-              opt("fhr-battle-renata", "Compete by tightening execution, reducing avoidable mistakes, and letting the room feel sharper for a week.", "It is not flashy, but it is the kind of answer staff can actually sustain.", "final-position", fx(2, 3, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1) })),
-              opt("fhr-battle-renata-war", "Push the kitchen into a prove-yourself sprint and dare them to outwork the competitor immediately.", "The pride lands, but so does the fatigue.", "final-position", fx(2, -1, -1, { tasha: st(2, 2), priya: st(-1, -1), luis: st(0, 1) }))
+              opt("ir-triage-renata-boundary", "Refuse the private access completely and make it clear the kitchen is not available for coercive perks.", "The boundary is morally obvious and commercially dangerous in exactly the right ratio.", "fallout", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
+              opt("ir-triage-renata-show", "Give limited kitchen access if it is the price of keeping the room out of an ugly online war.", "The problem may calm down, but the kitchen will remember what got traded away to buy quiet.", "fallout", fx(1, -1, -2, { tasha: st(-3, -4), priya: st(-1, -1), luis: st(-1, -1) }))
             ]
           }
         }
       },
-      "final-position": {
-        title: "The final move is what story Feast Haven tells itself about competition",
-        body: "A rival restaurant changes things most when your own staff start narrating your weaknesses for you. The last move has to change that story.",
+      fallout: {
+        title: "The room now understands whether Feast Haven is brave, strategic, or merely lucky",
+        body: "If she posts, you need a response. If she does not, the staff still saw what happened and drew conclusions about your backbone.",
         consultants: {
-          elena: {
-            prompt: "Marisol wants the front of house to feel proud again, not like it is secretly waiting to lose the comparison.", 
+          devon: {
+            prompt: "Parker thinks the staff will tolerate almost any public outcome better than they will tolerate leadership feeling purchasable.", 
             options: [
-              opt("fhr-final-marisol", "Unify the room around one identity: warmer service, steadier standards, and zero panic theater.", "The restaurant does not need to be louder than the rival if it sounds more sure of itself.", null, fx(3, 4, 4, { elena: st(2, 3), devon: st(1, 2), nina: st(1, 1), jake: st(1, 1) })),
-              opt("fhr-final-marisol-prove", "Keep the rivalry front and center and turn every preshift into an anti-FOOD-HEAVEN speech.", "That can energize some people, but also exhaust everyone else fast.", null, fx(2, -1, -1, { elena: st(1, 1), devon: st(-1, -1), nina: st(-1, -1) }))
+              opt("ir-fallout-parker-principle", "Tell the team directly that Feast Haven may absorb some reputational pain, but it will not reward extortion as policy.", "The room may not feel safer, but it does feel less ashamed.", "final", fx(0, 3, 3, { devon: st(2, 3), elena: st(1, 1), jake: st(1, 1) })),
+              opt("ir-fallout-parker-results", "Keep the internal message pragmatic and focused on minimizing online fallout, not grand principles.", "That may sound mature, though it leaves the staff to decide for themselves what leadership just sold.", "final", fx(1, 0, -1, { devon: st(-1, -1), elena: st(-1, -1) }))
             ]
           },
-          luis: {
-            prompt: "Theo wants to know whether the restaurant will compete hard enough to be worth staying loyal to.", 
+          elena: {
+            prompt: "Marisol thinks if a review does hit, the reply has to sound calm and adult instead of petty and wounded.", 
             options: [
-              opt("fhr-final-theo", "Show the staff a real improvement plan so loyalty feels earned, not demanded.", "The room settles because the future stops sounding like empty pride and starts sounding like direction.", null, fx(2, 3, 3, { luis: st(2, 3), priya: st(1, 1), tasha: st(1, 1), nina: st(1, 1) })),
-              opt("fhr-final-theo-loyalty", "Demand loyalty first and promise the restaurant will figure out the rest through attitude.", "That may sound bold, but mostly to the people who are not the most tempted to leave.", null, fx(1, -2, -2, { luis: st(-3, -4), devon: st(-1, -1), nina: st(-1, -1) }))
+              opt("ir-fallout-marisol-public", "Respond publicly with facts, professionalism, and a visible refusal to bargain under pressure.", "The tone may not win the whole internet, but it gives the room a spine worth standing behind.", "final", fx(0, 2, 4, { elena: st(2, 3), jake: st(1, 1), devon: st(1, 1) })),
+              opt("ir-fallout-marisol-ignore", "Say nothing publicly and trust the post to pass without feeding it oxygen.", "Silence can be wisdom or weakness depending on how the clip lands and how long it breathes.", "final", fx(1, -1, -1, { elena: st(0, 1), jake: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      final: {
+        title: "The final move is whether Feast Haven builds a policy around pressure or around fear",
+        body: "This will happen again in some form. The room is now deciding whether leadership learned a tactic or a standard.",
+        consultants: {
+          jake: {
+            prompt: "Adrian wants a future playbook so nobody has to negotiate ethics from scratch every time somebody flexes online reach.", 
+            options: [
+              opt("ir-final-adrian-playbook", "Create a clear comp-and-content policy that separates normal hospitality from coercion and keeps access decisions out of panic mode.", "You lower the drama of the next threat by taking improvisation off the menu.", null, fx(1, 3, 4, { jake: st(2, 3), elena: st(1, 1), devon: st(1, 1) })),
+              opt("ir-final-adrian-instinct", "Keep the response flexible so leadership can read each influencer case on its own emotional weather.", "That preserves room to maneuver and room to rationalize.", null, fx(2, -1, -2, { jake: st(-1, -1), elena: st(-1, -1) }))
+            ]
+          },
+          tasha: {
+            prompt: "Chef Renata wants one final guarantee that the kitchen will never again become a bargaining chip for someone else's threat campaign.", 
+            options: [
+              opt("ir-final-renata-boundary", "Set a non-negotiable kitchen-access rule and accept that some publicity is not worth the price of self-respect.", "The room may lose a few easy wins and gain a clearer soul.", null, fx(0, 4, 4, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1), elena: st(1, 1) })),
+              opt("ir-final-renata-access", "Allow carefully controlled access when the reputational stakes feel high enough.", "That sounds measured until every future exception arrives insisting it is special too.", null, fx(2, -1, -1, { tasha: st(-2, -3), priya: st(-1, -1), elena: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "food-poisoning-rumor",
+    category: "Public Health Rumor",
+    pressure: "Extreme",
+    headline: "Three tables posted that Feast Haven made them sick, but nobody can prove whether the restaurant caused it",
+    body:
+      "The posts are spreading faster than the facts. Some guests got sick hours later. Others just feel uneasy now. The kitchen swears the food was clean. The room is deciding whether certainty matters more than fear.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you listen to first?",
+        body: "You do not yet know whether the restaurant harmed anyone. You do know that waiting too long can look like guilt and speaking too fast can become a lie.",
+        consultants: {
+          tasha: {
+            prompt: "Chef Renata wants timestamps, ticket records, temperatures, and ingredient overlap before Feast Haven says one public word.", 
+            options: [
+              opt("fp-open-renata-facts", "Start with the kitchen evidence and treat the rumor like a real safety investigation, not a PR event.", "You prioritize truth even though fear is moving faster than truth can.", "triage", fx(0, 1, 3, { tasha: st(2, 3), priya: st(1, 1), luis: st(1, 1) })),
+              opt("fp-open-renata-deny", "Back the kitchen instinctively and assume the posts are exaggeration unless proven otherwise.", "Confidence may steady the staff and later look painfully arrogant if the facts turn.", "triage", fx(1, -2, -3, { tasha: st(1, 1), priya: st(-1, -1), elena: st(-1, -1) }))
+            ]
+          },
+          elena: {
+            prompt: "Marisol thinks silence will read like guilt if the posts keep running without any visible response from the restaurant.", 
+            options: [
+              opt("fp-open-marisol-hold", "Draft a holding statement that acknowledges the concern without claiming a conclusion you do not yet have.", "You buy a little public trust without pretending certainty.", "triage", fx(0, 2, 2, { elena: st(2, 3), jake: st(1, 1), devon: st(1, 1) })),
+              opt("fp-open-marisol-wait", "Stay quiet until the internal facts are stronger than the internet noise.", "If the facts clear you, great. If they do not, the silence becomes evidence people write themselves.", "triage", fx(1, -1, -2, { elena: st(-1, -2), devon: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      triage: {
+        title: "Now you decide whether Feast Haven shrinks the menu, closes temporarily, or keeps serving under a cloud",
+        body: "A public scare does not need to be true to become expensive. The hard part is deciding whether caution will look responsible or guilty.",
+        consultants: {
+          priya: {
+            prompt: "Imani wants the suspected overlap items off the menu until the ingredient chain is fully understood.", 
+            options: [
+              opt("fp-triage-imani-cut", "Pull the overlapping items immediately and accept the public implication that the rumor might be real.", "You sacrifice certainty to protect people from being the test case.", "fallout", fx(-1, 3, 4, { priya: st(2, 3), tasha: st(1, 2), nina: st(1, 1) })),
+              opt("fp-triage-imani-keep", "Keep the menu running while you investigate so the restaurant does not convict itself prematurely.", "That preserves revenue and also asks the next guest to trust a room you are still actively checking.", "fallout", fx(2, -2, -3, { priya: st(-3, -4), tasha: st(-1, -1), nina: st(-1, -1) }))
+            ]
+          },
+          nina: {
+            prompt: "Celia says the floor is being asked questions it cannot answer and every table can feel the uncertainty already.", 
+            options: [
+              opt("fp-triage-celia-script", "Give the floor one honest script: concern acknowledged, facts under review, and a narrower menu until then.", "The room may not relax, but it stops sounding random and afraid.", "fallout", fx(0, 2, 3, { nina: st(2, 3), jake: st(1, 1), elena: st(1, 1) })),
+              opt("fp-triage-celia-free", "Let each server read the table and handle the concern naturally.", "That sounds human, right until six different versions of the truth start walking around the room.", "fallout", fx(1, -1, -2, { nina: st(-2, -3), jake: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      fallout: {
+        title: "The real battle now is whether Feast Haven sounds cautious, guilty, or humane",
+        body: "If the restaurant caused the illness, honesty matters. If it did not, restraint still matters. Either way, tone decides how much people trust the next fact you give them.",
+        consultants: {
+          jake: {
+            prompt: "Adrian worries guests will remember panic longer than they remember nuance.", 
+            options: [
+              opt("fp-fallout-adrian-calm", "Keep the room calm, limit overdrama, and let the recovery message sound steady instead of desperate.", "You preserve some dignity for the night, though some will call it too polished for the moment and a few staff will wonder whether optics are still quietly outranking truth.", "final", fx(1, -1, -1, { jake: st(1, 1), elena: st(0, 0), nina: st(-1, -2) })),
+              opt("fp-fallout-adrian-hardtruth", "Tell the floor to stop selling normalcy and act like the restaurant may be in a genuine safety event.", "You lose atmosphere and gain moral seriousness in one expensive move.", "final", fx(-1, 3, 4, { jake: st(-1, -1), nina: st(1, 1), elena: st(1, 1) }))
+            ]
+          },
+          marcus: {
+            prompt: "Omar says support staff always end up carrying public fear in their body long before management decides what the official truth is.", 
+            options: [
+              opt("fp-fallout-omar-support", "Scale the room down, support the staff openly, and stop pretending full-speed service is compatible with a credible investigation.", "It costs money, but it stops asking people to perform certainty they do not feel.", "final", fx(-1, 3, 3, { marcus: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
+              opt("fp-fallout-omar-push", "Keep the room running hard so the rumor does not visibly own the building.", "The energy may save tables and silently crush the people carrying it.", "final", fx(2, -2, -2, { marcus: st(-3, -4), devon: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      final: {
+        title: "The final move is what Feast Haven believes transparency should cost",
+        body: "You may eventually be cleared, blamed, or remain uncertain. The deeper lesson is whether the restaurant tells the truth only when the truth is easy.",
+        consultants: {
+          elena: {
+            prompt: "Marisol wants a public standard that prevents the next rumor from becoming a vacuum where fear writes the whole story.", 
+            options: [
+              opt("fp-final-marisol-standard", "Create a public-facing incident response standard built on early acknowledgment, narrow facts, and visible caution.", "It is not flashy, but it makes the room sound adult under stress.", null, fx(1, 3, 4, { elena: st(2, 3), nina: st(1, 1), jake: st(1, 1), devon: st(1, 1) })),
+              opt("fp-final-marisol-pride", "Keep future messaging tighter so the restaurant never looks more worried than necessary.", "That protects posture better than it protects trust.", null, fx(2, -1, -2, { elena: st(-1, -2), nina: st(-1, -1), devon: st(-1, -1) }))
+            ]
+          },
+          tasha: {
+            prompt: "Chef Renata wants the restaurant to accept that caution can bruise a kitchen's pride without insulting its competence.", 
+            options: [
+              opt("fp-final-renata-caution", "Choose the stricter future rule: if a plausible safety rumor lands, the kitchen proves itself through evidence and reduced risk, not wounded pride.", "It costs ego and earns credibility.", null, fx(1, 4, 4, { tasha: st(2, 3), priya: st(1, 2), luis: st(1, 1) })),
+              opt("fp-final-renata-defend", "Lean harder into protecting the kitchen's name so rumors never get the satisfaction of reshaping the menu too fast.", "That may feel honorable right up to the next moment when caution was the wiser form of honor.", null, fx(2, 0, -2, { tasha: st(1, 1), priya: st(-1, -1), luis: st(-1, -1) }))
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    id: "corporate-buyout-vs-fundraiser",
+    category: "Values Conflict",
+    pressure: "Extreme",
+    headline: "A corporate client offers huge money to buy out tonight's room, but a student scholarship fundraiser is already booked and counting on you",
+    body:
+      "The corporate client can solve cash stress in one night. The fundraiser is tied to local students, community trust, and people who believed Feast Haven meant what it said when it took the booking. Somebody gets disappointed. The question is what that disappointment says about you.",
+    rootNodeId: "opening",
+    nodes: {
+      opening: {
+        title: "Who do you call in first?",
+        body: "This is one of those problems where the profitable answer and the honorable answer keep changing places depending on what kind of person is talking.",
+        consultants: {
+          jake: {
+            prompt: "Adrian says the buyout money could stabilize the restaurant fast and may be too large to dismiss out of principle alone.", 
+            options: [
+              opt("cb-open-adrian-money", "Run the buyout numbers honestly with Adrian before deciding whether this is rescue money or soul-selling money.", "You treat the temptation as real instead of pretending money does not matter to a stressed room, but the staff can already feel which side of the scale your eyes went to first.", "triage", fx(1, -2, -2, { jake: st(1, 1), elena: st(-1, -2), devon: st(-1, -2) })),
+              opt("cb-open-adrian-reject", "Dismiss the buyout instinctively because the fundraiser was promised the room first.", "The principle is clean and may also be financially naive in a week where cash is tight, which means the room could later resent being inspired instead of stabilized.", "triage", fx(-1, 1, 2, { jake: st(-1, -2), elena: st(1, 1), devon: st(1, 2) }))
+            ]
+          },
+          devon: {
+            prompt: "Parker says the fundraiser families will not experience cancellation as a business decision; they will experience it as betrayal.", 
+            options: [
+              opt("cb-open-parker-community", "Map the human fallout of bumping the fundraiser before the corporate number starts sounding too simple.", "You force the room to remember what community trust feels like when it has faces attached.", "triage", fx(0, 2, 3, { devon: st(2, 3), elena: st(1, 1), jake: st(-1, -1) })),
+              opt("cb-open-parker-split", "Look immediately for a split solution so nobody has to lose outright if logistics can be stretched.", "The creativity is admirable and may still insult both sides if the compromise feels cheap, improvised, or obviously driven by fear of choosing.", "triage", fx(0, -2, -1, { devon: st(1, 1), elena: st(0, 0), jake: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      triage: {
+        title: "Now you must decide whether Feast Haven is a business that serves the community or a community space that must survive as a business",
+        body: "Both stories are true. The pain comes from deciding which one outranks the other when the dollars get obscene.",
+        consultants: {
+          elena: {
+            prompt: "Marisol says the front door will never sound the same again if it has to explain why local students were displaced for richer strangers.", 
+            options: [
+              opt("cb-triage-marisol-honor", "Honor the fundraiser booking and refuse the buyout, even if the financial opportunity hurts to watch walk away.", "The room keeps its word and loses a giant cushion in the same breath.", "fallout", fx(-2, 3, 4, { elena: st(2, 3), devon: st(1, 1), nina: st(1, 1) })),
+              opt("cb-triage-marisol-sell", "Take the buyout and build the richest recovery package you can for the fundraiser elsewhere.", "The money is real. So is the lesson about what promises are worth when better money appears.", "fallout", fx(3, -2, -3, { elena: st(-3, -4), devon: st(-2, -3), nina: st(-1, -1) }))
+            ]
+          },
+          marcus: {
+            prompt: "Omar thinks the staff should not have to choose between community identity and making payroll next month if a smarter split can exist.", 
+            options: [
+              opt("cb-triage-omar-split", "Offer the corporate client a partial-room premium experience and protect the fundraiser as the center of the night.", "It is an awkward compromise that may preserve enough money and enough dignity to be worth trying, though both sides may still leave believing they were treated as a problem to be managed.", "fallout", fx(1, -2, -2, { marcus: st(1, 2), devon: st(0, 0), elena: st(-1, 0) })),
+              opt("cb-triage-omar-clarity", "Reject the split and choose one side cleanly so nobody experiences a half-kept promise.", "The moral geometry gets simpler and the wound gets deeper for whoever loses, which means leadership will own a sharper but more coherent anger.", "fallout", fx(0, -2, 0, { marcus: st(0, 1), devon: st(-1, -1), elena: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      fallout: {
+        title: "The room now knows what Feast Haven worships when pressure is serious enough",
+        body: "If you chose money, the community is judging you. If you chose principle, your finances are judging you. If you chose compromise, everyone is judging the quality of it.",
+        consultants: {
+          nina: {
+            prompt: "Celia thinks the staff need a coherent story or they will explain the decision to guests from their own private resentment.", 
+            options: [
+              opt("cb-fallout-celia-story", "Give the room one honest script about why the decision was made and what value it was protecting.", "The pain does not disappear, but at least it stops being random and contradictory.", "final", fx(0, 2, 3, { nina: st(2, 3), elena: st(1, 1), jake: st(1, 1) })),
+              opt("cb-fallout-celia-free", "Let each staff member speak naturally so the response feels more human than corporate.", "That may sound warm and also create six versions of the restaurant's soul by midnight.", "final", fx(1, -1, -2, { nina: st(-2, -3), elena: st(-1, -1) }))
+            ]
+          },
+          jake: {
+            prompt: "Adrian thinks if you refused the money, the staff need to hear that the sacrifice had a practical future, not just a noble glow.", 
+            options: [
+              opt("cb-fallout-adrian-plan", "Pair the values decision with a concrete financial plan so the room does not feel like principle means drift.", "You keep the restaurant from sounding righteous and strategically helpless at the same time.", "final", fx(1, 2, 2, { jake: st(2, 2), elena: st(1, 1), marcus: st(1, 1) })),
+              opt("cb-fallout-adrian-pride", "Lean on the moral win alone and trust the room to feel proud enough to absorb the cost.", "Pride can steady a night. It cannot always steady payroll or trust by itself.", "final", fx(0, 0, -1, { jake: st(0, 1), marcus: st(-1, -1) }))
+            ]
+          }
+        }
+      },
+      final: {
+        title: "The final move is deciding whether Feast Haven should be easier to trust or easier to monetize",
+        body: "No restaurant gets to avoid this forever. The deeper question is what kind of promise your room is willing to become famous for keeping.",
+        consultants: {
+          devon: {
+            prompt: "Parker wants a future standard so community events never again feel one rich phone call away from deletion.", 
+            options: [
+              opt("cb-final-parker-protect", "Create a protected-booking policy for community and mission-driven events, even if it limits future flexibility.", "You make the room slightly less agile and far more believable.", null, fx(0, 4, 4, { devon: st(2, 3), elena: st(1, 1), nina: st(1, 1) })),
+              opt("cb-final-parker-open", "Keep future high-value buyouts open as a strategic option if the numbers are big enough.", "That keeps the business nimble and the room morally negotiable.", null, fx(2, -1, -2, { devon: st(-2, -3), elena: st(-1, -2), nina: st(-1, -1) }))
+            ]
+          },
+          marcus: {
+            prompt: "Omar wants the final lesson to help the staff answer a simple question: what does Feast Haven stand for when standing for it costs money?", 
+            options: [
+              opt("cb-final-omar-values", "Define the room publicly as a business with limits that still refuses to sell every promise to the highest bidder.", "It may not solve every future dilemma, but it gives the staff a spine to recognize.", null, fx(1, 3, 4, { marcus: st(2, 3), devon: st(1, 1), elena: st(1, 1), jake: st(1, 1) })),
+              opt("cb-final-omar-market", "Define the room more openly as a business that must maximize survival when major money appears.", "That may be honest and also harder for the community-facing heart of the room to un-hear.", null, fx(2, 0, -1, { marcus: st(-1, -1), devon: st(-1, -2), elena: st(-1, -1) }))
             ]
           }
         }

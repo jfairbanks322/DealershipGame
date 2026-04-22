@@ -1,0 +1,525 @@
+:root {
+  --gm-bg: #050505;
+  --gm-bg-soft: #14100a;
+  --gm-surface: rgba(16, 13, 10, 0.96);
+  --gm-surface-alt: rgba(26, 21, 15, 0.95);
+  --gm-line: rgba(226, 178, 62, 0.22);
+  --gm-line-strong: rgba(255, 214, 116, 0.46);
+  --gm-gold: #d8a63e;
+  --gm-gold-bright: #f4d17d;
+  --gm-ink: #fff0cc;
+  --gm-ink-soft: rgba(255, 240, 204, 0.72);
+  --gm-danger: #ff9d68;
+  --gm-success: #f6cf64;
+  --gm-radius: 26px;
+  --gm-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body.gm-body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--gm-ink);
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  background:
+    radial-gradient(circle at 10% 14%, rgba(216, 166, 62, 0.18), transparent 18%),
+    radial-gradient(circle at 85% 20%, rgba(255, 209, 125, 0.16), transparent 20%),
+    linear-gradient(180deg, #18120a 0%, #090806 38%, #020202 100%);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.gm-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(216, 166, 62, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(216, 166, 62, 0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 95%);
+}
+
+.gm-glow {
+  position: fixed;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  filter: blur(44px);
+  pointer-events: none;
+  opacity: 0.48;
+}
+
+.gm-glow-left {
+  top: 80px;
+  left: -80px;
+  background: rgba(216, 166, 62, 0.28);
+}
+
+.gm-glow-right {
+  right: -90px;
+  top: 220px;
+  background: rgba(244, 209, 125, 0.18);
+}
+
+.gm-topbar,
+.gm-panel,
+.gm-hero-card,
+.gm-auth-card {
+  border: 1px solid var(--gm-line);
+  background: linear-gradient(180deg, rgba(16, 13, 10, 0.96), rgba(7, 6, 5, 0.98));
+  box-shadow: var(--gm-shadow);
+}
+
+.gm-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  margin: 14px;
+  border-radius: 24px;
+  backdrop-filter: blur(14px);
+}
+
+.gm-brandline {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.gm-logo {
+  width: min(280px, 42vw);
+}
+
+.gm-brandcopy h1,
+.gm-hero-copy h2,
+.gm-panel-head h2,
+.gm-auth-card h2 {
+  margin: 0;
+  font-family: "Rockwell", "Avenir Next Condensed", "Arial Narrow Bold", sans-serif;
+  letter-spacing: -0.03em;
+}
+
+.gm-kicker,
+.gm-eyebrow,
+.gm-mini-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--gm-gold-bright);
+}
+
+.gm-brandcopy h1 {
+  font-size: clamp(1.1rem, 2.2vw, 1.7rem);
+}
+
+.gm-top-actions,
+.gm-pill-row,
+.gm-status-strip,
+.gm-actions,
+.gm-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.gm-shell {
+  width: min(1260px, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: 8px 0 50px;
+}
+
+.gm-hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.8fr);
+  gap: 22px;
+  padding: 24px;
+  border-radius: 30px;
+  overflow: hidden;
+  position: relative;
+}
+
+.gm-hero-card::before,
+.gm-panel::before,
+.gm-auth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, rgba(106, 75, 20, 0.88), var(--gm-gold), var(--gm-gold-bright), rgba(106, 75, 20, 0.88));
+}
+
+.gm-hero-copy,
+.gm-panel,
+.gm-auth-card {
+  position: relative;
+}
+
+.gm-lead,
+.gm-note,
+.gm-subtext {
+  color: var(--gm-ink-soft);
+  line-height: 1.55;
+}
+
+.gm-pill {
+  border-radius: 999px;
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 214, 116, 0.18);
+  background: rgba(216, 166, 62, 0.1);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.gm-status-strip {
+  margin: 18px 0;
+}
+
+.gm-status-card,
+.gm-summary-card,
+.gm-market-card,
+.gm-roster-card,
+.gm-position-card,
+.gm-trade-card,
+.gm-task-card {
+  border-radius: 22px;
+  border: 1px solid rgba(255, 214, 116, 0.12);
+  background: linear-gradient(180deg, rgba(28, 22, 17, 0.96), rgba(10, 9, 8, 0.98));
+  padding: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.gm-status-card {
+  flex: 1 1 210px;
+}
+
+.gm-status-value {
+  font-family: "Rockwell", "Avenir Next Condensed", "Arial Narrow Bold", sans-serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin: 8px 0 6px;
+}
+
+.gm-auth-grid,
+.gm-grid-two,
+.gm-grid-three,
+.gm-grid-four {
+  display: grid;
+  gap: 18px;
+}
+
+.gm-auth-grid,
+.gm-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gm-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gm-grid-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gm-auth-card,
+.gm-panel {
+  padding: 22px;
+  border-radius: 28px;
+}
+
+.gm-panel-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.gm-stack {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.gm-dashboard.gm-hidden,
+.gm-hidden {
+  display: none !important;
+}
+
+.gm-form,
+.gm-stack-form {
+  display: grid;
+  gap: 12px;
+}
+
+.gm-form label,
+.gm-stack-form label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+  color: var(--gm-ink-soft);
+}
+
+.gm-form input,
+.gm-form textarea,
+.gm-stack-form input,
+.gm-stack-form textarea {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 214, 116, 0.14);
+  padding: 12px 14px;
+  color: var(--gm-ink);
+  background: rgba(7, 6, 5, 0.94);
+}
+
+.gm-form textarea,
+.gm-stack-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.gm-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 0;
+  padding: 11px 18px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #181108;
+  background: linear-gradient(135deg, var(--gm-gold), var(--gm-gold-bright));
+  font-weight: 900;
+  box-shadow: 0 14px 30px rgba(216, 166, 62, 0.2);
+}
+
+.gm-button:hover {
+  transform: translateY(-1px);
+}
+
+.gm-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.gm-button-ghost,
+.gm-button-secondary {
+  color: var(--gm-ink);
+  background: rgba(255, 214, 116, 0.08);
+  border: 1px solid rgba(255, 214, 116, 0.18);
+}
+
+.gm-button-danger {
+  color: #ffe8d9;
+  background: rgba(255, 157, 104, 0.14);
+  border: 1px solid rgba(255, 157, 104, 0.24);
+}
+
+.gm-market-badge,
+.gm-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: rgba(255, 214, 116, 0.08);
+  border: 1px solid rgba(255, 214, 116, 0.12);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.gm-chip-danger {
+  color: #ffd3b7;
+  border-color: rgba(255, 157, 104, 0.28);
+  background: rgba(255, 157, 104, 0.1);
+}
+
+.gm-chip-success {
+  color: #fff4bf;
+  background: rgba(246, 207, 100, 0.13);
+}
+
+.gm-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(66px, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.gm-avatar-option {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 214, 116, 0.14);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 6px;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.gm-avatar-option img {
+  border-radius: 14px;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.gm-avatar-option.is-selected {
+  border-color: var(--gm-gold-bright);
+  box-shadow: 0 0 0 2px rgba(244, 209, 125, 0.24);
+  transform: translateY(-2px);
+}
+
+.gm-summary-line,
+.gm-market-line,
+.gm-roster-line,
+.gm-task-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gm-summary-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.gm-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.gm-stat {
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 214, 116, 0.05);
+  border: 1px solid rgba(255, 214, 116, 0.1);
+}
+
+.gm-stat strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Rockwell", "Avenir Next Condensed", "Arial Narrow Bold", sans-serif;
+  font-size: 1.35rem;
+}
+
+.gm-live-preview-image,
+.gm-side-image {
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 214, 116, 0.14);
+}
+
+.gm-card-list {
+  display: grid;
+  gap: 14px;
+}
+
+.gm-market-card h3,
+.gm-roster-card h3,
+.gm-position-card h3,
+.gm-task-card h3,
+.gm-auth-card h2 {
+  margin: 0 0 8px;
+}
+
+.gm-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gm-card-top img.gm-student-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 214, 116, 0.18);
+}
+
+.gm-meter {
+  width: 100%;
+  height: 11px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.gm-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gm-gold), var(--gm-gold-bright));
+}
+
+.gm-empty {
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px dashed rgba(255, 214, 116, 0.18);
+  color: var(--gm-ink-soft);
+  text-align: center;
+}
+
+.gm-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  max-width: 360px;
+  z-index: 7;
+  border-radius: 20px;
+  padding: 15px 18px;
+  border: 1px solid rgba(255, 214, 116, 0.22);
+  background: rgba(11, 9, 7, 0.96);
+  color: var(--gm-ink);
+  box-shadow: var(--gm-shadow);
+}
+
+@media (max-width: 980px) {
+  .gm-topbar,
+  .gm-hero-card,
+  .gm-auth-grid,
+  .gm-grid-two,
+  .gm-grid-three,
+  .gm-grid-four {
+    grid-template-columns: 1fr;
+  }
+
+  .gm-topbar {
+    position: static;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gm-brandline {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .gm-logo {
+    width: min(320px, 100%);
+  }
+}

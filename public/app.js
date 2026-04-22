@@ -72,45 +72,45 @@ const STAFF_DIRECTORY = {
 };
 
 const EVENT_ART_DIRECTORY = {
-  "open-close-kitchen-feud": {
-    image: "/assets/feast-haven/events/open-close-kitchen-feud.png",
-    alt: "Feast Haven opening staff staring at a trashed kitchen after a rough close"
+  "allergen-near-miss": {
+    image: "/assets/feast-haven/events/allergen-near-miss.png",
+    alt: "An angry family confronting Feast Haven staff after a dangerous guest safety incident at their table"
   },
-  "hard-burger-ticket-war": {
-    image: "/assets/feast-haven/events/hard-burger-ticket-war.png",
-    alt: "Servers and kitchen staff arguing over a ruined burger and unreadable tickets"
+  "payroll-overtime-freeze": {
+    image: "/assets/feast-haven/events/payroll-overtime-freeze.png",
+    alt: "Feast Haven staff surrounding management with receipts and payroll complaints after missing overtime pay"
   },
-  "viral-gossip-backfire": {
-    image: "/assets/feast-haven/events/viral-gossip-backfire.png",
-    alt: "A hostess filming restaurant drama on her phone while staff argue behind her"
+  "anonymous-health-tip": {
+    image: "/assets/feast-haven/events/anonymous-health-tip.png",
+    alt: "Restaurant staff scrambling through labeled containers and sanitation checks after a health inspection warning"
   },
-  "emotional-support-date": {
-    image: "/assets/feast-haven/events/emotional-support-date.png",
-    alt: "A badly behaved dog causing chaos at a white-tablecloth restaurant table"
+  "double-booked-private-room": {
+    image: "/assets/feast-haven/events/double-booked-private-room.png",
+    alt: "A wedding party and memorial family confronting each other over the same reserved private room"
   },
-  "buffalo-breakdown": {
-    image: "/assets/feast-haven/events/buffalo-breakdown.png",
-    alt: "Feast Haven kitchen staff panicking after running out of buffalo sauce midweek"
+  "refrigeration-blackout": {
+    image: "/assets/feast-haven/events/refrigeration-blackout.png",
+    alt: "Kitchen leadership inspecting seafood and temperature problems after Feast Haven's walk-in cooler failed"
   },
-  "busser-flirt-slowdown": {
-    image: "/assets/feast-haven/events/busser-flirt-slowdown.png",
-    alt: "A busser charming guests while jealous coworkers watch from a messy service area"
+  "fake-id-liquor-night": {
+    image: "/assets/feast-haven/events/fake-id-liquor-night.png",
+    alt: "Management confronting staff and guests after a suspicious ID and underage alcohol scare"
   },
-  "chef-mad-scientist-menu": {
-    image: "/assets/feast-haven/events/chef-mad-scientist-menu.png",
-    alt: "Chef Renata proudly presenting wild experimental dishes while the staff look stressed"
+  "cash-drawer-accusation": {
+    image: "/assets/feast-haven/events/cash-drawer-accusation.png",
+    alt: "Feast Haven staff arguing around an open cash drawer and register receipts after missing money"
   },
-  "silverware-collapse": {
-    image: "/assets/feast-haven/events/silverware-collapse.png",
-    alt: "Restaurant staff trying to serve a dining room with only a handful of silverware"
+  "influencer-review-shakedown": {
+    image: "/assets/feast-haven/events/influencer-review-shakedown.png",
+    alt: "An influencer filming staff at her table while demanding special treatment from Feast Haven"
   },
-  "dirty-dishes-war": {
-    image: "/assets/feast-haven/events/dirty-dishes-war.png",
-    alt: "Kitchen, dish, and floor staff in a full blame spiral over grimy plates"
+  "food-poisoning-rumor": {
+    image: "/assets/feast-haven/events/food-poisoning-rumor.png",
+    alt: "Staff and management reacting as food poisoning posts spread across phones around the dining room"
   },
-  "food-heaven-rivalry": {
-    image: "/assets/feast-haven/events/food-heaven-rivalry.png",
-    alt: "Feast Haven staff glaring across the street at the glowing Food Heaven opening"
+  "corporate-buyout-vs-fundraiser": {
+    image: "/assets/feast-haven/events/corporate-buyout-vs-fundraiser.png",
+    alt: "Management caught between a stack of buyout cash and a student scholarship fundraiser at Feast Haven"
   }
 };
 

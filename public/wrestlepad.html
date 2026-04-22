@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WrestlePad</title>
+    <link rel="stylesheet" href="/wrestlepad.css" />
+  </head>
+  <body>
+    <main class="pad-shell">
+      <header class="pad-topbar">
+        <div class="brand-block">
+          <p class="brand-kicker">StatPad-style wrestling prototype</p>
+          <h1>WrestlePad</h1>
+        </div>
+        <div class="topbar-actions">
+          <button id="daily-start-btn" type="button">Today</button>
+          <button id="practice-start-btn" class="secondary" type="button">Practice</button>
+          <a class="back-link" href="/">Back</a>
+        </div>
+      </header>
+
+      <section class="board-shell">
+        <canvas id="board-canvas" width="1100" height="900" aria-label="WrestlePad clue board"></canvas>
+      </section>
+
+      <section class="control-strip">
+        <div class="selection-copy">
+          <p class="control-label">Selected Row</p>
+          <h2 id="selected-row-title">Pick a clue row</h2>
+          <p id="selected-row-description" class="muted">
+            Click a green add button on the board to open the wrestler input popup.
+          </p>
+          <p id="status-line" class="status-line"></p>
+        </div>
+        <div class="control-actions">
+          <button id="share-btn" class="secondary" type="button" disabled>Share</button>
+          <button id="reveal-btn" class="secondary" type="button" disabled>Reveal</button>
+        </div>
+        <p id="daily-score-summary" class="daily-score-summary"></p>
+        <p id="help-line" class="help-line">Manual entry only. Click a green row button or press `Enter` on a selected row to open the popup. Press `F` for fullscreen.</p>
+        <div id="copy-status" class="copy-status" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <div id="entry-modal" class="entry-modal hidden" aria-hidden="true">
+      <div id="entry-modal-backdrop" class="entry-modal-backdrop"></div>
+      <div class="entry-modal-card" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
+        <p class="control-label">Add Wrestler</p>
+        <h2 id="entry-modal-title">Type wrestler name</h2>
+        <p id="entry-modal-description" class="muted">Enter the full wrestler name for the selected clue row.</p>
+        <input
+          id="wrestler-search"
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          placeholder="Type full wrestler name"
+        />
+        <div id="modal-suggestion-list" class="modal-suggestion-list"></div>
+        <div class="entry-controls">
+          <button id="submit-guess-btn" type="button">Add Wrestler</button>
+          <button id="clear-search-btn" class="secondary" type="button">Clear</button>
+          <button id="cancel-guess-btn" class="secondary" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <aside id="used-popup" class="used-popup hidden" aria-live="polite" aria-atomic="true">
+      <div class="used-popup-media">
+        <img id="used-popup-image" class="used-popup-image hidden" alt="" />
+        <div id="used-popup-fallback" class="used-popup-fallback">WP</div>
+      </div>
+      <div class="used-popup-copy">
+        <p class="control-label">Added Wrestler</p>
+        <h3 id="used-popup-name">Wrestler Name</h3>
+        <p id="used-popup-meta" class="muted">Profile preview</p>
+      </div>
+    </aside>
+
+    <script src="/wrestlepad-stats.snapshot.js"></script>
+    <script src="/wrestlepad-portraits.snapshot.js"></script>
+    <script src="/wrestlepad.js"></script>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GOLD MARKET</title>
+    <link rel="stylesheet" href="/prediction-market.css" />
+  </head>
+  <body class="pm-body">
+    <div class="pm-grid-backdrop"></div>
+    <div class="pm-ambient pm-ambient-a"></div>
+    <div class="pm-ambient pm-ambient-b"></div>
+    <div class="pm-ambient pm-ambient-c"></div>
+    <div class="pm-ticker" aria-hidden="true">
+      <div class="pm-ticker-track">
+        <span>Gold Market Live</span>
+        <span>Price the claim, not the adrenaline</span>
+        <span>Evidence beats hype</span>
+        <span>Forecasting is not gambling</span>
+        <span>Gold Market Live</span>
+        <span>Price the claim, not the adrenaline</span>
+        <span>Evidence beats hype</span>
+        <span>Forecasting is not gambling</span>
+      </div>
+    </div>
+
+    <main class="pm-shell">
+      <section class="pm-hero">
+        <div class="pm-hero-copy">
+          <p class="pm-kicker">Live classroom simulator</p>
+          <p class="pm-eyebrow">Gold Market</p>
+          <div class="pm-logo-lockup">
+            <img class="pm-logo" src="/assets/goldmarket.png" alt="Gold Market logo" />
+            <h1 class="pm-sr-only">Gold Market</h1>
+          </div>
+          <p class="pm-lead">
+            Trade on fictional outcomes, read the crowd, and learn where disciplined forecasting ends and gambling
+            behavior begins.
+          </p>
+          <div class="pm-chip-row">
+            <span class="pm-chip">Prices act like probabilities</span>
+            <span class="pm-chip">Evidence and hype move differently</span>
+            <span class="pm-chip pm-chip-warn">Chasing losses hurts discipline</span>
+          </div>
+          <div class="pm-hero-grid">
+            <article class="pm-hero-note">
+              <span>Signal</span>
+              <strong>Ask what changed</strong>
+            </article>
+            <article class="pm-hero-note">
+              <span>Sizing</span>
+              <strong>Keep enough cash to think clearly</strong>
+            </article>
+            <article class="pm-hero-note">
+              <span>Psychology</span>
+              <strong>Watch for tilt and comeback trading</strong>
+            </article>
+          </div>
+          <div class="pm-hero-actions">
+            <a class="pm-link-button" href="/">Back to dashboard</a>
+          </div>
+        </div>
+
+        <aside class="pm-panel pm-callout">
+          <p class="pm-panel-label">Forecast Desk Brief</p>
+          <h2>Why this matters</h2>
+          <p>
+            Prediction markets can be useful because they compress a lot of information into one live number. They can
+            also become dangerous when people stop asking “What is true?” and start chasing adrenaline, identity, or a
+            quick comeback after a loss.
+          </p>
+          <ul class="pm-bullet-list">
+            <li>Start with a price, but interrogate the reason behind it.</li>
+            <li>Notice when a market is reacting to evidence versus pure crowd energy.</li>
+            <li>Watch your sizing. Overconfidence can turn a forecast into a gamble.</li>
+          </ul>
+          <div class="pm-classroom-policy">
+            <span class="pm-classroom-policy-label">Classroom policy</span>
+            <p>To help educate on the hazards of gambling, students who choose not to bet at all keep the automatic A path for this activity. The safest win is staying in cash.</p>
+          </div>
+          <div class="pm-callout-band">
+            <span>Truth first</span>
+            <span>Rumor second</span>
+            <span>Emotion last</span>
+          </div>
+          <div class="pm-callout-visuals">
+            <img class="pm-art-frame pm-art-frame-wide" src="/assets/gold-market/shared-pool-live.png" alt="Live class market graphic" />
+            <div class="pm-callout-badge-row">
+              <img class="pm-art-frame" src="/assets/gold-market/private-bets.png" alt="Private bets graphic" />
+              <img class="pm-art-frame" src="/assets/gold-market/disciplined-trader.png" alt="Disciplined trader badge" />
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="pm-metric-grid" id="metrics-strip"></section>
+
+      <section class="pm-panel">
+        <div class="pm-section-head">
+          <div>
+            <p class="pm-panel-label">Off-Market Opportunities</p>
+            <h2>Steady Money</h2>
+          </div>
+        </div>
+        <div id="work-panel" class="pm-stack"></div>
+      </section>
+
+      <section class="pm-panel">
+        <div class="pm-section-head">
+          <div>
+            <p class="pm-panel-label">Live board</p>
+            <h2 id="round-heading">Round 1</h2>
+          </div>
+          <div class="pm-chip-row" id="round-status"></div>
+        </div>
+        <div class="pm-market-grid" id="market-grid"></div>
+      </section>
+
+      <section class="pm-two-col">
+        <article class="pm-panel">
+          <div class="pm-section-head">
+            <div>
+              <p class="pm-panel-label">Signal feed</p>
+              <h2>Why prices are moving</h2>
+            </div>
+          </div>
+          <div id="news-panel" class="pm-stack"></div>
+        </article>
+
+        <article class="pm-panel">
+          <div class="pm-section-head">
+            <div>
+              <p class="pm-panel-label">Behavior radar</p>
+              <h2>Forecasting vs gambling</h2>
+            </div>
+          </div>
+          <div id="behavior-panel" class="pm-stack"></div>
+        </article>
+      </section>
+
+      <section class="pm-panel">
+        <div class="pm-section-head">
+          <div>
+            <p class="pm-panel-label">Trade journal</p>
+            <h2>What just happened</h2>
+          </div>
+        </div>
+        <div id="journal-panel" class="pm-stack"></div>
+      </section>
+
+      <section class="pm-panel">
+        <div class="pm-footer-bar" id="footer-panel"></div>
+      </section>
+
+      <section class="pm-panel pm-hidden" id="finish-panel"></section>
+    </main>
+
+    <div class="pm-popup pm-hidden" id="market-popup" role="dialog" aria-modal="true" aria-labelledby="market-popup-title">
+      <div class="pm-popup-backdrop" data-popup-close="true"></div>
+      <div class="pm-popup-card">
+        <button class="pm-popup-close" type="button" aria-label="Close market alert" data-popup-close="true">Close</button>
+        <img class="pm-popup-art" src="/assets/gold-market/new-market-published.png" alt="New class market published graphic" />
+        <div class="pm-popup-copy">
+          <p class="pm-panel-label">New market alert</p>
+          <h2 id="market-popup-title">A fresh market just opened</h2>
+          <p id="market-popup-description" class="pm-subtext"></p>
+          <div class="pm-popup-meta" id="market-popup-meta"></div>
+          <div class="pm-button-row">
+            <button class="pm-button pm-button-primary" type="button" data-popup-close="true">Trade Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/prediction-market.js"></script>
+  </body>
+</html>

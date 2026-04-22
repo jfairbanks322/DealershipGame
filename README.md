@@ -93,3 +93,8 @@ This app uses SQLite. If you do not mount a persistent Railway Volume, student a
 - [public/student-cheat-sheet.html](/Users/josh/Documents/New project/public/student-cheat-sheet.html) is a print-friendly Feast Haven student quick-start guide.
 - [public/awards-report.html](/Users/josh/Documents/New project/public/awards-report.html) is the teacher-facing printable awards report.
 - [public/prediction-market.html](/Users/josh/Documents/New project/public/prediction-market.html) is a separate side lesson prototype and is not required for the Feast Haven launch.
+- [public/wrestlepad.html](/Users/josh/Documents/New project/public/wrestlepad.html) is a standalone professional-wrestling stat-grid prototype inspired by the daily lineup format of StatPad-style games.
+  - WrestlePad now loads its numbers from [public/wrestlepad-stats.snapshot.js](/Users/josh/Documents/New project/public/wrestlepad-stats.snapshot.js), which is generated from [data/wrestlepad-stats-source.json](/Users/josh/Documents/New project/data/wrestlepad-stats-source.json).
+  - Rebuild that browser snapshot with `npm run build:wrestlepad-stats` after updating the source file.
+  - WrestlePad also loads a local portrait manifest from [public/wrestlepad-portraits.snapshot.js](/Users/josh/Documents/New project/public/wrestlepad-portraits.snapshot.js), with images cached under [public/assets/wrestlers](/Users/josh/Documents/New project/public/assets/wrestlers).
+  - Refresh those cached profile images with `npm run fetch:wrestlepad-portraits` after updating the `wikimedia` mappings in [data/wrestlepad-stats-source.json](/Users/josh/Documents/New project/data/wrestlepad-stats-source.json).

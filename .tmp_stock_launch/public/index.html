@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GOLD MARKET</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="gm-body">
+    <div class="gm-grid"></div>
+    <div class="gm-glow gm-glow-left"></div>
+    <div class="gm-glow gm-glow-right"></div>
+
+    <header class="gm-topbar">
+      <div class="gm-brandline">
+        <img class="gm-logo" src="/assets/goldmarket.png" alt="Gold Market logo" />
+        <div class="gm-brandcopy">
+          <p class="gm-kicker">Prediction market simulator</p>
+          <h1>Shared odds. Private bettors. Real lessons.</h1>
+        </div>
+      </div>
+      <div class="gm-top-actions">
+        <a class="gm-button gm-button-ghost" href="/market">Open Live Board</a>
+        <button id="logout-button" class="gm-button gm-button-ghost gm-hidden" type="button">Log Out</button>
+      </div>
+    </header>
+
+    <main class="gm-shell">
+      <section class="gm-hero-card">
+        <div class="gm-hero-copy">
+          <p class="gm-eyebrow">Classroom policy</p>
+          <h2>The safest win is choosing not to play.</h2>
+          <p class="gm-lead">
+            To help educate on the hazards of gambling, students can participate in the live market, earn steady money
+            through off-market work, or stay in cash entirely. A student who chooses not to bet at all earns the
+            automatic A path for this activity.
+          </p>
+          <div class="gm-pill-row">
+            <span class="gm-pill">5-share trade blocks</span>
+            <span class="gm-pill">Daily wallet floor</span>
+            <span class="gm-pill">Private bettor identities</span>
+          </div>
+        </div>
+        <div class="gm-hero-art">
+          <img src="/assets/gold-market/stay-in-cash.png" alt="Stay in cash lesson graphic" />
+        </div>
+      </section>
+
+      <section id="status-strip" class="gm-status-strip"></section>
+
+      <section id="auth-section" class="gm-auth-grid"></section>
+
+      <section id="dashboard-section" class="gm-dashboard gm-hidden">
+        <div class="gm-grid-two">
+          <article class="gm-panel">
+            <div class="gm-panel-head">
+              <div>
+                <p class="gm-eyebrow">Session</p>
+                <h2 id="welcome-heading">Dashboard</h2>
+              </div>
+            </div>
+            <div id="session-summary"></div>
+          </article>
+
+          <article class="gm-panel">
+            <div class="gm-panel-head">
+              <div>
+                <p class="gm-eyebrow">Live board</p>
+                <h2>Class market status</h2>
+              </div>
+            </div>
+            <div id="live-preview"></div>
+          </article>
+        </div>
+
+        <section id="student-view" class="gm-stack gm-hidden"></section>
+        <section id="teacher-view" class="gm-stack gm-hidden"></section>
+      </section>
+
+      <div id="toast" class="gm-toast gm-hidden" role="status" aria-live="polite"></div>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
