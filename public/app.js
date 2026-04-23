@@ -72,45 +72,45 @@ const STAFF_DIRECTORY = {
 };
 
 const EVENT_ART_DIRECTORY = {
-  "allergen-near-miss": {
-    image: "/assets/feast-haven/events/allergen-near-miss.png",
-    alt: "An angry family confronting Feast Haven staff after a dangerous guest safety incident at their table"
+  "lobster-mascot-hostage": {
+    image: "/assets/feast-haven/events/lobster-mascot-hostage.png",
+    alt: "A giant lobster mascot blocking the Feast Haven lobby while guests film and staff try to negotiate"
   },
-  "payroll-overtime-freeze": {
-    image: "/assets/feast-haven/events/payroll-overtime-freeze.png",
-    alt: "Feast Haven staff surrounding management with receipts and payroll complaints after missing overtime pay"
+  "miracle-soup-cult": {
+    image: "/assets/feast-haven/events/miracle-soup-cult.png",
+    alt: "Guests treating a bowl of tomato soup like a miracle cure while staff panic around the table"
   },
-  "anonymous-health-tip": {
-    image: "/assets/feast-haven/events/anonymous-health-tip.png",
-    alt: "Restaurant staff scrambling through labeled containers and sanitation checks after a health inspection warning"
+  "tiny-horse-reservation": {
+    image: "/assets/feast-haven/events/tiny-horse-reservation.png",
+    alt: "An important guest arriving at Feast Haven with a tiny bow-tied horse while staff and diners stare in disbelief"
   },
-  "double-booked-private-room": {
-    image: "/assets/feast-haven/events/double-booked-private-room.png",
-    alt: "A wedding party and memorial family confronting each other over the same reserved private room"
+  "forbidden-lasagna-volcano": {
+    image: "/assets/feast-haven/events/forbidden-lasagna-volcano.png",
+    alt: "A gigantic steaming lasagna volcano erupting across the Feast Haven kitchen while staff argue and someone records it"
   },
-  "refrigeration-blackout": {
-    image: "/assets/feast-haven/events/refrigeration-blackout.png",
-    alt: "Kitchen leadership inspecting seafood and temperature problems after Feast Haven's walk-in cooler failed"
+  "proposal-breakup-cake": {
+    image: "/assets/feast-haven/events/proposal-breakup-cake.png",
+    alt: "A proposal cake delivered to a breakup table while staff and a real proposer react in horror"
   },
-  "fake-id-liquor-night": {
-    image: "/assets/feast-haven/events/fake-id-liquor-night.png",
-    alt: "Management confronting staff and guests after a suspicious ID and underage alcohol scare"
+  "clown-convention-brunch": {
+    image: "/assets/feast-haven/events/clown-convention-brunch.png",
+    alt: "A clown convention overwhelming a Feast Haven brunch service while families and staff react to the chaos"
   },
-  "cash-drawer-accusation": {
-    image: "/assets/feast-haven/events/cash-drawer-accusation.png",
-    alt: "Feast Haven staff arguing around an open cash drawer and register receipts after missing money"
+  "goose-sous-chef": {
+    image: "/assets/feast-haven/events/goose-sous-chef.png",
+    alt: "A goose wearing a neckerchief standing in the Feast Haven kitchen while staff recoil and argue"
   },
-  "influencer-review-shakedown": {
-    image: "/assets/feast-haven/events/influencer-review-shakedown.png",
-    alt: "An influencer filming staff at her table while demanding special treatment from Feast Haven"
+  "espresso-machine-screams": {
+    image: "/assets/feast-haven/events/espresso-machine-screams.png",
+    alt: "A screaming haunted-looking espresso machine causing panic at the Feast Haven bar station"
   },
-  "food-poisoning-rumor": {
-    image: "/assets/feast-haven/events/food-poisoning-rumor.png",
-    alt: "Staff and management reacting as food poisoning posts spread across phones around the dining room"
+  "mystery-caviar-sprinkles": {
+    image: "/assets/feast-haven/events/mystery-caviar-sprinkles.png",
+    alt: "Children happily eating expensive caviar as if it were sprinkles while adults and staff panic"
   },
-  "corporate-buyout-vs-fundraiser": {
-    image: "/assets/feast-haven/events/corporate-buyout-vs-fundraiser.png",
-    alt: "Management caught between a stack of buyout cash and a student scholarship fundraiser at Feast Haven"
+  "food-heaven-drone": {
+    image: "/assets/feast-haven/events/food-heaven-drone.png",
+    alt: "A rival restaurant drone dropping coupons into the Feast Haven dining room while guests and staff react"
   }
 };
 
