@@ -136,8 +136,7 @@ const CASE_STAGE_META = {
   2: { label: "First Response", icon: "/assets/feast-haven/case-stage-icons/stage-2-first-response.png" },
   3: { label: "Escalation", icon: "/assets/feast-haven/case-stage-icons/stage-3-escalation.png" },
   4: { label: "Internal Fallout", icon: "/assets/feast-haven/case-stage-icons/stage-4-internal-fallout.png" },
-  5: { label: "Public Consequence", icon: "/assets/feast-haven/case-stage-icons/stage-5-public-consequence.png" },
-  6: { label: "Final Resolution", icon: "/assets/feast-haven/case-stage-icons/stage-6-final-resolution.png" }
+  5: { label: "Final Resolution", icon: "/assets/feast-haven/case-stage-icons/stage-6-final-resolution.png" }
 };
 
 const AWARD_ICON_BY_ID = {

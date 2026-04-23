@@ -501,7 +501,7 @@ const PRESET_CONSEQUENCE_PROFILES = {
     ]
   }
 };
-const MIN_CASE_STEPS = 6;
+const MIN_CASE_STEPS = 5;
 const REVENUE_TUNING = {
   positiveMultiplier: 3,
   negativeMultiplier: 2,

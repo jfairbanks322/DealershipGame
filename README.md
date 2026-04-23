@@ -1,6 +1,6 @@
 # Feast Haven Manager
 
-Feast Haven Manager is a classroom business simulation where students run a restaurant under pressure. The teacher launches one shared event for the class, and each student works through a 6-step decision chain that changes revenue, guest confidence, staff morale, trust, and the long-term condition of the restaurant.
+Feast Haven Manager is a classroom business simulation where students run a restaurant under pressure. The teacher launches one shared event for the class, and each student works through a 5-step decision chain that changes revenue, guest confidence, staff morale, trust, and the long-term condition of the restaurant.
 
 ## What The Live App Includes
 
@@ -26,7 +26,7 @@ Feast Haven Manager is a classroom business simulation where students run a rest
 
 1. The teacher opens the class session.
 2. The teacher launches a global Feast Haven event for the whole class.
-3. Students choose which staff member to consult and work through a 6-step event chain.
+3. Students choose which staff member to consult and work through a 5-step event chain.
 4. Each choice affects the current case and the restaurant's future condition.
 5. When the case resolves, the leaderboard updates and the next event starts from the new restaurant state.
 
