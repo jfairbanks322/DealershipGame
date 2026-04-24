@@ -35,6 +35,42 @@ const DEFAULT_STUDENT_STATE = {
   satisfaction: 72,
   reputation: 68
 };
+const TEAM_STEP_COUNT = 5;
+const TEAM_MAX_SIZE = 5;
+const TEAM_DEFINITIONS = [
+  { id: "team-sunflare", name: "Sunflare Supper Club", accent: "gold" },
+  { id: "team-midnight", name: "Midnight Marble", accent: "black" },
+  { id: "team-ember", name: "Ember Alley", accent: "red" },
+  { id: "team-citrine", name: "Citrine Room", accent: "amber" }
+];
+const TEAM_ROLE_DEFINITIONS = [
+  {
+    id: "service-captain",
+    label: "Service Captain",
+    summary: "Owns guest pacing, table feel, and floor-level hospitality judgment."
+  },
+  {
+    id: "kitchen-lead",
+    label: "Kitchen Lead",
+    summary: "Reads execution risk, kitchen pressure, and whether the back line can actually land the plan."
+  },
+  {
+    id: "people-lead",
+    label: "People Lead",
+    summary: "Tracks morale, trust, resentment, and the emotional aftershocks of every call."
+  },
+  {
+    id: "finance-lead",
+    label: "Finance Lead",
+    summary: "Pushes on cost, revenue, waste, and whether the move is actually sustainable."
+  },
+  {
+    id: "brand-lead",
+    label: "Brand Lead",
+    summary: "Owns optics, reputation, and how the story will spread after the shift ends."
+  }
+];
+const TEAM_LOOKUP = Object.fromEntries(TEAM_DEFINITIONS.map((team) => [team.id, team]));
 const PREDICTION_MARKET_START_CASH = 40;
 const PREDICTION_MARKET_SEED_LIQUIDITY = 120;
 const PREDICTION_MARKET_TIMEZONE = process.env.PREDICTION_MARKET_TIMEZONE || "America/Detroit";
@@ -5796,11 +5832,17 @@ async function handleApi(req, res, pathname) {
       return;
     }
 
+    const teamAssignment = getAvailableTeamAssignment();
+    if (!teamAssignment) {
+      sendJson(res, 400, { error: "All four restaurant teams are full right now. Ask your teacher to remove a seat before adding more players." });
+      return;
+    }
+
     const userId = crypto.randomUUID();
     runInTransaction(() => {
       db.prepare(
-        `INSERT INTO users (id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO users (id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, team_id, team_seat, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         userId,
         username,
@@ -5810,16 +5852,18 @@ async function handleApi(req, res, pathname) {
         DEFAULT_STUDENT_STATE.satisfaction,
         DEFAULT_STUDENT_STATE.reputation,
         avatarCatalog.length ? avatarId : null,
+        teamAssignment.teamId,
+        teamAssignment.seat,
         new Date().toISOString()
       );
       initializePredictionPortfolio(userId);
-      seedStudentStaff(userId);
+      ensureTeamState(teamAssignment.teamId);
       const currentRoundId = getGameState().currentRoundId;
       if (currentRoundId) {
         const round = getRoundById(currentRoundId);
         const preset = round ? getRoundPreset(round) : null;
         if (preset) {
-          createCaseFile(currentRoundId, userId, preset);
+          ensureCaseFile(currentRoundId, userId);
         }
       }
     });
@@ -6091,6 +6135,33 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/admin/student/team") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const game = getGameState();
+    if (game.isOpen || game.currentRoundId) {
+      sendJson(res, 400, { error: "Assign teams before opening the session for class." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+    const userId = String(body.userId || "");
+    const teamId = String(body.teamId || "");
+
+    try {
+      assignUserToTeam(userId, teamId);
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Could not assign that student to the selected team." });
+      return;
+    }
+
+    sendJson(res, 200, buildBootstrapPayload(session));
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/admin/student/delete") {
     if (!session?.isAdmin) {
       sendJson(res, 401, { error: "Teacher access required." });
@@ -6162,6 +6233,54 @@ function initializeDatabase() {
       satisfaction INTEGER NOT NULL,
       reputation INTEGER NOT NULL,
       avatar_id TEXT,
+      team_id TEXT,
+      team_seat INTEGER,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS team_state (
+      team_id TEXT PRIMARY KEY,
+      sales REAL NOT NULL,
+      satisfaction INTEGER NOT NULL,
+      reputation INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS team_staff_state (
+      team_id TEXT NOT NULL,
+      staff_id TEXT NOT NULL,
+      morale INTEGER NOT NULL,
+      trust INTEGER NOT NULL,
+      PRIMARY KEY (team_id, staff_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS team_manager_flags (
+      team_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value INTEGER NOT NULL,
+      PRIMARY KEY (team_id, key)
+    );
+
+    CREATE TABLE IF NOT EXISTS team_restaurant_state (
+      team_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value INTEGER NOT NULL,
+      PRIMARY KEY (team_id, key)
+    );
+
+    CREATE TABLE IF NOT EXISTS team_lingering_effects (
+      id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL,
+      effect_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      tone TEXT NOT NULL,
+      target_staff_id TEXT,
+      intensity INTEGER NOT NULL,
+      source_round_id TEXT NOT NULL,
+      source_round_number INTEGER NOT NULL,
+      expires_round_number INTEGER NOT NULL,
       created_at TEXT NOT NULL
     );
 
@@ -6307,9 +6426,11 @@ function initializeDatabase() {
       id TEXT PRIMARY KEY,
       round_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
+      team_id TEXT,
       current_node_id TEXT NOT NULL,
       current_phase TEXT NOT NULL,
       selected_consultant_id TEXT,
+      current_decider_user_id TEXT,
       status TEXT NOT NULL,
       context_json TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -6327,6 +6448,7 @@ function initializeDatabase() {
       phase TEXT NOT NULL,
       consultant_id TEXT,
       action_id TEXT,
+      actor_user_id TEXT,
       label TEXT NOT NULL,
       summary TEXT NOT NULL,
       sales_delta REAL NOT NULL,
@@ -6340,6 +6462,7 @@ function initializeDatabase() {
       id TEXT PRIMARY KEY,
       round_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
+      team_id TEXT,
       option_id TEXT NOT NULL,
       option_label TEXT NOT NULL,
       outcome_text TEXT NOT NULL,
@@ -6366,9 +6489,14 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_responses_user ON responses (user_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_round ON case_files (round_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_user ON case_files (user_id);
+    CREATE INDEX IF NOT EXISTS idx_case_files_team ON case_files (team_id);
     CREATE INDEX IF NOT EXISTS idx_case_choices_case ON case_choices (case_file_id);
     CREATE INDEX IF NOT EXISTS idx_restaurant_state_user ON restaurant_state (user_id, key);
     CREATE INDEX IF NOT EXISTS idx_lingering_effects_user ON lingering_effects (user_id, expires_round_number);
+    CREATE INDEX IF NOT EXISTS idx_team_staff_state_team ON team_staff_state (team_id, staff_id);
+    CREATE INDEX IF NOT EXISTS idx_team_restaurant_state_team ON team_restaurant_state (team_id, key);
+    CREATE INDEX IF NOT EXISTS idx_team_lingering_effects_team ON team_lingering_effects (team_id, expires_round_number);
+    CREATE INDEX IF NOT EXISTS idx_responses_team ON responses (team_id, round_id);
     CREATE INDEX IF NOT EXISTS idx_prediction_markets_status ON prediction_markets (status, updated_at);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_positions_user ON prediction_market_positions (user_id, market_id);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_trades_market ON prediction_market_trades (market_id, created_at);
@@ -6377,7 +6505,12 @@ function initializeDatabase() {
   `);
 
   ensureUserAvatarColumn();
+  ensureUserTeamColumns();
   ensurePredictionMarketColumns();
+  ensureCaseFileTeamColumns();
+  ensureCaseChoiceActorColumn();
+  ensureResponseTeamColumns();
+  ensureExistingUsersHaveTeams();
 
   const settingsCount = db.prepare(`SELECT COUNT(*) AS count FROM settings`).get().count;
   if (settingsCount === 0) {
@@ -6392,6 +6525,16 @@ function ensureUserAvatarColumn() {
   }
 }
 
+function ensureUserTeamColumns() {
+  const columns = db.prepare(`PRAGMA table_info(users)`).all().map((row) => row.name);
+  if (!columns.includes("team_id")) {
+    db.exec(`ALTER TABLE users ADD COLUMN team_id TEXT`);
+  }
+  if (!columns.includes("team_seat")) {
+    db.exec(`ALTER TABLE users ADD COLUMN team_seat INTEGER`);
+  }
+}
+
 function ensurePredictionMarketColumns() {
   const columns = db.prepare(`PRAGMA table_info(prediction_markets)`).all().map((row) => row.name);
   if (!columns.includes("yes_pool")) {
@@ -6399,6 +6542,30 @@ function ensurePredictionMarketColumns() {
   }
   if (!columns.includes("no_pool")) {
     db.exec(`ALTER TABLE prediction_markets ADD COLUMN no_pool REAL NOT NULL DEFAULT 0`);
+  }
+}
+
+function ensureCaseFileTeamColumns() {
+  const columns = db.prepare(`PRAGMA table_info(case_files)`).all().map((row) => row.name);
+  if (!columns.includes("team_id")) {
+    db.exec(`ALTER TABLE case_files ADD COLUMN team_id TEXT`);
+  }
+  if (!columns.includes("current_decider_user_id")) {
+    db.exec(`ALTER TABLE case_files ADD COLUMN current_decider_user_id TEXT`);
+  }
+}
+
+function ensureCaseChoiceActorColumn() {
+  const columns = db.prepare(`PRAGMA table_info(case_choices)`).all().map((row) => row.name);
+  if (!columns.includes("actor_user_id")) {
+    db.exec(`ALTER TABLE case_choices ADD COLUMN actor_user_id TEXT`);
+  }
+}
+
+function ensureResponseTeamColumns() {
+  const columns = db.prepare(`PRAGMA table_info(responses)`).all().map((row) => row.name);
+  if (!columns.includes("team_id")) {
+    db.exec(`ALTER TABLE responses ADD COLUMN team_id TEXT`);
   }
 }
 
@@ -6431,6 +6598,11 @@ function clearAllTables() {
     DELETE FROM responses;
     DELETE FROM rounds;
     DELETE FROM prediction_markets;
+    DELETE FROM team_lingering_effects;
+    DELETE FROM team_restaurant_state;
+    DELETE FROM team_manager_flags;
+    DELETE FROM team_staff_state;
+    DELETE FROM team_state;
     DELETE FROM lingering_effects;
     DELETE FROM restaurant_state;
     DELETE FROM manager_flags;
@@ -7171,7 +7343,7 @@ function getRoundPreset(row) {
 
 function getUserById(userId) {
   return db.prepare(
-    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, created_at
+    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, team_id, team_seat, created_at
      FROM users
      WHERE id = ?`
   ).get(userId);
@@ -7179,10 +7351,278 @@ function getUserById(userId) {
 
 function getUserByUsername(username) {
   return db.prepare(
-    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, created_at
+    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, team_id, team_seat, created_at
      FROM users
      WHERE username = ?`
   ).get(username);
+}
+
+function getTeamMeta(teamId) {
+  return TEAM_LOOKUP[teamId] || null;
+}
+
+function listTeamMembers(teamId) {
+  if (!teamId) {
+    return [];
+  }
+  return db.prepare(
+    `SELECT id, username, display_name, password_hash, sales, satisfaction, reputation, avatar_id, team_id, team_seat, created_at
+     FROM users
+     WHERE team_id = ?
+     ORDER BY COALESCE(team_seat, 999) ASC, datetime(created_at) ASC, display_name COLLATE NOCASE ASC`
+  ).all(teamId);
+}
+
+function getTeamIdsInUse() {
+  return db.prepare(
+    `SELECT DISTINCT team_id
+     FROM users
+     WHERE team_id IS NOT NULL AND TRIM(team_id) <> ''
+     ORDER BY team_id ASC`
+  ).all().map((row) => row.team_id);
+}
+
+function getTeamIdForUser(userId) {
+  return getUserById(userId)?.team_id || null;
+}
+
+function getTeamSeatMap(teamId) {
+  return new Set(
+    listTeamMembers(teamId)
+      .map((member) => Number(member.team_seat))
+      .filter((seat) => Number.isFinite(seat))
+  );
+}
+
+function getAvailableTeamAssignment() {
+  const options = TEAM_DEFINITIONS
+    .map((team) => {
+      const members = listTeamMembers(team.id);
+      const usedSeats = new Set(
+        members
+          .map((member) => Number(member.team_seat))
+          .filter((seat) => Number.isFinite(seat))
+      );
+      let seat = null;
+      for (let index = 1; index <= TEAM_MAX_SIZE; index += 1) {
+        if (!usedSeats.has(index)) {
+          seat = index;
+          break;
+        }
+      }
+      return {
+        teamId: team.id,
+        count: members.length,
+        seat
+      };
+    })
+    .filter((entry) => entry.count < TEAM_MAX_SIZE && entry.seat);
+
+  if (!options.length) {
+    return null;
+  }
+
+  options.sort((a, b) => {
+    if (a.count !== b.count) {
+      return a.count - b.count;
+    }
+    return TEAM_DEFINITIONS.findIndex((team) => team.id === a.teamId) - TEAM_DEFINITIONS.findIndex((team) => team.id === b.teamId);
+  });
+
+  return options[0];
+}
+
+function getFirstOpenSeatForTeam(teamId, ignoreUserId = null) {
+  const usedSeats = new Set(
+    listTeamMembers(teamId)
+      .filter((member) => member.id !== ignoreUserId)
+      .map((member) => Number(member.team_seat))
+      .filter((seat) => Number.isFinite(seat))
+  );
+
+  for (let seat = 1; seat <= TEAM_MAX_SIZE; seat += 1) {
+    if (!usedSeats.has(seat)) {
+      return seat;
+    }
+  }
+
+  return null;
+}
+
+function assignUserToTeam(userId, teamId) {
+  const user = getUserById(userId);
+  if (!user) {
+    throw new Error("Student account not found.");
+  }
+
+  if (!TEAM_LOOKUP[teamId]) {
+    throw new Error("That restaurant team does not exist.");
+  }
+
+  if (user.team_id === teamId) {
+    return {
+      teamId,
+      seat: Number(user.team_seat || 0) || getFirstOpenSeatForTeam(teamId, userId) || null
+    };
+  }
+
+  const nextSeat = getFirstOpenSeatForTeam(teamId, userId);
+  if (!nextSeat) {
+    throw new Error(`${TEAM_LOOKUP[teamId].name} is already full.`);
+  }
+
+  db.prepare(
+    `UPDATE users
+     SET team_id = ?, team_seat = ?
+     WHERE id = ?`
+  ).run(teamId, nextSeat, userId);
+
+  ensureTeamState(teamId);
+
+  return {
+    teamId,
+    seat: nextSeat
+  };
+}
+
+function ensureExistingUsersHaveTeams() {
+  const users = db.prepare(
+    `SELECT id, team_id, team_seat
+     FROM users
+     ORDER BY datetime(created_at) ASC, display_name COLLATE NOCASE ASC`
+  ).all();
+
+  users.forEach((user) => {
+    if (user.team_id && Number.isFinite(Number(user.team_seat))) {
+      ensureTeamState(user.team_id);
+      return;
+    }
+
+    const assignment = getAvailableTeamAssignment();
+    if (!assignment) {
+      return;
+    }
+
+    db.prepare(
+      `UPDATE users
+       SET team_id = ?, team_seat = ?
+       WHERE id = ?`
+    ).run(assignment.teamId, assignment.seat, user.id);
+    ensureTeamState(assignment.teamId);
+  });
+
+  getTeamIdsInUse().forEach((teamId) => ensureTeamState(teamId));
+}
+
+function ensureTeamState(teamId) {
+  if (!teamId) {
+    return;
+  }
+  const existing = db.prepare(
+    `SELECT team_id
+     FROM team_state
+     WHERE team_id = ?`
+  ).get(teamId);
+  if (existing) {
+    return;
+  }
+  seedTeamState(teamId);
+}
+
+function seedTeamState(teamId) {
+  if (!teamId) {
+    return;
+  }
+  const now = new Date().toISOString();
+  db.prepare(`DELETE FROM team_staff_state WHERE team_id = ?`).run(teamId);
+  db.prepare(`DELETE FROM team_manager_flags WHERE team_id = ?`).run(teamId);
+  db.prepare(`DELETE FROM team_restaurant_state WHERE team_id = ?`).run(teamId);
+  db.prepare(`DELETE FROM team_lingering_effects WHERE team_id = ?`).run(teamId);
+  db.prepare(
+    `INSERT INTO team_state (team_id, sales, satisfaction, reputation, created_at, updated_at)
+     VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM team_state WHERE team_id = ?), ?), ?)
+     ON CONFLICT(team_id) DO UPDATE SET
+       sales = excluded.sales,
+       satisfaction = excluded.satisfaction,
+       reputation = excluded.reputation,
+       updated_at = excluded.updated_at`
+  ).run(
+    teamId,
+    DEFAULT_STUDENT_STATE.sales,
+    DEFAULT_STUDENT_STATE.satisfaction,
+    DEFAULT_STUDENT_STATE.reputation,
+    teamId,
+    now,
+    now
+  );
+  STAFF_MEMBERS.forEach((staff) => {
+    db.prepare(
+      `INSERT INTO team_staff_state (team_id, staff_id, morale, trust) VALUES (?, ?, ?, ?)`
+    ).run(teamId, staff.id, staff.defaultMorale, staff.defaultTrust);
+  });
+  RESTAURANT_STATE_ORDER.forEach((key) => {
+    db.prepare(
+      `INSERT INTO team_restaurant_state (team_id, key, value) VALUES (?, ?, ?)`
+    ).run(teamId, key, RESTAURANT_STATE_DEFS[key].defaultValue);
+  });
+}
+
+function getTeamPrimaryUserId(teamId) {
+  return listTeamMembers(teamId)[0]?.id || null;
+}
+
+function getSeededTeamPick(teamId, roundId, label, candidates) {
+  if (!candidates.length) {
+    return null;
+  }
+  const digest = crypto.createHash("sha256").update(`${teamId}:${roundId}:${label}`).digest();
+  return candidates[digest[0] % candidates.length];
+}
+
+function buildTeamRoundAssignments(teamId, roundId, totalSteps = TEAM_STEP_COUNT) {
+  const members = listTeamMembers(teamId);
+  const orderedIds = members.map((member) => member.id);
+  const stepAssignments = {};
+  const roleAssignments = {};
+  orderedIds.forEach((userId) => {
+    roleAssignments[userId] = [];
+  });
+
+  for (let step = 1; step <= totalSteps; step += 1) {
+    const userId = step <= orderedIds.length
+      ? orderedIds[step - 1]
+      : getSeededTeamPick(teamId, roundId, `step-${step}`, orderedIds);
+    if (userId) {
+      stepAssignments[String(step)] = userId;
+    }
+  }
+
+  TEAM_ROLE_DEFINITIONS.forEach((role, index) => {
+    const userId = index < orderedIds.length
+      ? orderedIds[index]
+      : getSeededTeamPick(teamId, roundId, `role-${role.id}`, orderedIds);
+    if (userId) {
+      if (!roleAssignments[userId]) {
+        roleAssignments[userId] = [];
+      }
+      roleAssignments[userId].push(role.id);
+    }
+  });
+
+  return {
+    rosterOrder: orderedIds,
+    roleAssignments,
+    stepAssignments
+  };
+}
+
+function getTeamResponseForRound(roundId, teamId) {
+  return db.prepare(
+    `SELECT id, round_id, user_id, team_id, option_id, option_label, outcome_text, note_text,
+            sales_delta, satisfaction_delta, reputation_delta, submitted_at
+     FROM responses
+     WHERE round_id = ? AND team_id = ?`
+  ).get(roundId, teamId);
 }
 
 function getAvatarCatalog() {
@@ -7345,52 +7785,112 @@ function rewriteStaffNames(text) {
 }
 
 function getManagerFlags(userId) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return {};
+  }
   const rows = db.prepare(
-    `SELECT key, value FROM manager_flags WHERE user_id = ?`
-  ).all(userId);
+    `SELECT key, value FROM team_manager_flags WHERE team_id = ?`
+  ).all(teamId);
   return Object.fromEntries(rows.map((row) => [row.key, Number(row.value)]));
 }
 
 function setManagerFlag(userId, key, value) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return;
+  }
   db.prepare(
-    `INSERT INTO manager_flags (user_id, key, value) VALUES (?, ?, ?)
-     ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value`
-  ).run(userId, key, Math.max(0, Math.min(6, Math.round(Number(value || 0)))));
+    `INSERT INTO team_manager_flags (team_id, key, value) VALUES (?, ?, ?)
+     ON CONFLICT(team_id, key) DO UPDATE SET value = excluded.value`
+  ).run(teamId, key, Math.max(0, Math.min(6, Math.round(Number(value || 0)))));
 }
 
 function getRecentDecisionRows(userId, limit = 6) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return [];
+  }
   return db.prepare(
     `SELECT r.category, r.pressure, p.option_label, p.sales_delta, p.satisfaction_delta, p.reputation_delta
      FROM responses p
      JOIN rounds r ON r.id = p.round_id
-     WHERE p.user_id = ?
+     WHERE p.team_id = ?
      ORDER BY datetime(p.submitted_at) DESC, p.rowid DESC
      LIMIT ?`
-  ).all(userId, limit);
+  ).all(teamId, limit);
 }
 
-function createCaseFile(roundId, userId, preset) {
+function purgeLegacyIndividualRoundDataForTeam(roundId, teamId) {
+  const memberIds = listTeamMembers(teamId).map((member) => member.id);
+  if (!memberIds.length) {
+    return;
+  }
+  const placeholders = memberIds.map(() => "?").join(", ");
+  const legacyCaseIds = db.prepare(
+    `SELECT id
+     FROM case_files
+     WHERE round_id = ?
+       AND user_id IN (${placeholders})
+       AND team_id IS NULL`
+  ).all(roundId, ...memberIds).map((row) => row.id);
+  if (legacyCaseIds.length) {
+    const casePlaceholders = legacyCaseIds.map(() => "?").join(", ");
+    db.prepare(`DELETE FROM case_choices WHERE case_file_id IN (${casePlaceholders})`).run(...legacyCaseIds);
+    db.prepare(`DELETE FROM case_files WHERE id IN (${casePlaceholders})`).run(...legacyCaseIds);
+  }
+  const legacyResponseIds = db.prepare(
+    `SELECT id
+     FROM responses
+     WHERE round_id = ?
+       AND user_id IN (${placeholders})
+       AND team_id IS NULL`
+  ).all(roundId, ...memberIds).map((row) => row.id);
+  if (legacyResponseIds.length) {
+    const responsePlaceholders = legacyResponseIds.map(() => "?").join(", ");
+    db.prepare(`DELETE FROM response_staff_effects WHERE response_id IN (${responsePlaceholders})`).run(...legacyResponseIds);
+    db.prepare(`DELETE FROM responses WHERE id IN (${responsePlaceholders})`).run(...legacyResponseIds);
+  }
+}
+
+function createCaseFile(roundId, teamId, preset) {
+  const members = listTeamMembers(teamId);
+  if (!members.length) {
+    return;
+  }
+  const primaryUserId = members[0].id;
+  const totalSteps = getCaseTotalSteps(preset);
+  const teamAssignments = buildTeamRoundAssignments(teamId, roundId, totalSteps);
+  const firstDecider = teamAssignments.stepAssignments["1"] || primaryUserId;
+  purgeLegacyIndividualRoundDataForTeam(roundId, teamId);
   const now = new Date().toISOString();
   db.prepare(
     `INSERT OR IGNORE INTO case_files
-     (id, round_id, user_id, current_node_id, current_phase, selected_consultant_id, status, context_json, updated_at, resolved_at)
-     VALUES (?, ?, ?, ?, 'consultant', NULL, 'active', ?, ?, NULL)`
+     (id, round_id, user_id, team_id, current_node_id, current_phase, selected_consultant_id, current_decider_user_id, status, context_json, updated_at, resolved_at)
+     VALUES (?, ?, ?, ?, ?, 'consultant', NULL, ?, 'active', ?, ?, NULL)`
   ).run(
     crypto.randomUUID(),
     roundId,
-    userId,
+    primaryUserId,
+    teamId,
     preset.rootNodeId,
+    firstDecider,
     JSON.stringify({
       stepIndex: 1,
       visitedConsultants: [],
       visitedNodes: [preset.rootNodeId],
-      chainLog: []
+      chainLog: [],
+      teamAssignments
     }),
     now
   );
 }
 
 function ensureCaseFile(roundId, userId) {
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    return null;
+  }
   if (getUserLossState(userId)) {
     return null;
   }
@@ -7406,21 +7906,25 @@ function ensureCaseFile(roundId, userId) {
   if (!preset) {
     return null;
   }
-  createCaseFile(roundId, userId, preset);
+  createCaseFile(roundId, teamId, preset);
   return getCaseFile(roundId, userId);
 }
 
 function getCaseFile(roundId, userId) {
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    return null;
+  }
   return db.prepare(
-    `SELECT id, round_id, user_id, current_node_id, current_phase, selected_consultant_id, status, context_json, updated_at, resolved_at
+    `SELECT id, round_id, user_id, team_id, current_node_id, current_phase, selected_consultant_id, current_decider_user_id, status, context_json, updated_at, resolved_at
      FROM case_files
-     WHERE round_id = ? AND user_id = ?`
-  ).get(roundId, userId);
+     WHERE round_id = ? AND team_id = ?`
+  ).get(roundId, teamId);
 }
 
 function getCaseChoices(caseFileId) {
   return db.prepare(
-    `SELECT id, step_index, node_id, phase, consultant_id, action_id, label, summary,
+    `SELECT id, step_index, node_id, phase, consultant_id, action_id, actor_user_id, label, summary,
             sales_delta, satisfaction_delta, reputation_delta, created_at
      FROM case_choices
      WHERE case_file_id = ?
@@ -7638,26 +8142,22 @@ function toShortText(value, fallback, maxLength = 220) {
 }
 
 function seedStudentStaff(userId) {
-  db.prepare(`DELETE FROM staff_state WHERE user_id = ?`).run(userId);
-  db.prepare(`DELETE FROM manager_flags WHERE user_id = ?`).run(userId);
-  db.prepare(`DELETE FROM restaurant_state WHERE user_id = ?`).run(userId);
-  db.prepare(`DELETE FROM lingering_effects WHERE user_id = ?`).run(userId);
-  STAFF_MEMBERS.forEach((staff) => {
-    db.prepare(
-      `INSERT INTO staff_state (user_id, staff_id, morale, trust) VALUES (?, ?, ?, ?)`
-    ).run(userId, staff.id, staff.defaultMorale, staff.defaultTrust);
-  });
-  RESTAURANT_STATE_ORDER.forEach((key) => {
-    db.prepare(
-      `INSERT INTO restaurant_state (user_id, key, value) VALUES (?, ?, ?)`
-    ).run(userId, key, RESTAURANT_STATE_DEFS[key].defaultValue);
-  });
+  const teamId = getTeamIdForUser(userId);
+  if (teamId) {
+    seedTeamState(teamId);
+  }
 }
 
 function getRestaurantStateMap(userId) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return Object.fromEntries(
+      RESTAURANT_STATE_ORDER.map((key) => [key, RESTAURANT_STATE_DEFS[key].defaultValue])
+    );
+  }
   const rows = db.prepare(
-    `SELECT key, value FROM restaurant_state WHERE user_id = ?`
-  ).all(userId);
+    `SELECT key, value FROM team_restaurant_state WHERE team_id = ?`
+  ).all(teamId);
   const rowMap = new Map(rows.map((row) => [row.key, clampPercent(row.value)]));
   return Object.fromEntries(
     RESTAURANT_STATE_ORDER.map((key) => [
@@ -7724,6 +8224,10 @@ function serializeRestaurantState(userId) {
 }
 
 function applyRestaurantStateChanges(userId, changes = {}) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return getRestaurantStateMap(userId);
+  }
   const current = getRestaurantStateMap(userId);
   Object.entries(changes).forEach(([key, delta]) => {
     if (!Object.prototype.hasOwnProperty.call(RESTAURANT_STATE_DEFS, key)) {
@@ -7735,31 +8239,35 @@ function applyRestaurantStateChanges(userId, changes = {}) {
     const nextValue = clampPercent((current[key] ?? RESTAURANT_STATE_DEFS[key].defaultValue) + Number(delta));
     current[key] = nextValue;
     db.prepare(
-      `INSERT INTO restaurant_state (user_id, key, value) VALUES (?, ?, ?)
-       ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value`
-    ).run(userId, key, nextValue);
+      `INSERT INTO team_restaurant_state (team_id, key, value) VALUES (?, ?, ?)
+       ON CONFLICT(team_id, key) DO UPDATE SET value = excluded.value`
+    ).run(teamId, key, nextValue);
   });
   return current;
 }
 
 function pruneExpiredLingeringEffects(nextRoundNumber) {
   db.prepare(
-    `DELETE FROM lingering_effects
+    `DELETE FROM team_lingering_effects
      WHERE expires_round_number < ?`
   ).run(nextRoundNumber);
 }
 
 function getVisibleLingeringEffects(userId, targetRoundNumber, limit = 6) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return [];
+  }
   const rows = db.prepare(
     `SELECT id, effect_key, title, summary, tone, target_staff_id, intensity,
             source_round_number, expires_round_number, created_at
-     FROM lingering_effects
-     WHERE user_id = ?
+     FROM team_lingering_effects
+     WHERE team_id = ?
        AND expires_round_number >= ?
        AND source_round_number <= ?
      ORDER BY intensity DESC, datetime(created_at) DESC, rowid DESC
      LIMIT ?`
-  ).all(userId, targetRoundNumber, targetRoundNumber, limit);
+  ).all(teamId, targetRoundNumber, targetRoundNumber, limit);
 
   return rows.map((row) => {
     const targetStaff = row.target_staff_id ? getStaffMember(row.target_staff_id) : null;
@@ -7780,16 +8288,20 @@ function getVisibleLingeringEffects(userId, targetRoundNumber, limit = 6) {
 }
 
 function getActiveLingeringEffectsForRound(userId, roundNumber, limit = 6) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return [];
+  }
   const rows = db.prepare(
     `SELECT id, effect_key, title, summary, tone, target_staff_id, intensity,
             source_round_number, expires_round_number, created_at
-     FROM lingering_effects
-     WHERE user_id = ?
+     FROM team_lingering_effects
+     WHERE team_id = ?
        AND source_round_number < ?
        AND expires_round_number >= ?
      ORDER BY intensity DESC, datetime(created_at) DESC, rowid DESC
      LIMIT ?`
-  ).all(userId, roundNumber, roundNumber, limit);
+  ).all(teamId, roundNumber, roundNumber, limit);
 
   return rows.map((row) => ({
     id: row.id,
@@ -7805,21 +8317,25 @@ function getActiveLingeringEffectsForRound(userId, roundNumber, limit = 6) {
 }
 
 function storeLingeringEffects(userId, round, effects = []) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return;
+  }
   effects.forEach((effect) => {
     const durationRounds = Math.max(1, Math.round(Number(effect.durationRounds || 2)));
     db.prepare(
-      `DELETE FROM lingering_effects
-       WHERE user_id = ? AND effect_key = ? AND COALESCE(target_staff_id, '') = COALESCE(?, '')`
-    ).run(userId, effect.effectKey, effect.targetStaffId || null);
+      `DELETE FROM team_lingering_effects
+       WHERE team_id = ? AND effect_key = ? AND COALESCE(target_staff_id, '') = COALESCE(?, '')`
+    ).run(teamId, effect.effectKey, effect.targetStaffId || null);
 
     db.prepare(
-      `INSERT INTO lingering_effects
-       (id, user_id, effect_key, title, summary, tone, target_staff_id, intensity,
+      `INSERT INTO team_lingering_effects
+       (id, team_id, effect_key, title, summary, tone, target_staff_id, intensity,
         source_round_id, source_round_number, expires_round_number, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       crypto.randomUUID(),
-      userId,
+      teamId,
       effect.effectKey,
       effect.title,
       effect.summary,
@@ -7834,16 +8350,35 @@ function storeLingeringEffects(userId, round, effects = []) {
   });
 }
 
-function serializeUser(userId) {
-  const user = getUserById(userId);
-  if (!user) {
+function serializeTeam(teamId) {
+  const meta = getTeamMeta(teamId);
+  if (!meta) {
     return null;
   }
-  const avatar = getResolvedAvatar(user.avatar_id);
+  ensureTeamState(teamId);
 
+  const members = listTeamMembers(teamId).map((member) => {
+    const avatar = getResolvedAvatar(member.avatar_id);
+    return {
+      id: member.id,
+      username: member.username,
+      displayName: member.display_name,
+      avatarId: avatar?.id || null,
+      avatarPath: avatar?.path || null,
+      seat: Number(member.team_seat || 0)
+    };
+  });
+
+  const teamRow = db.prepare(
+    `SELECT team_id, sales, satisfaction, reputation, created_at, updated_at
+     FROM team_state
+     WHERE team_id = ?`
+  ).get(teamId);
   const staffRows = db.prepare(
-    `SELECT staff_id, morale, trust FROM staff_state WHERE user_id = ?`
-  ).all(userId);
+    `SELECT staff_id, morale, trust
+     FROM team_staff_state
+     WHERE team_id = ?`
+  ).all(teamId);
   const staffMap = new Map(staffRows.map((row) => [row.staff_id, row]));
   const staff = STAFF_MEMBERS.map((member) => {
     const current = staffMap.get(member.id);
@@ -7872,13 +8407,16 @@ function serializeUser(userId) {
     };
   });
 
-  const avgMorale = roundNumber(staff.reduce((sum, member) => sum + member.morale, 0) / staff.length, 1);
-  const avgTrust = roundNumber(staff.reduce((sum, member) => sum + member.trust, 0) / staff.length, 1);
-  const teamHealth = roundNumber((user.satisfaction + user.reputation + avgMorale + avgTrust) / 4, 1);
-  const restaurantState = serializeRestaurantState(userId);
+  const avgMorale = roundNumber(staff.reduce((sum, member) => sum + member.morale, 0) / Math.max(1, staff.length), 1);
+  const avgTrust = roundNumber(staff.reduce((sum, member) => sum + member.trust, 0) / Math.max(1, staff.length), 1);
+  const sales = roundNumber(teamRow?.sales ?? DEFAULT_STUDENT_STATE.sales, 0);
+  const satisfaction = clampPercent(teamRow?.satisfaction ?? DEFAULT_STUDENT_STATE.satisfaction);
+  const reputation = clampPercent(teamRow?.reputation ?? DEFAULT_STUDENT_STATE.reputation);
+  const teamHealth = roundNumber((satisfaction + reputation + avgMorale + avgTrust) / 4, 1);
+  const restaurantState = serializeRestaurantState(teamId);
   const restaurantStateMap = Object.fromEntries(restaurantState.map((entry) => [entry.key, entry.value]));
   const lossState = buildLossState(staff);
-  const aggregateScore = computeAggregateScore(user.sales, avgMorale, avgTrust);
+  const aggregateScore = computeAggregateScore(sales, avgMorale, avgTrust);
   const scoreTier = getScoreTier(aggregateScore);
   const decoratedStaff = staff.map((member) => ({
     ...member,
@@ -7888,19 +8426,18 @@ function serializeUser(userId) {
   const currentRoundId = getGameState().currentRoundId;
   const currentRound = currentRoundId ? getRoundById(currentRoundId) : null;
   const effectRoundNumber = currentRound?.round_number || (getGameState().roundNumber + 1);
-  const lingeringEffects = getVisibleLingeringEffects(userId, effectRoundNumber, 6);
-  const currentResponse = currentRoundId ? getResponseForRound(currentRoundId, userId) : null;
-  const managerFlags = getManagerFlags(userId);
-
+  const lingeringEffects = getVisibleLingeringEffects(teamId, effectRoundNumber, 6);
+  const currentResponse = currentRoundId ? getTeamResponseForRound(currentRoundId, teamId) : null;
+  const managerFlags = getManagerFlags(teamId);
   const decisionHistory = db.prepare(
     `SELECT r.id, r.round_number, r.headline, p.option_label, p.outcome_text, p.note_text,
             p.sales_delta, p.satisfaction_delta, p.reputation_delta, p.submitted_at
      FROM responses p
      JOIN rounds r ON r.id = p.round_id
-     WHERE p.user_id = ?
+     WHERE p.team_id = ?
      ORDER BY datetime(p.submitted_at) DESC, p.rowid DESC
      LIMIT 8`
-  ).all(userId).map((row) => ({
+  ).all(teamId).map((row) => ({
     roundId: row.id,
     roundNumber: row.round_number,
     headline: row.headline,
@@ -7916,36 +8453,41 @@ function serializeUser(userId) {
   const warnings = [];
   if (lossState) {
     warnings.push(lossState.message);
-    warnings.push("This restaurant is out of the competition until the teacher resets standings.");
+    warnings.push("This restaurant team is out until the teacher resets standings.");
   } else if (lowestMorale < 35) {
     const atRisk = staff.filter((member) => member.morale < 35).map((member) => member.name).join(", ");
-    warnings.push(`${atRisk} is close to burnout. Future decisions may trigger hidden sales penalties.`);
+    warnings.push(`${atRisk} is close to burnout. The next bad call could cost your whole team.`);
   }
   if (!lossState && avgTrust < 50) {
-    warnings.push("Team trust in your leadership is shaky. Future customer situations may be harder to stabilize.");
+    warnings.push("Trust in leadership is shaky. The next crisis will be harder for your team to stabilize cleanly.");
   }
   if (restaurantStateMap.guest_confidence < 45) {
-    warnings.push("Guest confidence is fragile. The next service mistake will land harder than usual.");
+    warnings.push("Guest confidence is fragile. The next visible mistake will hit harder than usual.");
   }
   if (restaurantStateMap.kitchen_stability < 45) {
-    warnings.push("Kitchen stability is slipping. Execution problems are more likely to compound.");
+    warnings.push("Kitchen stability is slipping. Execution errors are more likely to chain together.");
   }
   if (restaurantStateMap.staff_burnout > 65) {
-    warnings.push("Staff burnout is high. Hard-tone decisions will cost more morale than normal.");
+    warnings.push("Staff burnout is high. Sharp-edged choices are going to cost more morale than normal.");
   }
   if (restaurantStateMap.supply_control < 45) {
-    warnings.push("Supply control is shaky. Specials and inventory pressure are now riskier.");
+    warnings.push("Supply control is shaky. Specials and inventory pressure are getting riskier.");
   }
 
   return {
-    id: user.id,
-    username: user.username,
-    displayName: user.display_name,
-    avatarId: avatar?.id || null,
-    avatarPath: avatar?.path || null,
-    sales: roundNumber(user.sales, 0),
-    satisfaction: clampPercent(user.satisfaction),
-    reputation: clampPercent(user.reputation),
+    id: teamId,
+    teamId,
+    displayName: meta.name,
+    username: members.length ? members.map((member) => member.displayName).join(", ") : "Waiting for players",
+    avatarId: members[0]?.avatarId || null,
+    avatarPath: members[0]?.avatarPath || null,
+    accent: meta.accent,
+    memberCount: members.length,
+    members,
+    memberNames: members.map((member) => member.displayName),
+    sales,
+    satisfaction,
+    reputation,
     avgMorale,
     avgTrust,
     teamHealth,
@@ -7960,6 +8502,67 @@ function serializeUser(userId) {
     managerProfile: buildManagerProfile(managerFlags),
     currentResponse,
     decisionHistory
+  };
+}
+
+function buildRoleLoadoutForUser(userId, teamAssignments = null) {
+  const roleAssignments = teamAssignments?.roleAssignments || {};
+  const assignedRoleIds = Array.isArray(roleAssignments[userId]) ? roleAssignments[userId] : [];
+  return assignedRoleIds
+    .map((roleId) => TEAM_ROLE_DEFINITIONS.find((role) => role.id === roleId))
+    .filter(Boolean);
+}
+
+function serializeUser(userId) {
+  const user = getUserById(userId);
+  if (!user) {
+    return null;
+  }
+  const avatar = getResolvedAvatar(user.avatar_id);
+  const team = serializeTeam(user.team_id);
+  if (!team) {
+    return null;
+  }
+
+  const currentRoundId = getGameState().currentRoundId;
+  const currentRound = currentRoundId ? getRoundById(currentRoundId) : null;
+  const currentCase = currentRoundId ? getCaseFile(currentRoundId, userId) : null;
+  const currentContext = parseJsonValue(currentCase?.context_json, {});
+  const roleLoadout = buildRoleLoadoutForUser(user.id, currentContext.teamAssignments || null);
+
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.display_name,
+    avatarId: avatar?.id || null,
+    avatarPath: avatar?.path || null,
+    teamId: team.teamId,
+    teamSeat: Number(user.team_seat || 0),
+    team: {
+      id: team.teamId,
+      name: team.displayName,
+      accent: team.accent,
+      memberCount: team.memberCount,
+      members: team.members
+    },
+    roleLoadout,
+    sales: team.sales,
+    satisfaction: team.satisfaction,
+    reputation: team.reputation,
+    avgMorale: team.avgMorale,
+    avgTrust: team.avgTrust,
+    teamHealth: team.teamHealth,
+    aggregateScore: team.aggregateScore,
+    scoreTier: team.scoreTier,
+    restaurantState: team.restaurantState,
+    lingeringEffects: team.lingeringEffects,
+    isEliminated: team.isEliminated,
+    lossState: team.lossState,
+    staff: team.staff,
+    warnings: team.warnings,
+    managerProfile: team.managerProfile,
+    currentResponse: team.currentResponse,
+    decisionHistory: team.decisionHistory
   };
 }
 
@@ -7999,16 +8602,17 @@ function mapLeaderboardEntry(entry, rank, boardScore = entry.aggregateScore) {
     avgTrust: entry.avgTrust,
     teamHealth: entry.teamHealth,
     isEliminated: entry.isEliminated,
-    lossState: entry.lossState
+    lossState: entry.lossState,
+    members: entry.members || [],
+    memberNames: entry.memberNames || [],
+    accent: entry.accent || "gold"
   };
 }
 
 function computeLeaderboards() {
-  const students = db.prepare(
-    `SELECT id FROM users ORDER BY display_name COLLATE NOCASE ASC`
-  ).all().map((row) => serializeUser(row.id)).filter(Boolean);
+  const teams = getTeamIdsInUse().map((teamId) => serializeTeam(teamId)).filter(Boolean);
 
-  const overall = [...students]
+  const overall = [...teams]
     .sort((a, b) => {
       if (Number(a.isEliminated) !== Number(b.isEliminated)) {
         return Number(a.isEliminated) - Number(b.isEliminated);
@@ -8026,7 +8630,7 @@ function computeLeaderboards() {
     })
     .map((entry, index) => mapLeaderboardEntry(entry, index + 1, entry.aggregateScore));
 
-  const revenue = [...students]
+  const revenue = [...teams]
     .sort((a, b) => {
       if (Number(a.isEliminated) !== Number(b.isEliminated)) {
         return Number(a.isEliminated) - Number(b.isEliminated);
@@ -8041,7 +8645,7 @@ function computeLeaderboards() {
     })
     .map((entry, index) => mapLeaderboardEntry(entry, index + 1, entry.sales));
 
-  const culture = [...students]
+  const culture = [...teams]
     .sort((a, b) => {
       if (Number(a.isEliminated) !== Number(b.isEliminated)) {
         return Number(a.isEliminated) - Number(b.isEliminated);
@@ -8086,14 +8690,14 @@ function computeLeaderboard() {
   return computeLeaderboards().overall.entries;
 }
 
-function getUserTimingStats(userId) {
+function getTeamTimingStats(teamId) {
   const rows = db.prepare(
     `SELECT r.created_at, p.submitted_at
      FROM responses p
      JOIN rounds r ON r.id = p.round_id
-     WHERE p.user_id = ?
+     WHERE p.team_id = ?
      ORDER BY datetime(p.submitted_at) DESC, p.rowid DESC`
-  ).all(userId);
+  ).all(teamId);
   const durations = rows
     .map((row) => getDurationMs(row.created_at, row.submitted_at))
     .filter((value) => Number.isFinite(value));
@@ -8180,28 +8784,43 @@ function buildAdminPayload() {
   const leaderboards = computeLeaderboards();
   const leaderboard = leaderboards.overall.entries;
   const currentRound = getCurrentRound(null);
+  const currentRoundRecord = currentRound?.id ? getRoundById(currentRound.id) : null;
+  const currentPreset = currentRoundRecord
+    ? getRoundPreset(currentRoundRecord)
+    : currentRound?.presetId
+      ? getScenarioPreset(currentRound.presetId)
+      : null;
   const currentRoundStart = currentRound?.createdAt || null;
   const now = new Date().toISOString();
-  const detailedStudents = leaderboard.map((entry) => {
-    const detail = serializeUser(entry.id) || {};
+  const detailedTeams = leaderboard.map((entry) => {
+    const detail = serializeTeam(entry.id) || {};
     return {
       ...detail,
       rank: entry.rank,
       responseStats: getUserResponseStats(entry.id),
-      timingStats: getUserTimingStats(entry.id),
+      timingStats: getTeamTimingStats(entry.id),
       lowestMorale: Math.min(...(detail.staff || []).map((member) => member.morale)),
       lowestTrust: Math.min(...(detail.staff || []).map((member) => member.trust)),
       atRiskCount: (detail.staff || []).filter((member) => member.morale < 40 || member.trust < 40).length
     };
   });
   const currentRoundId = getGameState().currentRoundId;
-  const students = leaderboard.map((entry) => {
-    const detail = detailedStudents.find((student) => student.id === entry.id) || null;
-    const responded = currentRoundId ? Boolean(getResponseForRound(currentRoundId, entry.id)) : false;
-    const caseFile = currentRoundId ? getCaseFile(currentRoundId, entry.id) : null;
-    const progressState = entry.isEliminated
+  const awards = assignStudentAwards(detailedTeams);
+  const awardMap = new Map(awards.map((award) => [award.studentId, award]));
+  const students = db.prepare(
+    `SELECT id
+     FROM users
+     ORDER BY COALESCE(team_id, ''), COALESCE(team_seat, 999), datetime(created_at) ASC`
+  ).all().map((row) => {
+    const detail = serializeUser(row.id);
+    if (!detail) {
+      return null;
+    }
+    const responded = currentRoundId ? Boolean(getResponseForRound(currentRoundId, row.id)) : false;
+    const caseFile = currentRoundId ? getCaseFile(currentRoundId, row.id) : null;
+    const progressState = detail.isEliminated
       ? {
-          label: entry.lossState?.name ? `Lost: ${entry.lossState.name} quit` : "Lost",
+          label: detail.lossState?.name ? `Lost: ${detail.lossState.name} quit` : "Lost",
           tone: "closed"
         }
       : responded
@@ -8214,56 +8833,55 @@ function buildAdminPayload() {
             tone: "muted"
           };
     return {
-      ...entry,
-      award: null,
+      ...detail,
+      award: awardMap.get(detail.teamId) || null,
       managerProfile: detail?.managerProfile || null,
-      timingStats: detail?.timingStats || null,
+      timingStats: getTeamTimingStats(detail.teamId),
       respondedToCurrentRound: responded,
       progressLabel: progressState.label,
       progressTone: progressState.tone,
-      joinedAt: getUserById(entry.id)?.created_at || null,
+      joinedAt: getUserById(row.id)?.created_at || null,
       currentRoundTiming: currentRoundStart
         ? {
             state: responded ? "completed" : caseFile ? "in_progress" : "waiting",
             elapsedMs: responded
-              ? getDurationMs(currentRoundStart, getResponseForRound(currentRoundId, entry.id)?.submittedAt)
+              ? getDurationMs(currentRoundStart, getResponseForRound(currentRoundId, row.id)?.submittedAt)
               : caseFile
                 ? getDurationMs(currentRoundStart, now)
                 : null
           }
-        : null
+        : null,
+      teamStanding: leaderboard.find((entry) => entry.id === detail.teamId) || null
     };
-  });
-  const awards = assignStudentAwards(detailedStudents);
-  const awardMap = new Map(awards.map((award) => [award.studentId, award]));
-  students.forEach((student) => {
-    student.award = awardMap.get(student.id) || null;
-  });
-  const timingAnalytics = buildTeacherTimingAnalytics(students);
+  }).filter(Boolean);
+  const timingAnalytics = buildTeacherTimingAnalytics(detailedTeams);
 
-  const averageSales = students.length
-    ? roundNumber(students.reduce((sum, student) => sum + student.sales, 0) / students.length, 1)
+  const averageSales = detailedTeams.length
+    ? roundNumber(detailedTeams.reduce((sum, team) => sum + team.sales, 0) / detailedTeams.length, 1)
     : 0;
-  const averageMorale = students.length
-    ? roundNumber(students.reduce((sum, student) => sum + student.avgMorale, 0) / students.length, 1)
+  const averageMorale = detailedTeams.length
+    ? roundNumber(detailedTeams.reduce((sum, team) => sum + team.avgMorale, 0) / detailedTeams.length, 1)
     : 0;
-  const averageResponseDurations = students
-    .map((student) => student.timingStats?.averageResolutionMs)
+  const averageResponseDurations = detailedTeams
+    .map((team) => team.timingStats?.averageResolutionMs)
     .filter((value) => Number.isFinite(value));
   const averageResponseMs = averageResponseDurations.length
     ? Math.round(averageResponseDurations.reduce((sum, value) => sum + value, 0) / averageResponseDurations.length)
     : null;
 
   const recentResponses = db.prepare(
-    `SELECT p.id, p.option_label, p.sales_delta, p.satisfaction_delta, p.reputation_delta, p.submitted_at,
+    `SELECT p.id, p.team_id, p.option_label, p.sales_delta, p.satisfaction_delta, p.reputation_delta, p.submitted_at,
             u.display_name, u.username, r.round_number, r.headline, r.created_at
      FROM responses p
      JOIN users u ON u.id = p.user_id
      JOIN rounds r ON r.id = p.round_id
+     WHERE p.team_id IS NOT NULL
      ORDER BY datetime(p.submitted_at) DESC, p.rowid DESC
      LIMIT 14`
   ).all().map((row) => ({
     id: row.id,
+    teamId: row.team_id,
+    teamName: getTeamMeta(row.team_id)?.name || "Team",
     studentName: row.display_name,
     username: row.username,
     roundNumber: row.round_number,
@@ -8276,6 +8894,84 @@ function buildAdminPayload() {
     responseDurationMs: getDurationMs(row.created_at, row.submitted_at)
   }));
 
+  const teams = TEAM_DEFINITIONS.map((teamDef) => {
+    const members = listTeamMembers(teamDef.id);
+    const teamDetail = serializeTeam(teamDef.id);
+    const currentCase = currentRound
+      ? db.prepare(
+          `SELECT *
+           FROM case_files
+           WHERE round_id = ? AND team_id = ?
+           ORDER BY datetime(updated_at) DESC, rowid DESC
+           LIMIT 1`
+        ).get(currentRound.id, teamDef.id)
+      : null;
+    const serializedCase = currentCase && currentPreset
+      ? serializeCaseFile(currentCase, currentRound, currentPreset, null)
+      : null;
+    const currentResponse = currentRound ? getTeamResponseForRound(currentRound.id, teamDef.id) : null;
+    const seatAssignments = Array.from({ length: TEAM_MAX_SIZE }, (_, index) => {
+      const seatNumber = index + 1;
+      const member = members.find((entry) => Number(entry.team_seat || 0) === seatNumber);
+      return member
+        ? {
+            seat: seatNumber,
+            occupied: true,
+            userId: member.id,
+            displayName: member.display_name,
+            username: member.username,
+            avatarId: member.avatar_id || null,
+            avatarPath: getResolvedAvatar(member.avatar_id)?.path || null
+          }
+        : {
+            seat: seatNumber,
+            occupied: false,
+            userId: null,
+            displayName: null,
+            username: null,
+            avatarId: null,
+            avatarPath: null
+          };
+    });
+    const roleLoadouts = members.map((member) => ({
+      userId: member.id,
+      displayName: member.display_name,
+      seat: member.team_seat,
+      roles: buildRoleLoadoutForUser(member.id, serializedCase?.stepAssignments?.length ? {
+        roleAssignments: (parseJsonValue(currentCase?.context_json, {}).teamAssignments || {}).roleAssignments || {}
+      } : null)
+    }));
+    const progressLabel = currentRound
+      ? currentResponse
+        ? "Completed"
+        : serializedCase
+          ? `Step ${serializedCase.stepIndex}/${serializedCase.totalSteps}`
+          : members.length
+            ? "Waiting for case"
+            : "No players assigned"
+      : members.length
+        ? "Ready"
+        : "Open seats";
+
+    return {
+      id: teamDef.id,
+      name: teamDef.name,
+      accent: teamDef.accent,
+      memberCount: members.length,
+      openSeatCount: Math.max(0, TEAM_MAX_SIZE - members.length),
+      seatAssignments,
+      roleLoadouts,
+      currentCase: serializedCase,
+      currentResponse,
+      progressLabel,
+      aggregateScore: teamDetail?.aggregateScore ?? null,
+      scoreTier: teamDetail?.scoreTier ?? null,
+      sales: teamDetail?.sales ?? DEFAULT_STUDENT_STATE.sales,
+      avgMorale: teamDetail?.avgMorale ?? null,
+      avgTrust: teamDetail?.avgTrust ?? null
+    };
+  });
+
   return {
     settings: {
       teacherUsername: settings.teacherUsername,
@@ -8286,6 +8982,7 @@ function buildAdminPayload() {
     },
     metrics: {
       studentCount: students.length,
+      teamCount: TEAM_DEFINITIONS.length,
       averageSales,
       averageMorale,
       averageResponseMs,
@@ -8293,6 +8990,12 @@ function buildAdminPayload() {
       topStudent: leaderboard[0] || null
     },
     students,
+    teams,
+    teamCatalog: TEAM_DEFINITIONS.map((team) => ({
+      id: team.id,
+      name: team.name,
+      accent: team.accent
+    })),
     awards,
     recentResponses,
     leaderboards,
@@ -8315,7 +9018,7 @@ function getUserResponseStats(userId) {
             COALESCE(MAX(sales_delta), 0) AS best_sales_event,
             COALESCE(MIN(sales_delta), 0) AS worst_sales_event
      FROM responses
-     WHERE user_id = ?`
+     WHERE team_id = ?`
   ).get(userId);
 
   return {
@@ -8552,7 +9255,7 @@ function getRoundTimingStats(roundId, roundCreatedAt) {
   const rows = db.prepare(
     `SELECT submitted_at
      FROM responses
-     WHERE round_id = ?
+     WHERE round_id = ? AND team_id IS NOT NULL
      ORDER BY datetime(submitted_at) ASC, rowid ASC`
   ).all(roundId);
   const durations = rows
@@ -8577,13 +9280,13 @@ function getRoundTimingStats(roundId, roundCreatedAt) {
 
 function serializeRound(row, session) {
   const isAdmin = Boolean(session?.isAdmin);
-  const responseCount = db.prepare(`SELECT COUNT(*) AS count FROM responses WHERE round_id = ?`).get(row.id).count;
-  const totalStudents = db.prepare(`SELECT COUNT(*) AS count FROM users`).get().count;
+  const responseCount = db.prepare(`SELECT COUNT(*) AS count FROM responses WHERE round_id = ? AND team_id IS NOT NULL`).get(row.id).count;
+  const totalTeams = getTeamIdsInUse().length;
   const currentUserResponse = session?.userId ? getResponseForRound(row.id, session.userId) : null;
   const preset = getRoundPreset(row);
   const existingCaseFile = session?.userId ? getCaseFile(row.id, session.userId) : null;
   const caseFile = session?.userId ? (existingCaseFile || ensureCaseFile(row.id, session.userId)) : null;
-  const studentCase = caseFile ? serializeCaseFile(caseFile, row, preset) : null;
+  const studentCase = caseFile ? serializeCaseFile(caseFile, row, preset, session?.userId || null) : null;
 
   return {
     id: row.id,
@@ -8598,35 +9301,39 @@ function serializeRound(row, session) {
     createdAt: row.created_at,
     closedAt: row.closed_at,
     responseCount,
-    totalStudents,
-    responseRate: totalStudents ? Math.round((responseCount / totalStudents) * 100) : 0,
+    totalStudents: totalTeams,
+    totalTeams,
+    responseRate: totalTeams ? Math.round((responseCount / totalTeams) * 100) : 0,
     timingStats: getRoundTimingStats(row.id, row.created_at),
     topChoiceLabel: null,
     consultants: isAdmin ? Object.keys(getNodeDefinition(preset, preset?.rootNodeId)?.consultants || {}) : undefined,
     userResponse: currentUserResponse,
     studentCase,
     completedCount: responseCount,
-    inProgressCount: db.prepare(`SELECT COUNT(*) AS count FROM case_files WHERE round_id = ? AND status = 'active'`).get(row.id).count,
+    inProgressCount: db.prepare(`SELECT COUNT(*) AS count FROM case_files WHERE round_id = ? AND team_id IS NOT NULL AND status = 'active'`).get(row.id).count,
     teacherSnapshot: isAdmin ? buildTeacherEventSnapshot(row.id, preset) : null
   };
 }
 
-function serializeCaseFile(caseFile, round, preset) {
+function serializeCaseFile(caseFile, round, preset, viewerUserId = null) {
   const context = parseJsonValue(caseFile.context_json, {});
   const node = getNodeDefinition(preset, caseFile.current_node_id);
   const selectedConsultant = caseFile.selected_consultant_id ? getStaffMember(caseFile.selected_consultant_id) : null;
   const consultantDefinition = selectedConsultant ? getNodeConsultantDefinition(node, selectedConsultant.id) : null;
   const relationshipBeat = selectedConsultant
-    ? buildRelationshipPromptBeat(caseFile.user_id, selectedConsultant.id, context, caseFile.current_node_id)
+    ? buildRelationshipPromptBeat(viewerUserId || caseFile.user_id, selectedConsultant.id, context, caseFile.current_node_id)
     : null;
   const rawChoices = getCaseChoices(caseFile.id);
   const cumulativeImpact = summarizeCaseChoices(rawChoices);
+  const teamAssignments = context.teamAssignments || { roleAssignments: {}, stepAssignments: {} };
   const choiceLog = rawChoices.map((choice) => ({
     stepIndex: choice.step_index,
     nodeId: choice.node_id,
     phase: choice.phase,
     consultantId: choice.consultant_id,
     actionId: choice.action_id,
+    actorUserId: choice.actor_user_id || null,
+    actorName: choice.actor_user_id ? getUserById(choice.actor_user_id)?.display_name || "Teammate" : null,
     label: choice.label,
     summary: choice.summary,
     salesDelta: choice.sales_delta,
@@ -8634,14 +9341,29 @@ function serializeCaseFile(caseFile, round, preset) {
     reputationDelta: choice.reputation_delta,
     createdAt: choice.created_at
   }));
+  const teamMembers = listTeamMembers(caseFile.team_id).map((member) => ({
+    id: member.id,
+    displayName: member.display_name,
+    seat: Number(member.team_seat || 0),
+    avatarPath: getResolvedAvatar(member.avatar_id)?.path || null,
+    assignedRoles: (teamAssignments.roleAssignments?.[member.id] || [])
+      .map((roleId) => TEAM_ROLE_DEFINITIONS.find((role) => role.id === roleId))
+      .filter(Boolean)
+  }));
+  const currentDeciderUserId = caseFile.current_decider_user_id || null;
+  const currentDecider = currentDeciderUserId ? getUserById(currentDeciderUserId) : null;
 
   return {
     id: caseFile.id,
+    teamId: caseFile.team_id || null,
     status: caseFile.status,
     lossState: context.lossState || null,
     currentNodeId: caseFile.current_node_id,
     currentPhase: caseFile.current_phase,
     selectedConsultantId: caseFile.selected_consultant_id || null,
+    currentDeciderUserId,
+    currentDeciderName: currentDecider?.display_name || null,
+    canAct: Boolean(viewerUserId && currentDeciderUserId && viewerUserId === currentDeciderUserId && caseFile.status === "active"),
     stepIndex: Number(context.stepIndex || 1),
     availableConsultants: caseFile.current_phase === "consultant"
       ? getAvailableConsultants(node, context).map((staffId) => {
@@ -8672,6 +9394,17 @@ function serializeCaseFile(caseFile, round, preset) {
         }))
       : [],
     visitedConsultants: context.visitedConsultants || [],
+    teamMembers,
+    currentPlayerRoles: viewerUserId
+      ? ((teamAssignments.roleAssignments?.[viewerUserId] || [])
+          .map((roleId) => TEAM_ROLE_DEFINITIONS.find((role) => role.id === roleId))
+          .filter(Boolean))
+      : [],
+    stepAssignments: Object.entries(teamAssignments.stepAssignments || {}).map(([step, userId]) => ({
+      stepIndex: Number(step),
+      userId,
+      displayName: getUserById(userId)?.display_name || "Teammate"
+    })),
     choiceLog,
     cumulativeImpact: {
       actionCount: cumulativeImpact.actionCount,
@@ -8708,7 +9441,7 @@ function buildTeacherEventSnapshot(roundId, preset) {
      FROM case_choices
      WHERE phase = 'consultant'
        AND step_index = 1
-       AND case_file_id IN (SELECT id FROM case_files WHERE round_id = ?)`
+       AND case_file_id IN (SELECT id FROM case_files WHERE round_id = ? AND team_id IS NOT NULL)`
   ).all(roundId);
   const consultantCounts = {};
   openingRows.forEach((row) => {
@@ -8718,7 +9451,7 @@ function buildTeacherEventSnapshot(roundId, preset) {
   const activeNodeRows = db.prepare(
     `SELECT current_node_id, COUNT(*) AS count
      FROM case_files
-     WHERE round_id = ? AND status = 'active'
+     WHERE round_id = ? AND team_id IS NOT NULL AND status = 'active'
      GROUP BY current_node_id`
   ).all(roundId);
 
@@ -8738,12 +9471,16 @@ function buildTeacherEventSnapshot(roundId, preset) {
 }
 
 function getResponseForRound(roundId, userId) {
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    return null;
+  }
   const row = db.prepare(
     `SELECT id, option_id, option_label, outcome_text, note_text, sales_delta,
             satisfaction_delta, reputation_delta, submitted_at
      FROM responses
-     WHERE round_id = ? AND user_id = ?`
-  ).get(roundId, userId);
+     WHERE round_id = ? AND team_id = ?`
+  ).get(roundId, teamId);
 
   if (!row) {
     return null;
@@ -8857,8 +9594,7 @@ function publishRound(presetId, customHeadline, customBody) {
     `UPDATE game_state SET current_round_id = ?, round_number = ? WHERE id = 1`
   ).run(roundId, nextRoundNumber);
 
-  const users = db.prepare(`SELECT id FROM users`).all();
-  users.forEach((user) => createCaseFile(roundId, user.id, preset));
+  getTeamIdsInUse().forEach((teamId) => createCaseFile(roundId, teamId, preset));
 }
 
 function submitResponse(userId, optionId) {
@@ -8889,14 +9625,18 @@ function submitResponse(userId, optionId) {
   if (!preset || !caseFile || caseFile.status !== "active") {
     throw new Error("Your restaurant does not have an active case for this event.");
   }
+  if (caseFile.current_decider_user_id && caseFile.current_decider_user_id !== userId) {
+    const currentDecider = getUserById(caseFile.current_decider_user_id);
+    throw new Error(`It is ${currentDecider?.display_name || "your teammate"}'s turn on this step.`);
+  }
 
   if (caseFile.current_phase === "consultant") {
-    chooseConsultant(caseFile, preset, optionId);
+    chooseConsultant(caseFile, preset, optionId, userId);
     return;
   }
 
   if (caseFile.current_phase === "action") {
-    chooseAction(caseFile, round, preset, optionId);
+    chooseAction(caseFile, round, preset, optionId, userId);
     return;
   }
 
@@ -8915,7 +9655,7 @@ function mergeStaffEffects(base, extra) {
   return merged;
 }
 
-function chooseConsultant(caseFile, preset, consultantId) {
+function chooseConsultant(caseFile, preset, consultantId, actorUserId) {
   const context = parseJsonValue(caseFile.context_json, {});
   const node = getNodeDefinition(preset, caseFile.current_node_id);
   const available = getAvailableConsultants(node, context);
@@ -8943,21 +9683,22 @@ function chooseConsultant(caseFile, preset, consultantId) {
 
   db.prepare(
     `INSERT INTO case_choices
-     (id, case_file_id, step_index, node_id, phase, consultant_id, action_id, label, summary, sales_delta, satisfaction_delta, reputation_delta, created_at)
-     VALUES (?, ?, ?, ?, 'consultant', ?, NULL, ?, ?, 0, 0, 0, ?)`
+     (id, case_file_id, step_index, node_id, phase, consultant_id, action_id, actor_user_id, label, summary, sales_delta, satisfaction_delta, reputation_delta, created_at)
+     VALUES (?, ?, ?, ?, 'consultant', ?, NULL, ?, ?, ?, 0, 0, 0, ?)`
   ).run(
     crypto.randomUUID(),
     caseFile.id,
     Number(context.stepIndex || 1),
     caseFile.current_node_id,
     consultantId,
+    actorUserId,
     consultant?.name || consultantId,
     `${consultant?.name || consultantId} gave you their lens on the situation.`,
     new Date().toISOString()
   );
 }
 
-function chooseAction(caseFile, round, preset, actionId) {
+function chooseAction(caseFile, round, preset, actionId, actorUserId) {
   const context = parseJsonValue(caseFile.context_json, {});
   const node = getNodeDefinition(preset, caseFile.current_node_id);
   const consultantId = caseFile.selected_consultant_id;
@@ -8993,6 +9734,9 @@ function chooseAction(caseFile, round, preset, actionId) {
 
   const nextStep = Number(context.stepIndex || 1) + 1;
   const nextNodeId = option.nextNodeId || (nextStep <= MIN_CASE_STEPS ? buildSyntheticNodeId(nextStep) : null);
+  const nextDeciderUserId = nextNodeId
+    ? context.teamAssignments?.stepAssignments?.[String(nextStep)] || null
+    : null;
   const nextContext = {
     ...context,
     selectedConsultantId: null,
@@ -9034,8 +9778,8 @@ function chooseAction(caseFile, round, preset, actionId) {
 
   db.prepare(
     `INSERT INTO case_choices
-     (id, case_file_id, step_index, node_id, phase, consultant_id, action_id, label, summary, sales_delta, satisfaction_delta, reputation_delta, created_at)
-     VALUES (?, ?, ?, ?, 'action', ?, ?, ?, ?, ?, ?, ?, ?)`
+     (id, case_file_id, step_index, node_id, phase, consultant_id, action_id, actor_user_id, label, summary, sales_delta, satisfaction_delta, reputation_delta, created_at)
+     VALUES (?, ?, ?, ?, 'action', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     crypto.randomUUID(),
     caseFile.id,
@@ -9043,6 +9787,7 @@ function chooseAction(caseFile, round, preset, actionId) {
     caseFile.current_node_id,
     consultantId,
     option.id,
+    actorUserId,
     option.label,
     `${option.outcome} ${resolvedOutcome.note}`.trim(),
     resolvedOutcome.salesDelta,
@@ -9071,11 +9816,12 @@ function chooseAction(caseFile, round, preset, actionId) {
   if (nextNodeId) {
     db.prepare(
       `UPDATE case_files
-       SET current_node_id = ?, current_phase = 'consultant', selected_consultant_id = NULL,
+       SET current_node_id = ?, current_phase = 'consultant', selected_consultant_id = NULL, current_decider_user_id = ?,
            context_json = ?, updated_at = ?
        WHERE id = ?`
     ).run(
       nextNodeId,
+      nextDeciderUserId,
       JSON.stringify(nextContext),
       new Date().toISOString(),
       caseFile.id
@@ -9087,29 +9833,35 @@ function chooseAction(caseFile, round, preset, actionId) {
 }
 
 function applyDealershipOutcome(userId, dynamicOutcome, staffEffects) {
-  const user = getUserById(userId);
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    return null;
+  }
+  ensureTeamState(teamId);
+  const team = serializeTeam(teamId);
   db.prepare(
-    `UPDATE users
-     SET sales = ?, satisfaction = ?, reputation = ?
-     WHERE id = ?`
+    `UPDATE team_state
+     SET sales = ?, satisfaction = ?, reputation = ?, updated_at = ?
+     WHERE team_id = ?`
   ).run(
-    Math.max(0, roundNumber(user.sales + dynamicOutcome.salesDelta, 0)),
-    clampPercent(user.satisfaction + dynamicOutcome.satisfactionDelta),
-    clampPercent(user.reputation + dynamicOutcome.reputationDelta),
-    userId
+    Math.max(0, roundNumber(team.sales + dynamicOutcome.salesDelta, 0)),
+    clampPercent(team.satisfaction + dynamicOutcome.satisfactionDelta),
+    clampPercent(team.reputation + dynamicOutcome.reputationDelta),
+    new Date().toISOString(),
+    teamId
   );
 
   Object.entries(staffEffects).forEach(([staffId, deltas]) => {
     const current = db.prepare(
-      `SELECT morale, trust FROM staff_state WHERE user_id = ? AND staff_id = ?`
-    ).get(userId, staffId);
+      `SELECT morale, trust FROM team_staff_state WHERE team_id = ? AND staff_id = ?`
+    ).get(teamId, staffId);
     const nextMorale = clampPercent((current?.morale ?? 65) + Number(deltas.morale || 0));
     const nextTrust = clampPercent((current?.trust ?? 65) + Number(deltas.trust || 0));
     db.prepare(
-      `INSERT INTO staff_state (user_id, staff_id, morale, trust)
+      `INSERT INTO team_staff_state (team_id, staff_id, morale, trust)
        VALUES (?, ?, ?, ?)
-       ON CONFLICT(user_id, staff_id) DO UPDATE SET morale = excluded.morale, trust = excluded.trust`
-    ).run(userId, staffId, nextMorale, nextTrust);
+       ON CONFLICT(team_id, staff_id) DO UPDATE SET morale = excluded.morale, trust = excluded.trust`
+    ).run(teamId, staffId, nextMorale, nextTrust);
   });
 
   return getUserLossState(userId);
@@ -9119,22 +9871,24 @@ function resolveCaseFile(caseFile, round, option, dynamicOutcome, nextContext, s
   const now = new Date().toISOString();
   db.prepare(
     `UPDATE case_files
-     SET status = ?, current_phase = ?, selected_consultant_id = NULL,
+     SET status = ?, current_phase = ?, selected_consultant_id = NULL, current_decider_user_id = NULL,
          context_json = ?, updated_at = ?, resolved_at = ?
      WHERE id = ?`
   ).run(status, status, JSON.stringify(nextContext), now, now, caseFile.id);
 
   const totals = summarizeCaseChoices(getCaseChoices(caseFile.id));
   const responseId = crypto.randomUUID();
+  const finalActorUserId = getCaseChoices(caseFile.id).filter((choice) => choice.actor_user_id).slice(-1)[0]?.actor_user_id || caseFile.user_id;
   db.prepare(
     `INSERT INTO responses
-     (id, round_id, user_id, option_id, option_label, outcome_text, note_text,
+     (id, round_id, user_id, team_id, option_id, option_label, outcome_text, note_text,
       sales_delta, satisfaction_delta, reputation_delta, submitted_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     responseId,
     round.id,
-    caseFile.user_id,
+    finalActorUserId,
+    caseFile.team_id,
     option.id,
     option.label,
     option.outcome,
@@ -10322,9 +11076,13 @@ function buildLossState(staff) {
 }
 
 function getUserLossState(userId) {
+  const teamId = TEAM_LOOKUP[userId] ? userId : getTeamIdForUser(userId);
+  if (!teamId) {
+    return null;
+  }
   const staffRows = db.prepare(
-    `SELECT staff_id, morale, trust FROM staff_state WHERE user_id = ?`
-  ).all(userId);
+    `SELECT staff_id, morale, trust FROM team_staff_state WHERE team_id = ?`
+  ).all(teamId);
   if (!staffRows.length) {
     return null;
   }
@@ -10515,17 +11273,24 @@ function resetSimulation(scope) {
   db.prepare(`DELETE FROM prediction_markets`).run();
 
   if (scope === "results") {
-    db.prepare(
-      `UPDATE users SET sales = ?, satisfaction = ?, reputation = ?`
-    ).run(DEFAULT_STUDENT_STATE.sales, DEFAULT_STUDENT_STATE.satisfaction, DEFAULT_STUDENT_STATE.reputation);
+    db.prepare(`DELETE FROM team_state`).run();
+    db.prepare(`DELETE FROM team_staff_state`).run();
+    db.prepare(`DELETE FROM team_manager_flags`).run();
+    db.prepare(`DELETE FROM team_restaurant_state`).run();
+    db.prepare(`DELETE FROM team_lingering_effects`).run();
     const users = db.prepare(`SELECT id FROM users`).all();
+    getTeamIdsInUse().forEach((teamId) => seedTeamState(teamId));
     users.forEach((user) => {
       initializePredictionPortfolio(user.id);
-      seedStudentStaff(user.id);
     });
     return;
   }
 
+  db.prepare(`DELETE FROM team_state`).run();
+  db.prepare(`DELETE FROM team_staff_state`).run();
+  db.prepare(`DELETE FROM team_manager_flags`).run();
+  db.prepare(`DELETE FROM team_restaurant_state`).run();
+  db.prepare(`DELETE FROM team_lingering_effects`).run();
   db.prepare(`DELETE FROM staff_state`).run();
   db.prepare(`DELETE FROM users`).run();
   setSetting("teacher_username", settings.teacherUsername);

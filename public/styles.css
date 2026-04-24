@@ -706,6 +706,40 @@ select {
   line-height: 1.45;
 }
 
+.team-turn-rail {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 200, 57, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.team-turn-rail-compact {
+  padding: 12px 14px;
+}
+
+.team-turn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.team-turn-chip {
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(214, 178, 115, 0.12);
+  background: rgba(10, 16, 24, 0.55);
+  display: grid;
+  gap: 4px;
+}
+
+.team-turn-chip.is-current,
+.team-turn-chip.is-live {
+  border-color: rgba(255, 200, 57, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 200, 57, 0.12);
+}
+
 .student-state-section {
   display: grid;
   gap: 12px;
@@ -1102,6 +1136,74 @@ button:disabled {
 .feed-list {
   display: grid;
   gap: 12px;
+}
+
+.team-ops-section {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.team-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.team-ops-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 200, 57, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(255, 200, 57, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(28, 45, 62, 0.94), rgba(11, 20, 28, 0.92));
+}
+
+.team-ops-card.accent-gold {
+  box-shadow: inset 0 0 0 1px rgba(255, 200, 57, 0.08);
+}
+
+.team-ops-card.accent-black {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.team-ops-card.accent-red {
+  box-shadow: inset 0 0 0 1px rgba(216, 69, 52, 0.1);
+}
+
+.team-ops-card.accent-amber {
+  box-shadow: inset 0 0 0 1px rgba(224, 126, 70, 0.1);
+}
+
+.team-ops-header,
+.team-seat-row,
+.team-role-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.team-seat-list,
+.team-role-list {
+  display: grid;
+  gap: 8px;
+}
+
+.team-seat-row,
+.team-role-row {
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(214, 178, 115, 0.08);
+}
+
+.team-seat-row.is-open {
+  border-style: dashed;
+  opacity: 0.75;
 }
 
 .feed-row {
@@ -1518,6 +1620,10 @@ button:disabled {
   width: min(220px, 100%);
 }
 
+.inline-form select {
+  width: min(240px, 100%);
+}
+
 .roster-actions {
   gap: 10px;
 }
@@ -1627,6 +1733,10 @@ button:disabled {
   }
 
   .leaderboard-board-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-ops-grid {
     grid-template-columns: 1fr;
   }
 

@@ -502,16 +502,21 @@ async function handleStudentRosterClick(event) {
 }
 
 async function handleStudentRosterSubmit(event) {
-  const form = event.target.closest("form[data-password-form]");
-  if (!form) {
+  event.preventDefault();
+  const passwordForm = event.target.closest("form[data-password-form]");
+  if (passwordForm) {
+    const payload = Object.fromEntries(new FormData(passwordForm).entries());
+    const ok = await postJson("/api/admin/student/password", payload);
+    if (ok) {
+      passwordForm.reset();
+    }
     return;
   }
 
-  event.preventDefault();
-  const payload = Object.fromEntries(new FormData(form).entries());
-  const ok = await postJson("/api/admin/student/password", payload);
-  if (ok) {
-    form.reset();
+  const teamForm = event.target.closest("form[data-team-form]");
+  if (teamForm) {
+    const payload = Object.fromEntries(new FormData(teamForm).entries());
+    await postJson("/api/admin/student/team", payload);
   }
 }
 
@@ -653,7 +658,7 @@ function renderMarketStatus() {
           <strong>${formatRevenue(rules.salesGoal)}</strong>
         </div>
         <div class="mini-stat">
-          <span>Students</span>
+          <span>Teams</span>
           <strong>${leaderboard.length}</strong>
         </div>
         <div class="mini-stat">
@@ -661,16 +666,16 @@ function renderMarketStatus() {
           <strong>${game.sessionNumber}</strong>
         </div>
         <div class="mini-stat">
-          <span>Completed Cases</span>
-          <strong>${currentRound ? `${currentRound.completedCount}/${currentRound.totalStudents}` : "Waiting"}</strong>
+          <span>Completed Teams</span>
+          <strong>${currentRound ? `${currentRound.completedCount}/${currentRound.totalTeams || currentRound.totalStudents}` : "Waiting"}</strong>
         </div>
       </div>
       <p class="note">
         ${game.isOpen
           ? currentRound
-            ? "Students are working through a shared restaurant event, but each case can branch differently."
-            : "Session is open. Launch a global restaurant event when you want the next chain to begin."
-          : "Open the class session before students can make management decisions."}
+            ? "All four teams are working the same live event, but each shared restaurant can branch differently based on team choices."
+            : "Session is open. Launch a global event when you want every team to start the next chain."
+          : "Open the class session before teams can start making management decisions."}
       </p>
     </div>
   `;
@@ -687,16 +692,18 @@ function renderSessionBar() {
   const message = isAdmin
     ? game.isOpen
       ? currentRound
-        ? `Students are working Event ${currentRound.roundNumber} right now.`
+        ? `All teams are working Event ${currentRound.roundNumber} right now.`
         : "Session is open and waiting for the next global event."
       : "Session is closed. Open it when class begins."
     : user.isEliminated
-      ? `${user.lossState?.name || "A staff member"} quit. Your restaurant is out until the teacher resets standings.`
+      ? `${user.lossState?.name || "A staff member"} quit. ${user.team?.name || "Your restaurant"} is out until standings reset.`
       : game.isOpen
         ? currentRound
           ? currentRound.studentCase?.status === "resolved"
-            ? "You resolved the current event chain. Watch the leaderboard and wait for the next global event."
-            : "A global restaurant event is live. Your choices will branch your restaurant's case."
+            ? "Your team resolved the current event chain. Watch the leaderboard and wait for the next global event."
+            : currentRound.studentCase?.canAct
+              ? "It is your turn right now. Your decision will lock in the next branch for the whole team."
+              : `A global restaurant event is live. ${currentRound.studentCase?.currentDeciderName || "A teammate"} is currently on the clock.`
           : "Your teacher has the session open. Wait for the next global event."
         : "Your teacher has not opened the class session yet.";
 
@@ -724,23 +731,25 @@ function renderStudentView() {
   }
 
   refs.studentView.classList.remove("hidden");
-  refs.studentNameHeading.textContent = `${user.displayName}'s Feast Haven`;
-  const leaderboardEntry = state.data.leaderboard.find((entry) => entry.id === user.id) || null;
+  refs.studentNameHeading.textContent = `${user.team?.name || "Team Restaurant"} · ${user.displayName}`;
+  const leaderboardEntry = state.data.leaderboard.find((entry) => entry.id === user.teamId) || null;
 
   refs.studentSummary.innerHTML = `
     <div class="summary-profile">
       <img class="player-avatar player-avatar-hero" src="${escapeHtml(user.avatarPath || "")}" alt="${escapeHtml(user.displayName)} avatar" />
       <div>
         <strong>${escapeHtml(user.displayName)}</strong>
-        <div class="subtext">@${escapeHtml(user.username)} · ${escapeHtml(user.managerProfile.title)}</div>
+        <div class="subtext">@${escapeHtml(user.username)} · Seat ${escapeHtml(String(user.teamSeat || "-"))} · ${escapeHtml(user.team?.name || "Team Restaurant")}</div>
       </div>
     </div>
+    ${renderPlayerRoleLoadout(user.roleLoadout)}
+    ${renderTeamMemberStrip(user.team?.members || [], user.id)}
     <div class="summary-grid">
       <article class="hero-stat">
-        <span class="eyebrow">${user.isEliminated ? "Final Score" : "Restaurant Score"}</span>
+        <span class="eyebrow">${user.isEliminated ? "Final Team Score" : "Team Score"}</span>
         <strong>${formatScore(user.aggregateScore)}</strong>
         <div class="stat-subline">
-          <span>${user.isEliminated ? "Eliminated" : leaderboardEntry ? `Rank #${leaderboardEntry.rank}` : "Not ranked yet"}</span>
+          <span>${user.isEliminated ? "Eliminated" : leaderboardEntry ? `Team Rank #${leaderboardEntry.rank}` : "Not ranked yet"}</span>
           <span>${user.isEliminated ? `${user.lossState?.name || "Employee"} quit` : user.sales >= state.data.rules.salesGoal ? "Goal reached" : `${formatRevenue(state.data.rules.salesGoal - user.sales)} to goal`}</span>
         </div>
       </article>
@@ -754,7 +763,7 @@ function renderStudentView() {
         <div class="mini-stat"><span>Manager Style</span><strong>${escapeHtml(user.managerProfile.title)}</strong></div>
       </div>
     </div>
-    <p class="note">${escapeHtml(`${user.managerProfile.summary} Current tier: ${user.scoreTier.label}.`)}</p>
+    <p class="note">${escapeHtml(`${user.managerProfile.summary} Current tier: ${user.scoreTier.label}. Your role loadout is there to guide discussion, but the live turn owner locks in each step.`)}</p>
     ${
       user.warnings.length
         ? `<div class="warning-list">${user.warnings.map((warning) => `<div class="warning-chip">${escapeHtml(warning)}</div>`).join("")}</div>`
@@ -863,8 +872,21 @@ function renderStudentRoundPanel() {
   }
 
   if (!studentCase) {
-    return `<div class="empty-state">Your restaurant case has not started yet. Refresh in a moment if the teacher just launched the event.</div>`;
+    return `<div class="empty-state">Your team case has not started yet. Refresh in a moment if the teacher just launched the event.</div>`;
   }
+
+  const turnNotice = studentCase.status === "active"
+    ? `
+        <div class="relationship-callout">
+          <strong>${studentCase.canAct ? "Your Turn" : "Team Turn Order"}</strong>
+          <span>${
+            studentCase.canAct
+              ? `You are locking in Step ${studentCase.stepIndex} for ${escapeHtml(user.team?.name || "your team")}.`
+              : `${escapeHtml(studentCase.currentDeciderName || "A teammate")} owns Step ${studentCase.stepIndex}. You can still advise, but only they can commit the move.`
+          }</span>
+        </div>
+      `
+    : "";
 
   if (studentCase.currentPhase === "consultant") {
     const consultantHeading = studentCase.stepIndex > 1 ? "Who do you talk to next?" : "Who do you talk to first?";
@@ -878,6 +900,8 @@ function renderStudentRoundPanel() {
           </div>
           <p>${escapeHtml(studentCase.currentPromptTitle)} ${escapeHtml(studentCase.currentPromptBody)}</p>
           <p class="note">The card above is the live global event. This step is just deciding whose perspective you want next.</p>
+          ${turnNotice}
+          ${renderTurnAssignmentRail(studentCase.stepAssignments, studentCase.stepIndex, studentCase.currentDeciderUserId)}
           ${studentCase.cumulativeImpact?.actionCount ? renderImpactSummary(studentCase.cumulativeImpact, "Impact so far") : ""}
           <div class="focus-row">
             ${studentCase.availableConsultants.map((consultant) => renderStaffFocusChip(consultant.id)).join("")}
@@ -886,9 +910,9 @@ function renderStudentRoundPanel() {
             ${studentCase.availableConsultants
               .map(
                 (consultant) => `
-                  <button class="option-button" data-option-id="${consultant.id}">
+                  <button class="option-button" data-option-id="${consultant.id}" ${studentCase.canAct ? "" : "disabled"}>
                     <span class="option-person">${renderStaffInlineIdentity(consultant.id, `Talk to ${consultant.name}`)}</span>
-                    <span class="option-meta">${escapeHtml(consultant.title)}</span>
+                    <span class="option-meta">${studentCase.canAct ? escapeHtml(consultant.title) : `Waiting on ${escapeHtml(studentCase.currentDeciderName || "teammate")}`}</span>
                   </button>
                 `
               )
@@ -912,6 +936,8 @@ function renderStudentRoundPanel() {
           </div>
           <p>${escapeHtml(studentCase.currentPromptBody)}</p>
           <p class="note">You are still handling the global event above. This branch is the advice and options coming from ${escapeHtml(selectedName)}.</p>
+          ${turnNotice}
+          ${renderTurnAssignmentRail(studentCase.stepAssignments, studentCase.stepIndex, studentCase.currentDeciderUserId)}
           ${studentCase.cumulativeImpact?.actionCount ? renderImpactSummary(studentCase.cumulativeImpact, "Impact so far") : ""}
           <div class="choice-lockup">
             <strong>Consulting:</strong>
@@ -929,9 +955,9 @@ function renderStudentRoundPanel() {
             ${studentCase.actionOptions
               .map(
                 (option) => `
-                  <button class="option-button" data-option-id="${option.id}">
+                  <button class="option-button" data-option-id="${option.id}" ${studentCase.canAct ? "" : "disabled"}>
                     <span class="option-label">${escapeHtml(option.label)}</span>
-                    <span class="option-meta">Choose this action</span>
+                    <span class="option-meta">${studentCase.canAct ? "Choose this action" : `Waiting on ${escapeHtml(studentCase.currentDeciderName || "teammate")}`}</span>
                   </button>
                 `
               )
@@ -967,6 +993,11 @@ function renderCaseEventOverview(currentRound, studentCase) {
         <span class="pill pill-neutral">Event ${currentRound.roundNumber}</span>
         <span class="pill pill-neutral">${escapeHtml(currentRound.category)}</span>
         <span class="pill pill-neutral">${escapeHtml(currentRound.pressure)} Pressure</span>
+        ${
+          studentCase?.currentDeciderName
+            ? `<span class="pill pill-neutral">Current turn: ${escapeHtml(studentCase.currentDeciderName)}</span>`
+            : ""
+        }
         ${
           studentCase
             ? `<span class="pill ${studentCase.status === "lost" ? "pill-closed" : studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "lost" ? "Restaurant lost" : studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
@@ -1116,18 +1147,18 @@ function renderTeacherView() {
     </div>
     <div class="summary-grid admin-summary-grid">
       <article class="hero-stat">
-        <span class="eyebrow">Top Score</span>
+        <span class="eyebrow">Top Team</span>
         <strong>${admin.metrics.topStudent ? formatScore(admin.metrics.topStudent.aggregateScore) : "No players yet"}</strong>
         <div class="stat-subline">
-          <span>${admin.metrics.topStudent ? escapeHtml(admin.metrics.topStudent.displayName) : "Waiting for students"}</span>
-          <span>${admin.metrics.studentCount} students active</span>
+          <span>${admin.metrics.topStudent ? escapeHtml(admin.metrics.topStudent.displayName) : "Waiting for teams"}</span>
+          <span>${admin.metrics.teamCount || 0} teams · ${admin.metrics.studentCount} players</span>
         </div>
       </article>
       <div class="mini-grid summary-mini-grid">
-        <div class="mini-stat"><span>Average Revenue</span><strong>${formatRevenue(admin.metrics.averageSales)}</strong></div>
-        <div class="mini-stat"><span>Average Morale</span><strong>${formatPercent(admin.metrics.averageMorale)}</strong></div>
-        <div class="mini-stat"><span>Average Pace</span><strong>${formatDurationCompact(admin.metrics.averageResponseMs)}</strong></div>
-        <div class="mini-stat"><span>Completed Cases</span><strong>${currentRound ? `${admin.metrics.activeResponses}/${admin.metrics.studentCount}` : "Waiting"}</strong></div>
+        <div class="mini-stat"><span>Average Team Revenue</span><strong>${formatRevenue(admin.metrics.averageSales)}</strong></div>
+        <div class="mini-stat"><span>Average Team Morale</span><strong>${formatPercent(admin.metrics.averageMorale)}</strong></div>
+        <div class="mini-stat"><span>Average Team Pace</span><strong>${formatDurationCompact(admin.metrics.averageResponseMs)}</strong></div>
+        <div class="mini-stat"><span>Completed Teams</span><strong>${currentRound ? `${admin.metrics.activeResponses}/${admin.metrics.teamCount || admin.metrics.studentCount}` : "Waiting"}</strong></div>
         <div class="mini-stat"><span>Session State</span><strong>${game.isOpen ? "Open" : "Closed"}</strong></div>
       </div>
     </div>
@@ -1144,7 +1175,7 @@ function renderTeacherView() {
           <p class="note">
             ${
               currentRound
-                ? `Event ${currentRound.roundNumber} is active with ${currentRound.completedCount}/${currentRound.totalStudents} completed restaurant cases.`
+                ? `Event ${currentRound.roundNumber} is active with ${currentRound.completedCount}/${currentRound.totalTeams || currentRound.totalStudents} teams finished.`
                 : game.isOpen
                   ? "No global event is active yet. Launch one when you are ready."
                   : "Open the session before pushing the next event chain."
@@ -1169,9 +1200,14 @@ function renderTeacherView() {
   renderPresetOptions();
   renderScenarioPreview();
 
-  refs.studentRoster.innerHTML = admin.students.length
-    ? `<div class="feed-list">${admin.students.map(renderStudentRosterRow).join("")}</div>`
-    : `<div class="empty-state">No student accounts exist yet.</div>`;
+  refs.studentRoster.innerHTML = `
+    ${renderAdminTeamBoard(admin.teams || [], currentRound)}
+    ${
+      admin.students.length
+        ? `<div class="feed-list">${admin.students.map(renderStudentRosterRow).join("")}</div>`
+        : `<div class="empty-state">No student accounts exist yet.</div>`
+    }
+  `;
 
   refs.teacherFeed.innerHTML = admin.recentResponses.length
     ? `<div class="feed-list">${admin.recentResponses.map(renderTeacherFeedRow).join("")}</div>`
@@ -1190,11 +1226,11 @@ function renderTeacherTimingHighlights(analytics) {
       eyebrow: "Fastest Responder",
       tone: "positive",
       fallbackTitle: "Waiting for finished events",
-      fallbackDetail: "Students need at least one completed case before pace rankings appear.",
+      fallbackDetail: "Teams need at least one completed case before pace rankings appear.",
       entry: analytics.fastestResponder,
       title: analytics.fastestResponder ? formatDurationCompact(analytics.fastestResponder.averageResolutionMs) : null,
       detail: analytics.fastestResponder
-        ? `${escapeHtml(analytics.fastestResponder.studentName)} is leading the class average across ${analytics.fastestResponder.completedEventCount} finished ${analytics.fastestResponder.completedEventCount === 1 ? "event" : "events"}.`
+        ? `${escapeHtml(analytics.fastestResponder.studentName)} is leading the team pace average across ${analytics.fastestResponder.completedEventCount} finished ${analytics.fastestResponder.completedEventCount === 1 ? "event" : "events"}.`
         : null,
       chip: analytics.fastestResponder ? "Consistent pace" : "Need data"
     },
@@ -1202,11 +1238,11 @@ function renderTeacherTimingHighlights(analytics) {
       eyebrow: "Slowest Responder",
       tone: "negative",
       fallbackTitle: "Waiting for finished events",
-      fallbackDetail: "Once students complete cases, this will show who may need time support.",
+      fallbackDetail: "Once teams complete cases, this will show who may need time support.",
       entry: analytics.slowestResponder,
       title: analytics.slowestResponder ? formatDurationCompact(analytics.slowestResponder.averageResolutionMs) : null,
       detail: analytics.slowestResponder
-        ? `${escapeHtml(analytics.slowestResponder.studentName)} currently has the slowest class average over ${analytics.slowestResponder.completedEventCount} finished ${analytics.slowestResponder.completedEventCount === 1 ? "event" : "events"}.`
+        ? `${escapeHtml(analytics.slowestResponder.studentName)} currently has the slowest team average over ${analytics.slowestResponder.completedEventCount} finished ${analytics.slowestResponder.completedEventCount === 1 ? "event" : "events"}.`
         : null,
       chip: analytics.slowestResponder ? "Watch support" : "Need data"
     },
@@ -1379,20 +1415,31 @@ function renderHistoryRow(entry) {
 }
 
 function renderStudentRosterRow(student) {
+  const teamOptions = (state.data.admin?.teamCatalog || [])
+    .map(
+      (team) => `
+        <option value="${team.id}" ${team.id === student.teamId ? "selected" : ""}>
+          ${escapeHtml(team.name)}
+        </option>
+      `
+    )
+    .join("");
+  const teamAssignmentLocked = Boolean(state.data.game?.isOpen || state.data.currentRound);
+
   return `
     <article class="feed-row">
       <div class="feed-main">
-        ${renderPlayerIdentity(student.displayName, `@${student.username} · Joined ${formatDate(student.joinedAt)}`, student.avatarPath)}
+        ${renderPlayerIdentity(student.displayName, `@${student.username} · ${escapeHtml(student.team?.name || "No team")} · Seat ${escapeHtml(String(student.teamSeat || "-"))} · Joined ${formatDate(student.joinedAt)}`, student.avatarPath)}
         <span class="pill ${student.progressTone === "closed" ? "pill-closed" : student.progressTone === "open" ? "pill-open" : "pill-muted"}">
           ${escapeHtml(student.progressLabel || "Waiting")}
         </span>
       </div>
       <div class="feed-metrics">
-        <div><strong>${formatScore(student.aggregateScore)}</strong><span>Score</span></div>
+        <div><strong>${formatScore(student.aggregateScore)}</strong><span>Team score</span></div>
         <div class="metric-badge-cell">${renderScoreTierBadge(student.scoreTier, true)}</div>
-        <div><strong>${formatRevenue(student.sales)}</strong><span>Revenue</span></div>
-        <div><strong>${formatPercent(student.avgMorale)}</strong><span>Morale</span></div>
-        <div><strong>${formatPercent(student.teamHealth)}</strong><span>Health</span></div>
+        <div><strong>${formatRevenue(student.sales)}</strong><span>Team revenue</span></div>
+        <div><strong>${formatPercent(student.avgMorale)}</strong><span>Team morale</span></div>
+        <div><strong>${formatPercent(student.teamHealth)}</strong><span>Team health</span></div>
       </div>
       <div class="history-impact">
         <span class="impact-chip neutral">Avg pace ${formatDurationCompact(student.timingStats?.averageResolutionMs)}</span>
@@ -1411,13 +1458,21 @@ function renderStudentRosterRow(student) {
           ? `<div class="award-inline">
               ${renderAwardIcon(student.award)}
               <strong>${escapeHtml(student.award.title)}</strong>
-              <span>${escapeHtml(student.award.subtitle)}</span>
+              <span>${escapeHtml(student.award.subtitle)} · ${escapeHtml(student.team?.name || "Team")}</span>
               <p class="note">${escapeHtml(student.award.reason)}</p>
             </div>`
           : ""
       }
+      ${renderPlayerRoleLoadout(student.roleLoadout, true)}
       ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This restaurant has been eliminated.")}</p>` : ""}
       <div class="roster-actions">
+        <form data-team-form class="inline-form">
+          <input type="hidden" name="userId" value="${student.id}" />
+          <select name="teamId" ${teamAssignmentLocked ? "disabled" : ""}>
+            ${teamOptions}
+          </select>
+          <button class="subtle" type="submit" ${teamAssignmentLocked ? "disabled" : ""}>Move Team</button>
+        </form>
         <form data-password-form class="inline-form">
           <input type="hidden" name="userId" value="${student.id}" />
           <input name="password" type="text" minlength="4" placeholder="New password" required />
@@ -1432,6 +1487,11 @@ function renderStudentRosterRow(student) {
           Delete Student
         </button>
       </div>
+      ${
+        teamAssignmentLocked
+          ? `<p class="note">Team moves lock once the class session is open. Set teams before starting the day.</p>`
+          : ""
+      }
     </article>
   `;
 }
@@ -1448,12 +1508,80 @@ function renderPlayerIdentity(name, subtext, avatarPath, avatarClass = "") {
   `;
 }
 
+function renderTurnAssignmentRail(assignments, currentStep, currentDeciderUserId, compact = false) {
+  if (!assignments?.length) {
+    return "";
+  }
+
+  return `
+    <div class="team-turn-rail ${compact ? "team-turn-rail-compact" : ""}">
+      <strong>${compact ? "Step Owners" : "Event Turn Order"}</strong>
+      <div class="team-turn-grid">
+        ${assignments
+          .map(
+            (assignment) => `
+              <div class="team-turn-chip ${
+                Number(assignment.stepIndex) === Number(currentStep)
+                  ? "is-current"
+                  : assignment.userId === currentDeciderUserId
+                    ? "is-live"
+                    : ""
+              }">
+                <span class="eyebrow">Step ${escapeHtml(String(assignment.stepIndex))}</span>
+                <strong>${escapeHtml(assignment.displayName || "Open seat")}</strong>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderPlayerRoleLoadout(roles, compact = false) {
+  if (!roles?.length) {
+    return "";
+  }
+  return `
+    <div class="${compact ? "focus-row" : "warning-list"}">
+      ${roles
+        .map(
+          (role) => `
+            <span class="${compact ? "pill pill-neutral" : "warning-chip"}" title="${escapeHtml(role.summary)}">
+              ${escapeHtml(role.label)}
+            </span>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderTeamMemberStrip(members, currentUserId) {
+  if (!members?.length) {
+    return "";
+  }
+  return `
+    <div class="focus-row">
+      ${members
+        .map(
+          (member) => `
+            <span class="pill ${member.id === currentUserId ? "pill-open" : "pill-neutral"}">
+              Seat ${escapeHtml(String(member.seat || "-"))}: ${escapeHtml(member.displayName)}
+            </span>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderTeacherFeedRow(entry) {
   return `
     <article class="feed-row">
       <div class="feed-main">
         <div>
-          <strong>${escapeHtml(entry.studentName)}</strong>
+          <strong>${escapeHtml(entry.teamName || "Team")} · ${escapeHtml(entry.studentName)}</strong>
           <div class="subtext">Event ${entry.roundNumber} · ${escapeHtml(entry.headline)}</div>
         </div>
         <span class="tag">${escapeHtml(entry.optionLabel)}</span>
@@ -1465,6 +1593,104 @@ function renderTeacherFeedRow(entry) {
         <span class="impact-chip neutral">Time ${formatDurationCompact(entry.responseDurationMs)}</span>
       </div>
       <div class="subtext">${formatDate(entry.submittedAt)}</div>
+    </article>
+  `;
+}
+
+function renderAdminTeamBoard(teams, currentRound) {
+  if (!teams?.length) {
+    return "";
+  }
+
+  return `
+    <section class="team-ops-section">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Restaurant Teams</p>
+          <h3>Four restaurants, five seats each</h3>
+        </div>
+      </div>
+      <div class="team-ops-grid">
+        ${teams.map((team) => renderAdminTeamCard(team, currentRound)).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderAdminTeamCard(team, currentRound) {
+  const liveCase = team.currentCase;
+  const statusTone = team.currentResponse
+    ? "pill-open"
+    : liveCase
+      ? "pill-neutral"
+      : team.memberCount
+        ? "pill-muted"
+        : "pill-closed";
+
+  return `
+    <article class="team-ops-card accent-${escapeHtml(team.accent || "gold")}">
+      <div class="team-ops-header">
+        <div>
+          <span class="eyebrow">${escapeHtml(team.name)}</span>
+          <h4>${team.memberCount}/5 seats filled</h4>
+        </div>
+        <span class="pill ${statusTone}">${escapeHtml(team.progressLabel || "Waiting")}</span>
+      </div>
+      <div class="focus-row">
+        ${
+          team.aggregateScore != null
+            ? `<span class="pill pill-neutral">Score ${formatScore(team.aggregateScore)}</span>`
+            : ""
+        }
+        ${
+          team.scoreTier?.label
+            ? `<span class="pill pill-neutral">${escapeHtml(team.scoreTier.label)}</span>`
+            : ""
+        }
+        <span class="pill pill-neutral">Revenue ${formatRevenue(team.sales || 0)}</span>
+      </div>
+      <div class="team-seat-list">
+        ${team.seatAssignments
+          .map(
+            (seat) => `
+              <div class="team-seat-row ${seat.occupied ? "" : "is-open"}">
+                <strong>Seat ${escapeHtml(String(seat.seat))}</strong>
+                <span>${seat.occupied ? escapeHtml(seat.displayName || "Player") : "Open seat"}</span>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+      ${
+        liveCase
+          ? `
+              <div class="note">
+                Current turn: <strong>${escapeHtml(liveCase.currentDeciderName || "Waiting")}</strong>
+              </div>
+              ${renderTurnAssignmentRail(liveCase.stepAssignments, liveCase.stepIndex, liveCase.currentDeciderUserId, true)}
+            `
+          : currentRound && team.memberCount
+            ? `<p class="note">This team is waiting for its live case to load.</p>`
+            : `<p class="note">${team.memberCount ? "Roles and extra steps randomize when the next global event launches." : "Seats stay open until players join this restaurant."}</p>`
+      }
+      ${
+        team.roleLoadouts?.length
+          ? `
+              <div class="team-role-list">
+                ${team.roleLoadouts
+                  .map(
+                    (entry) => `
+                      <div class="team-role-row">
+                        <strong>Seat ${escapeHtml(String(entry.seat || "-"))}: ${escapeHtml(entry.displayName)}</strong>
+                        ${renderPlayerRoleLoadout(entry.roles || [], true) || `<span class="subtext">Roles assign on the next event.</span>`}
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            `
+          : ""
+      }
     </article>
   `;
 }
@@ -1558,9 +1784,9 @@ function renderRoundRow(round) {
       </div>
       <p>${escapeHtml(round.body)}</p>
       <div class="feed-metrics">
-        <div><strong>${round.completedCount}/${round.totalStudents}</strong><span>Completed</span></div>
-        <div><strong>${round.inProgressCount}</strong><span>In progress</span></div>
-        <div><strong>${formatDurationCompact(round.timingStats?.averageResponseMs)}</strong><span>Avg finish</span></div>
+        <div><strong>${round.completedCount}/${round.totalTeams || round.totalStudents}</strong><span>Teams done</span></div>
+        <div><strong>${round.inProgressCount}</strong><span>Teams live</span></div>
+        <div><strong>${formatDurationCompact(round.timingStats?.averageResponseMs)}</strong><span>Avg team finish</span></div>
       </div>
       ${
         round.userResponse
@@ -1588,7 +1814,7 @@ function renderLeaderboardBoard(board) {
           <article class="feed-row leaderboard-row">
             <div class="feed-main">
               <span class="rank-pill">#${entry.rank}</span>
-              ${renderPlayerIdentity(entry.displayName, `@${entry.username}`, entry.avatarPath)}
+              ${renderPlayerIdentity(entry.displayName, `${escapeHtml((entry.memberNames || []).join(", ") || "Waiting for players")}`, entry.avatarPath)}
             </div>
             <div class="feed-metrics">
               <div><strong>${board.id === "revenue" ? formatRevenue(entry.sales) : formatScore(entry.boardScore)}</strong><span>${board.id === "revenue" ? "Revenue" : board.id === "culture" ? "Culture" : "Score"}</span></div>
@@ -1633,8 +1859,8 @@ function renderCaseChoiceRow(entry) {
           <div class="subtext">
             ${
               entry.phase === "consultant"
-                ? `${renderStaffInlineIdentity(entry.consultantId, getStaffName(entry.consultantId), "staff-inline")}<span>${escapeHtml(entry.summary)}</span>`
-                : `${renderStaffInlineIdentity(entry.consultantId, getStaffName(entry.consultantId), "staff-inline")}<span>${escapeHtml(entry.label)}</span>`
+                ? `${renderStaffInlineIdentity(entry.consultantId, getStaffName(entry.consultantId), "staff-inline")}<span>${escapeHtml(entry.summary)}</span>${entry.actorName ? `<span> · ${escapeHtml(entry.actorName)}</span>` : ""}`
+                : `${renderStaffInlineIdentity(entry.consultantId, getStaffName(entry.consultantId), "staff-inline")}<span>${escapeHtml(entry.label)}</span>${entry.actorName ? `<span> · ${escapeHtml(entry.actorName)}</span>` : ""}`
             }
           </div>
           ${
@@ -1775,7 +2001,7 @@ function renderTeacherSnapshot(snapshot) {
     <div class="snapshot-block">
       <div class="section-head compact">
         <p class="eyebrow">Live Branch Map</p>
-        <h3>Where students are branching</h3>
+        <h3>Where teams are branching</h3>
       </div>
       <div class="snapshot-grid">
         ${openingConsultants
@@ -1809,7 +2035,7 @@ function renderTeacherSnapshot(snapshot) {
                 )
                 .join("")}
             </div>`
-          : `<p class="note">No follow-up branches are active right now. Students are either still choosing their first staff member or have already resolved the event.</p>`
+          : `<p class="note">No follow-up branches are active right now. Teams are either still choosing their first staff member or have already resolved the event.</p>`
       }
     </div>
   `;
