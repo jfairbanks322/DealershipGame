@@ -6489,14 +6489,12 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_responses_user ON responses (user_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_round ON case_files (round_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_user ON case_files (user_id);
-    CREATE INDEX IF NOT EXISTS idx_case_files_team ON case_files (team_id);
     CREATE INDEX IF NOT EXISTS idx_case_choices_case ON case_choices (case_file_id);
     CREATE INDEX IF NOT EXISTS idx_restaurant_state_user ON restaurant_state (user_id, key);
     CREATE INDEX IF NOT EXISTS idx_lingering_effects_user ON lingering_effects (user_id, expires_round_number);
     CREATE INDEX IF NOT EXISTS idx_team_staff_state_team ON team_staff_state (team_id, staff_id);
     CREATE INDEX IF NOT EXISTS idx_team_restaurant_state_team ON team_restaurant_state (team_id, key);
     CREATE INDEX IF NOT EXISTS idx_team_lingering_effects_team ON team_lingering_effects (team_id, expires_round_number);
-    CREATE INDEX IF NOT EXISTS idx_responses_team ON responses (team_id, round_id);
     CREATE INDEX IF NOT EXISTS idx_prediction_markets_status ON prediction_markets (status, updated_at);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_positions_user ON prediction_market_positions (user_id, market_id);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_trades_market ON prediction_market_trades (market_id, created_at);
@@ -6510,6 +6508,7 @@ function initializeDatabase() {
   ensureCaseFileTeamColumns();
   ensureCaseChoiceActorColumn();
   ensureResponseTeamColumns();
+  ensureLateMigrationIndexes();
   ensureExistingUsersHaveTeams();
 
   const settingsCount = db.prepare(`SELECT COUNT(*) AS count FROM settings`).get().count;
@@ -6567,6 +6566,13 @@ function ensureResponseTeamColumns() {
   if (!columns.includes("team_id")) {
     db.exec(`ALTER TABLE responses ADD COLUMN team_id TEXT`);
   }
+}
+
+function ensureLateMigrationIndexes() {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_case_files_team ON case_files (team_id);
+    CREATE INDEX IF NOT EXISTS idx_responses_team ON responses (team_id, round_id);
+  `);
 }
 
 function seedDatabase() {
