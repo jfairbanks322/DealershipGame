@@ -72,45 +72,45 @@ const STAFF_DIRECTORY = {
 };
 
 const EVENT_ART_DIRECTORY = {
-  "lobster-mascot-hostage": {
-    image: "/assets/feast-haven/events/lobster-mascot-hostage.png",
-    alt: "A giant lobster mascot blocking the Feast Haven lobby while guests film and staff try to negotiate"
+  "robot-host-roulette": {
+    image: "/assets/feast-haven/events/robot-host-roulette.png",
+    alt: "A polished AI host robot assigning tables at Feast Haven while confused guests and staff argue around the host stand"
   },
-  "miracle-soup-cult": {
-    image: "/assets/feast-haven/events/miracle-soup-cult.png",
-    alt: "Guests treating a bowl of tomato soup like a miracle cure while staff panic around the table"
+  "funeral-wedding-collision": {
+    image: "/assets/feast-haven/events/funeral-wedding-collision.png",
+    alt: "A private room disaster where a wedding dinner and memorial gathering have collided inside Feast Haven"
   },
-  "tiny-horse-reservation": {
-    image: "/assets/feast-haven/events/tiny-horse-reservation.png",
-    alt: "An important guest arriving at Feast Haven with a tiny bow-tied horse while staff and diners stare in disbelief"
+  "balloon-review-blackmail": {
+    image: "/assets/feast-haven/events/balloon-review-blackmail.png",
+    alt: "A balloon artist critic performing mocking food-review balloons in the dining room while staff and guests react"
   },
-  "forbidden-lasagna-volcano": {
-    image: "/assets/feast-haven/events/forbidden-lasagna-volcano.png",
-    alt: "A gigantic steaming lasagna volcano erupting across the Feast Haven kitchen while staff argue and someone records it"
+  "spice-club-meltdown": {
+    image: "/assets/feast-haven/events/spice-club-meltdown.png",
+    alt: "A dangerous hot-sauce challenge spiraling out of control at a Feast Haven dinner table while staff intervene"
   },
-  "proposal-breakup-cake": {
-    image: "/assets/feast-haven/events/proposal-breakup-cake.png",
-    alt: "A proposal cake delivered to a breakup table while staff and a real proposer react in horror"
+  "cryo-pod-celebrity": {
+    image: "/assets/feast-haven/events/cryo-pod-celebrity.png",
+    alt: "A celebrity standing inside a cryotherapy pod placed directly in the Feast Haven dining room as fog spills across the floor"
   },
-  "clown-convention-brunch": {
-    image: "/assets/feast-haven/events/clown-convention-brunch.png",
-    alt: "A clown convention overwhelming a Feast Haven brunch service while families and staff react to the chaos"
+  "truffle-pig-vip-night": {
+    image: "/assets/feast-haven/events/truffle-pig-vip-night.png",
+    alt: "A tuxedoed truffle pig being paraded through the Feast Haven dining room by a wealthy guest while staff and diners panic"
   },
-  "goose-sous-chef": {
-    image: "/assets/feast-haven/events/goose-sous-chef.png",
-    alt: "A goose wearing a neckerchief standing in the Feast Haven kitchen while staff recoil and argue"
+  "silent-retreat-buyout": {
+    image: "/assets/feast-haven/events/silent-retreat-buyout.png",
+    alt: "A silent retreat occupying half of Feast Haven while normal diners and staff struggle through two incompatible room moods"
   },
-  "espresso-machine-screams": {
-    image: "/assets/feast-haven/events/espresso-machine-screams.png",
-    alt: "A screaming haunted-looking espresso machine causing panic at the Feast Haven bar station"
+  "fake-prince-auction": {
+    image: "/assets/feast-haven/events/fake-prince-auction.png",
+    alt: "A fake prince auctioning off royal blessings in the middle of a Feast Haven dining room while guests wave money and stare"
   },
-  "mystery-caviar-sprinkles": {
-    image: "/assets/feast-haven/events/mystery-caviar-sprinkles.png",
-    alt: "Children happily eating expensive caviar as if it were sprinkles while adults and staff panic"
+  "ice-swan-blackout": {
+    image: "/assets/feast-haven/events/ice-swan-blackout.png",
+    alt: "A massive melting ice swan flooding the gala floor near power strips while Feast Haven staff and guests panic"
   },
-  "food-heaven-drone": {
-    image: "/assets/feast-haven/events/food-heaven-drone.png",
-    alt: "A rival restaurant drone dropping coupons into the Feast Haven dining room while guests and staff react"
+  "casino-chip-tipping": {
+    image: "/assets/feast-haven/events/casino-chip-tipping.png",
+    alt: "Feast Haven staff and management sorting piles of casino chips as tips during a chaotic charity casino night"
   }
 };
 
