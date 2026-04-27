@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black Market: Knockoff Hustle</title>
+    <link rel="stylesheet" href="/alliance-market.css" />
+  </head>
+  <body class="alliance-market-body">
+    <div class="alliance-noise"></div>
+    <div class="alliance-gridlines"></div>
+
+    <main class="alliance-shell">
+      <header class="hero-panel">
+        <div class="hero-copy">
+          <p class="eyebrow">Team Strategy Game</p>
+          <h1>Black Market <span>Knockoff Hustle</span></h1>
+          <p class="hero-text">
+            Buy knockoff fashion and designer basketball shoes, sell them for profit, make alliances when it helps,
+            and betray rivals when it pays off. The team with the most money at the end wins.
+          </p>
+          <div class="hero-actions">
+            <a class="hero-link" href="/">Back To Main Hub</a>
+            <button id="reset-game-btn" type="button" class="hero-button">Reset Session</button>
+          </div>
+        </div>
+
+        <aside class="hero-status">
+          <div class="status-tile">
+            <span class="status-label">Round</span>
+            <strong id="round-indicator">1 / 8</strong>
+          </div>
+          <div class="status-tile">
+            <span class="status-label">Sell Price</span>
+            <strong id="proposal-focus">$12</strong>
+          </div>
+          <div class="status-tile">
+            <span class="status-label">Current Team</span>
+            <strong id="player-team-label">Mirror Mile</strong>
+          </div>
+        </aside>
+      </header>
+
+      <section class="team-select-panel alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">Seat Rail</p>
+            <h2>Teams</h2>
+          </div>
+          <p class="section-copy">
+          Each team gets one turn per round. On your turn, pick one move and try to make the most money.
+          </p>
+        <div id="team-select-grid" class="team-select-grid"></div>
+      </section>
+
+      <section class="teacher-grid">
+        <article class="alliance-card teacher-card">
+          <div class="section-head">
+            <p class="eyebrow">Teacher Controls</p>
+            <h2>Turns And Live Events</h2>
+          </div>
+          <div id="teacher-panel" class="teacher-panel"></div>
+        </article>
+
+        <article class="alliance-card deal-card">
+          <div class="section-head">
+            <p class="eyebrow">Round Guide</p>
+            <h2>What To Do Each Round</h2>
+          </div>
+          <div id="deal-panel" class="deal-panel"></div>
+        </article>
+      </section>
+
+      <section class="top-grid">
+        <article class="alliance-card war-room-card">
+          <div class="section-head">
+            <p class="eyebrow">Private View</p>
+          <h2 id="war-room-name">Team Brief</h2>
+          </div>
+          <div class="hero-actions war-room-actions">
+            <button id="toggle-brief-btn" type="button" class="ghost-button">Show Team Brief</button>
+            <button id="hold-position-btn" type="button" class="ghost-button">End Turn</button>
+          </div>
+          <div id="player-summary" class="player-summary"></div>
+        </article>
+
+        <article class="alliance-card pulse-card">
+          <div class="section-head">
+            <p class="eyebrow">This Round</p>
+            <h2 id="proposal-title">Street Price</h2>
+          </div>
+          <div id="proposal-panel" class="proposal-panel"></div>
+        </article>
+      </section>
+
+      <section class="main-grid">
+        <article class="alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">Supply Shop</p>
+            <h2>Buy Or Sell</h2>
+          </div>
+          <p class="section-copy">
+            Buy supply here, or sell what you already have. If you want drama, use the rival team actions next to it.
+          </p>
+          <div id="contract-board" class="contract-board"></div>
+          <div class="global-actions">
+            <button id="lobby-action-btn" type="button" class="hero-button">Sell Supply</button>
+            <button id="pr-action-btn" type="button" class="ghost-button">Lay Low</button>
+          </div>
+        </article>
+
+        <article class="alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">Other Teams</p>
+            <h2>Alliances And Sabotage</h2>
+          </div>
+          <div id="faction-board" class="faction-board"></div>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">Live Alliances</p>
+            <h2>Who Is Working Together</h2>
+          </div>
+          <div id="deal-board" class="deal-board"></div>
+        </article>
+
+        <article class="alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">Standings</p>
+            <h2>Money Leaderboard</h2>
+          </div>
+          <div id="leaderboard-panel" class="leaderboard-panel"></div>
+        </article>
+
+        <article class="alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">What Just Happened</p>
+            <h2>Street Feed</h2>
+          </div>
+          <div id="log-panel" class="log-panel"></div>
+        </article>
+      </section>
+
+      <section class="debrief-grid">
+        <article class="alliance-card">
+          <div class="section-head">
+            <p class="eyebrow">Cash Out</p>
+            <h2>Final Results</h2>
+          </div>
+          <div id="debrief-panel" class="debrief-panel"></div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/alliance-market.js"></script>
+  </body>
+</html>
