@@ -6921,6 +6921,31 @@ function serializeTeamSabotageState(roundId, teamId, viewerUserId = null) {
   };
 }
 
+function getLatestSabotageBroadcast(roundId) {
+  if (!roundId) {
+    return null;
+  }
+  const latestCaughtAttempt = db.prepare(
+    `SELECT *
+     FROM team_sabotage_attempts
+     WHERE round_id = ? AND status = 'failed'
+     ORDER BY datetime(resolved_at) DESC, rowid DESC
+     LIMIT 1`
+  ).get(roundId);
+
+  if (!latestCaughtAttempt) {
+    return null;
+  }
+
+  const serialized = serializeSabotageAttempt(latestCaughtAttempt, null);
+  return {
+    ...serialized,
+    type: "caught",
+    headline: `${serialized.attackerTeamName} got caught trying to sabotage ${serialized.targetTeamName}.`,
+    detail: serialized.outcomeNote || `${serialized.attackerTeamName} failed a covert ${serialized.sabotageLabel} attempt aimed at ${serialized.targetTeamName}.`
+  };
+}
+
 function buildPredictionMarketPayload(session) {
   const viewerRole = session?.isAdmin ? "teacher" : session?.userId ? "student" : "guest";
   const portfolio = session?.userId && !session?.isAdmin
@@ -9721,6 +9746,7 @@ function serializeRound(row, session) {
   const caseFile = session?.userId ? (existingCaseFile || ensureCaseFile(row.id, session.userId)) : null;
   const studentCase = caseFile ? serializeCaseFile(caseFile, row, preset, session?.userId || null) : null;
   const sabotage = session?.userId ? serializeTeamSabotageState(row.id, getTeamIdForUser(session.userId), session.userId) : null;
+  const sabotageBroadcast = getLatestSabotageBroadcast(row.id);
 
   return {
     id: row.id,
@@ -9744,6 +9770,7 @@ function serializeRound(row, session) {
     userResponse: currentUserResponse,
     studentCase,
     sabotage,
+    sabotageBroadcast,
     completedCount: responseCount,
     inProgressCount: db.prepare(`SELECT COUNT(*) AS count FROM case_files WHERE round_id = ? AND team_id IS NOT NULL AND status = 'active'`).get(row.id).count,
     teacherSnapshot: isAdmin ? buildTeacherEventSnapshot(row.id, preset) : null

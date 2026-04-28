@@ -1748,6 +1748,51 @@ button:disabled {
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
 }
 
+.sabotage-caught-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.sabotage-caught-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 14, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+.sabotage-caught-card {
+  position: relative;
+  z-index: 1;
+  width: min(620px, calc(100vw - 28px));
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(214, 178, 115, 0.28);
+  background:
+    linear-gradient(180deg, rgba(30, 9, 11, 0.98), rgba(10, 13, 18, 0.98));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+}
+
+.sabotage-caught-card h2 {
+  margin: 0;
+  color: #fff2e6;
+}
+
+.sabotage-caught-card p {
+  margin: 0;
+}
+
+.sabotage-caught-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
 .market-publish-close {
   position: absolute;
   top: 14px;

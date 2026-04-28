@@ -8,6 +8,8 @@ const state = {
       body: ""
     },
     marketPublishPopup: null,
+    sabotageCaughtPopup: null,
+    seenSabotageBroadcastIds: [],
     selectedAvatarId: null,
     sabotageDraft: {
       targetTeamId: "",
@@ -87,45 +89,65 @@ const STAFF_DIRECTORY = {
 };
 
 const EVENT_ART_DIRECTORY = {
-  "robot-host-roulette": {
-    image: "/assets/feast-haven/events/robot-host-roulette.png",
-    alt: "A polished AI host robot assigning tables at Feast Haven while confused guests and staff argue around the host stand"
+  "influencer-hates-everything": {
+    image: "/assets/feast-haven/events/influencer-hates-everything.png",
+    alt: "A glamorous influencer live-streaming complaints from her Feast Haven table while guests and staff react in alarm"
   },
-  "funeral-wedding-collision": {
-    image: "/assets/feast-haven/events/funeral-wedding-collision.png",
-    alt: "A private room disaster where a wedding dinner and memorial gathering have collided inside Feast Haven"
+  "grandma-secret-menu-takeover": {
+    image: "/assets/feast-haven/events/grandma-secret-menu-takeover.png",
+    alt: "An angry grandmother taking over the Feast Haven kitchen with a sauce spoon while stunned staff watch"
   },
-  "balloon-review-blackmail": {
-    image: "/assets/feast-haven/events/balloon-review-blackmail.png",
-    alt: "A balloon artist critic performing mocking food-review balloons in the dining room while staff and guests react"
+  "surprise-health-inspection-chaos": {
+    image: "/assets/feast-haven/events/surprise-health-inspection-chaos.png",
+    alt: "A stern health inspector entering a chaotic Feast Haven kitchen with fire, dirty dishes, and panicked staff"
   },
-  "spice-club-meltdown": {
-    image: "/assets/feast-haven/events/spice-club-meltdown.png",
-    alt: "A dangerous hot-sauce challenge spiraling out of control at a Feast Haven dinner table while staff intervene"
+  "table-that-wont-leave": {
+    image: "/assets/feast-haven/events/table-that-wont-leave.png",
+    alt: "A loud group sprawled across a reserved Feast Haven table for hours while a stressed server tries to move them"
   },
-  "cryo-pod-celebrity": {
-    image: "/assets/feast-haven/events/cryo-pod-celebrity.png",
-    alt: "A celebrity standing inside a cryotherapy pod placed directly in the Feast Haven dining room as fog spills across the floor"
+  "mystery-food-critic": {
+    image: "/assets/feast-haven/events/mystery-food-critic.png",
+    alt: "A suspicious disguised diner hiding behind a menu while Feast Haven staff and chef try to identify the mystery critic"
   },
-  "truffle-pig-vip-night": {
-    image: "/assets/feast-haven/events/truffle-pig-vip-night.png",
-    alt: "A tuxedoed truffle pig being paraded through the Feast Haven dining room by a wealthy guest while staff and diners panic"
+  "allergy-maybe-situation": {
+    image: "/assets/feast-haven/events/allergy-maybe-situation.png",
+    alt: "A frantic guest changing allergy claims while a Feast Haven server and chef struggle with a confusing ingredient list"
   },
-  "silent-retreat-buyout": {
-    image: "/assets/feast-haven/events/silent-retreat-buyout.png",
-    alt: "A silent retreat occupying half of Feast Haven while normal diners and staff struggle through two incompatible room moods"
+  "power-outage-dinner-service": {
+    image: "/assets/feast-haven/events/power-outage-dinner-service.png",
+    alt: "A dark Feast Haven dining room during a power outage with staff carrying lanterns and guests panicking"
   },
-  "fake-prince-auction": {
-    image: "/assets/feast-haven/events/fake-prince-auction.png",
-    alt: "A fake prince auctioning off royal blessings in the middle of a Feast Haven dining room while guests wave money and stare"
+  "staff-group-chat-revolt": {
+    image: "/assets/feast-haven/events/staff-group-chat-revolt.png",
+    alt: "A furious manager staring at an exploding staff group chat while employees laugh around the back office"
   },
-  "ice-swan-blackout": {
-    image: "/assets/feast-haven/events/ice-swan-blackout.png",
-    alt: "A massive melting ice swan flooding the gala floor near power strips while Feast Haven staff and guests panic"
+  "wrong-proposal": {
+    image: "/assets/feast-haven/events/wrong-proposal.png",
+    alt: "A wildly mistimed celebration exploding in the Feast Haven dining room as guests duck flying champagne and shattered glass"
   },
-  "casino-chip-tipping": {
-    image: "/assets/feast-haven/events/casino-chip-tipping.png",
-    alt: "Feast Haven staff and management sorting piles of casino chips as tips during a chaotic charity casino night"
+  "free-meal-tiktok-hack": {
+    image: "/assets/feast-haven/events/free-meal-tiktok-hack.png",
+    alt: "A table of phone-wielding guests trying a viral free-meal trick while a stressed Feast Haven server confronts them"
+  },
+  "kitchen-equipment-meltdown": {
+    image: "/assets/feast-haven/events/kitchen-equipment-meltdown.png",
+    alt: "A Feast Haven kitchen melting down with fire, failing equipment, and towering tickets during dinner service"
+  },
+  "rival-restaurant-spy": {
+    image: "/assets/feast-haven/events/rival-restaurant-spy.png",
+    alt: "A suspicious undercover diner or spy standing inside the Feast Haven kitchen while staff panic around failing service"
+  },
+  "celebrity-walk-in": {
+    image: "/assets/feast-haven/events/celebrity-walk-in.png",
+    alt: "A flashy celebrity arriving unexpectedly at Feast Haven with a big group and throwing the dining room into chaos"
+  },
+  "kids-gone-wild-table": {
+    image: "/assets/feast-haven/events/kids-gone-wild-table.png",
+    alt: "Children sprinting through the Feast Haven dining room while exhausted adults ignore the chaos"
+  },
+  "everything-sold-out-disaster": {
+    image: "/assets/feast-haven/events/everything-sold-out-disaster.png",
+    alt: "A Feast Haven manager facing furious guests while a sold-out board shows multiple key items missing during peak hours"
   }
 };
 
@@ -198,6 +220,10 @@ const refs = {
   marketPublishTitle: document.getElementById("market-publish-title"),
   marketPublishDetail: document.getElementById("market-publish-detail"),
   marketPublishMeta: document.getElementById("market-publish-meta"),
+  sabotageCaughtPopup: document.getElementById("sabotage-caught-popup"),
+  sabotageCaughtTitle: document.getElementById("sabotage-caught-title"),
+  sabotageCaughtDetail: document.getElementById("sabotage-caught-detail"),
+  sabotageCaughtMeta: document.getElementById("sabotage-caught-meta"),
   studentRoster: document.getElementById("student-roster"),
   teacherFeed: document.getElementById("teacher-feed"),
   leaderboard: document.getElementById("leaderboard"),
@@ -248,6 +274,7 @@ async function bootstrap(showErrors = true) {
     syncScenarioDraft();
     syncAvatarSelection();
     syncSabotageState();
+    syncSabotageBroadcast();
     render();
   } catch (error) {
     if (showErrors) {
@@ -330,6 +357,20 @@ function syncSabotageState() {
   if (state.ui.sabotageInput.length > challengeLength) {
     state.ui.sabotageInput = state.ui.sabotageInput.slice(0, challengeLength);
   }
+}
+
+function syncSabotageBroadcast() {
+  const broadcast = state.data?.currentRound?.sabotageBroadcast;
+  if (!broadcast || broadcast.type !== "caught") {
+    return;
+  }
+
+  if (state.ui.seenSabotageBroadcastIds.includes(broadcast.id)) {
+    return;
+  }
+
+  state.ui.seenSabotageBroadcastIds = [...state.ui.seenSabotageBroadcastIds, broadcast.id].slice(-12);
+  state.ui.sabotageCaughtPopup = broadcast;
 }
 
 function setAuthPending(isPending) {
@@ -498,12 +539,16 @@ async function handlePredictionMarketSubmit(event) {
 }
 
 function handleDocumentClick(event) {
-  if (!event.target.closest("[data-market-publish-close]")) {
+  if (event.target.closest("[data-market-publish-close]")) {
+    state.ui.marketPublishPopup = null;
+    renderMarketPublishPopup();
     return;
   }
 
-  state.ui.marketPublishPopup = null;
-  renderMarketPublishPopup();
+  if (event.target.closest("[data-sabotage-caught-close]")) {
+    state.ui.sabotageCaughtPopup = null;
+    renderSabotageCaughtPopup();
+  }
 }
 
 async function handlePredictionMarketListClick(event) {
@@ -694,6 +739,7 @@ function render() {
   renderLeaderboard();
   renderRoundFeed();
   renderMarketPublishPopup();
+  renderSabotageCaughtPopup();
   updateAutomationHooks();
 }
 
@@ -717,6 +763,26 @@ function renderMarketPublishPopup() {
     `<span class="tag subtle">Evidence ${escapeHtml(String(popup.evidence))}</span>`,
     `<span class="tag subtle">Hype ${escapeHtml(String(popup.hype))}</span>`
   ].join("");
+}
+
+function renderSabotageCaughtPopup() {
+  if (!refs.sabotageCaughtPopup) {
+    return;
+  }
+
+  const popup = state.ui.sabotageCaughtPopup;
+  refs.sabotageCaughtPopup.classList.toggle("hidden", !popup);
+  if (!popup) {
+    return;
+  }
+
+  refs.sabotageCaughtTitle.textContent = popup.headline || "Sabotage Caught";
+  refs.sabotageCaughtDetail.textContent = popup.detail || "A covert sabotage attempt backfired.";
+  refs.sabotageCaughtMeta.innerHTML = [
+    `<span class="tag subtle">Attacking team: ${escapeHtml(popup.attackerTeamName || "Unknown")}</span>`,
+    `<span class="tag subtle">Targeted team: ${escapeHtml(popup.targetTeamName || "Unknown")}</span>`,
+    popup.sabotageLabel ? `<span class="tag subtle">Plan: ${escapeHtml(popup.sabotageLabel)}</span>` : ""
+  ].filter(Boolean).join("");
 }
 
 function renderAuthSection() {
