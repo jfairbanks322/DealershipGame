@@ -36,12 +36,14 @@ const DEFAULT_STUDENT_STATE = {
   reputation: 68
 };
 const TEAM_STEP_COUNT = 5;
-const TEAM_MAX_SIZE = 5;
+const TEAM_MAX_SIZE = 4;
 const TEAM_DEFINITIONS = [
   { id: "team-sunflare", name: "Sunflare Supper Club", accent: "gold" },
   { id: "team-midnight", name: "Midnight Marble", accent: "black" },
   { id: "team-ember", name: "Ember Alley", accent: "red" },
-  { id: "team-citrine", name: "Citrine Room", accent: "amber" }
+  { id: "team-citrine", name: "Citrine Room", accent: "amber" },
+  { id: "team-velvet", name: "Velvet Lantern", accent: "red" },
+  { id: "team-gilded", name: "Gilded Clover", accent: "gold" }
 ];
 const TEAM_ROLE_DEFINITIONS = [
   {
@@ -60,17 +62,94 @@ const TEAM_ROLE_DEFINITIONS = [
     summary: "Tracks morale, trust, resentment, and the emotional aftershocks of every call."
   },
   {
-    id: "finance-lead",
-    label: "Finance Lead",
-    summary: "Pushes on cost, revenue, waste, and whether the move is actually sustainable."
-  },
-  {
     id: "brand-lead",
-    label: "Brand Lead",
-    summary: "Owns optics, reputation, and how the story will spread after the shift ends."
+    label: "Brand And Finance Lead",
+    summary: "Owns optics, reputation, revenue risk, and whether the move is actually worth the fallout."
   }
 ];
 const TEAM_LOOKUP = Object.fromEntries(TEAM_DEFINITIONS.map((team) => [team.id, team]));
+const SABOTAGE_SYMBOL_POOL = ["cloche", "bell", "glass", "fork", "knife", "flame"];
+const SABOTAGE_REVEAL_MS = 4500;
+const SABOTAGE_TYPE_DEFINITIONS = {
+  "reservation-spoof": {
+    id: "reservation-spoof",
+    label: "Reservation Spoof",
+    summary: "Slip fake reservation changes into a rival's front-book and rattle their dining room pacing.",
+    successNote: "The forged reservation changes took. Their room pacing buckled before they caught the mismatch.",
+    failureNote: "Your forged reservation trail was sloppy. Security pulled it fast and the scandal snapped back on your team.",
+    success: {
+      sales: -8,
+      satisfaction: -6,
+      reputation: -3,
+      staff: {
+        elena: { morale: -5, trust: -4 },
+        devon: { morale: -3, trust: -3 }
+      }
+    },
+    failure: {
+      sales: -5,
+      satisfaction: -3,
+      reputation: -7,
+      staff: {
+        elena: { morale: -3, trust: -5 },
+        devon: { morale: -2, trust: -4 }
+      }
+    }
+  },
+  "sauce-switch": {
+    id: "sauce-switch",
+    label: "Sauce Switch",
+    summary: "Tamper with a rival's prep labels and hope the kitchen loses a critical sauce at the worst time.",
+    successNote: "The mislabeled prep trays held just long enough to throw their kitchen into a live service scramble.",
+    failureNote: "Your tampering got spotted in prep. Now your own team looks dirty and careless.",
+    success: {
+      sales: -7,
+      satisfaction: -5,
+      reputation: -4,
+      staff: {
+        tasha: { morale: -4, trust: -3 },
+        luis: { morale: -3, trust: -3 },
+        priya: { morale: -3, trust: -3 }
+      }
+    },
+    failure: {
+      sales: -4,
+      satisfaction: -2,
+      reputation: -8,
+      staff: {
+        tasha: { morale: -2, trust: -5 },
+        luis: { morale: -1, trust: -3 },
+        priya: { morale: -1, trust: -3 }
+      }
+    }
+  },
+  "review-bomb": {
+    id: "review-bomb",
+    label: "Review Bomb",
+    summary: "Seed a fake guest meltdown and hope a rival burns precious time on optics instead of service.",
+    successNote: "The rumor spread fast enough to yank their attention off the floor and into damage control.",
+    failureNote: "Your fake guest panic was traced back. The blowback hit your own brand harder than the stunt would have helped.",
+    success: {
+      sales: -5,
+      satisfaction: -3,
+      reputation: -8,
+      staff: {
+        nina: { morale: -2, trust: -3 },
+        devon: { morale: -3, trust: -4 }
+      }
+    },
+    failure: {
+      sales: -3,
+      satisfaction: -4,
+      reputation: -9,
+      staff: {
+        nina: { morale: -2, trust: -5 },
+        devon: { morale: -2, trust: -4 },
+        marcus: { morale: -1, trust: -3 }
+      }
+    }
+  }
+};
 const PREDICTION_MARKET_START_CASH = 40;
 const PREDICTION_MARKET_SEED_LIQUIDITY = 120;
 const PREDICTION_MARKET_TIMEZONE = process.env.PREDICTION_MARKET_TIMEZONE || "America/Detroit";
@@ -5834,7 +5913,7 @@ async function handleApi(req, res, pathname) {
 
     const teamAssignment = getAvailableTeamAssignment();
     if (!teamAssignment) {
-      sendJson(res, 400, { error: "All four restaurant teams are full right now. Ask your teacher to remove a seat before adding more players." });
+      sendJson(res, 400, { error: "All six restaurant teams are full right now. Ask your teacher to clear a seat before adding more players." });
       return;
     }
 
@@ -5930,6 +6009,44 @@ async function handleApi(req, res, pathname) {
 
     try {
       runInTransaction(() => submitResponse(session.userId, optionId));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/team-sabotage/start") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to run covert team sabotage." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => startTeamSabotage(
+        session.userId,
+        String(body.targetTeamId || "").trim(),
+        String(body.sabotageType || "").trim()
+      ));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/team-sabotage/resolve") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to resolve covert team sabotage." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => resolveTeamSabotage(session.userId, body.sequence));
       sendJson(res, 200, buildBootstrapPayload(session));
     } catch (error) {
       sendJson(res, 400, { error: error.message });
@@ -6485,6 +6602,24 @@ function initializeDatabase() {
       FOREIGN KEY (response_id) REFERENCES responses (id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS team_sabotage_attempts (
+      id TEXT PRIMARY KEY,
+      round_id TEXT NOT NULL,
+      attacker_team_id TEXT NOT NULL,
+      target_team_id TEXT NOT NULL,
+      created_by_user_id TEXT NOT NULL,
+      sabotage_type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      challenge_json TEXT NOT NULL,
+      submitted_sequence_json TEXT,
+      outcome_note TEXT,
+      created_at TEXT NOT NULL,
+      resolved_at TEXT,
+      UNIQUE (round_id, attacker_team_id),
+      FOREIGN KEY (round_id) REFERENCES rounds (id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by_user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_responses_round ON responses (round_id);
     CREATE INDEX IF NOT EXISTS idx_responses_user ON responses (user_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_round ON case_files (round_id);
@@ -6495,6 +6630,8 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_team_staff_state_team ON team_staff_state (team_id, staff_id);
     CREATE INDEX IF NOT EXISTS idx_team_restaurant_state_team ON team_restaurant_state (team_id, key);
     CREATE INDEX IF NOT EXISTS idx_team_lingering_effects_team ON team_lingering_effects (team_id, expires_round_number);
+    CREATE INDEX IF NOT EXISTS idx_team_sabotage_round ON team_sabotage_attempts (round_id, attacker_team_id);
+    CREATE INDEX IF NOT EXISTS idx_team_sabotage_target ON team_sabotage_attempts (round_id, target_team_id, status);
     CREATE INDEX IF NOT EXISTS idx_prediction_markets_status ON prediction_markets (status, updated_at);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_positions_user ON prediction_market_positions (user_id, market_id);
     CREATE INDEX IF NOT EXISTS idx_prediction_market_trades_market ON prediction_market_trades (market_id, created_at);
@@ -6601,6 +6738,7 @@ function clearAllTables() {
     DELETE FROM case_choices;
     DELETE FROM case_files;
     DELETE FROM response_staff_effects;
+    DELETE FROM team_sabotage_attempts;
     DELETE FROM responses;
     DELETE FROM rounds;
     DELETE FROM prediction_markets;
@@ -6636,6 +6774,150 @@ function buildBootstrapPayload(session) {
     predictionMarkets: getPredictionMarketFeed(),
     presets: session?.isAdmin ? getPresetLibrary() : null,
     admin: session?.isAdmin ? buildAdminPayload() : null
+  };
+}
+
+function getTeamSabotageAttempt(roundId, attackerTeamId) {
+  if (!roundId || !attackerTeamId) {
+    return null;
+  }
+  return db.prepare(
+    `SELECT *
+     FROM team_sabotage_attempts
+     WHERE round_id = ? AND attacker_team_id = ?`
+  ).get(roundId, attackerTeamId);
+}
+
+function listRoundSabotageAttempts(roundId) {
+  if (!roundId) {
+    return [];
+  }
+  return db.prepare(
+    `SELECT *
+     FROM team_sabotage_attempts
+     WHERE round_id = ?
+     ORDER BY datetime(created_at) ASC, rowid ASC`
+  ).all(roundId);
+}
+
+function buildSabotageChallenge() {
+  return {
+    symbolPool: SABOTAGE_SYMBOL_POOL,
+    sequence: Array.from({ length: 5 }, () => SABOTAGE_SYMBOL_POOL[crypto.randomInt(0, SABOTAGE_SYMBOL_POOL.length)]),
+    revealMs: SABOTAGE_REVEAL_MS
+  };
+}
+
+function getTeamSabotageOperator(teamId, round) {
+  if (!teamId || !round) {
+    return null;
+  }
+  const members = listTeamMembers(teamId)
+    .slice()
+    .sort((a, b) => Number(a.team_seat || 999) - Number(b.team_seat || 999));
+  if (!members.length) {
+    return null;
+  }
+  const roundNumber = Math.max(1, Number(round.round_number || round.roundNumber || 1));
+  return members[(roundNumber - 1) % members.length] || null;
+}
+
+function getTeamLossState(teamId) {
+  if (!teamId) {
+    return null;
+  }
+  const staffRows = db.prepare(
+    `SELECT staff_id, morale, trust
+     FROM team_staff_state
+     WHERE team_id = ?`
+  ).all(teamId);
+  const staffMap = new Map(staffRows.map((row) => [row.staff_id, row]));
+  const decoratedStaff = STAFF_MEMBERS.map((member) => ({
+    id: member.id,
+    name: member.name,
+    morale: clampPercent(staffMap.get(member.id)?.morale ?? member.defaultMorale),
+    trust: clampPercent(staffMap.get(member.id)?.trust ?? member.defaultTrust)
+  }));
+  return buildLossState(decoratedStaff);
+}
+
+function serializeSabotageAttempt(row, viewerTeamId = null) {
+  if (!row) {
+    return null;
+  }
+  const meta = SABOTAGE_TYPE_DEFINITIONS[row.sabotage_type] || {
+    label: row.sabotage_type,
+    summary: "Covert restaurant sabotage."
+  };
+  const challenge = parseJsonValue(row.challenge_json, {});
+  const submittedSequence = parseJsonValue(row.submitted_sequence_json, []);
+  const includeChallenge = row.status === "pending" && viewerTeamId === row.attacker_team_id;
+
+  return {
+    id: row.id,
+    roundId: row.round_id,
+    attackerTeamId: row.attacker_team_id,
+    attackerTeamName: getTeamMeta(row.attacker_team_id)?.name || "Attacking Team",
+    targetTeamId: row.target_team_id,
+    targetTeamName: getTeamMeta(row.target_team_id)?.name || "Target Team",
+    createdByUserId: row.created_by_user_id,
+    createdByName: getUserById(row.created_by_user_id)?.display_name || "Teammate",
+    sabotageType: row.sabotage_type,
+    sabotageLabel: meta.label,
+    sabotageSummary: meta.summary,
+    status: row.status,
+    outcomeNote: row.outcome_note || "",
+    createdAt: row.created_at,
+    resolvedAt: row.resolved_at || null,
+    submittedSequence,
+    challenge: includeChallenge
+      ? {
+          symbolPool: Array.isArray(challenge.symbolPool) && challenge.symbolPool.length ? challenge.symbolPool : SABOTAGE_SYMBOL_POOL,
+          sequence: Array.isArray(challenge.sequence) ? challenge.sequence : [],
+          revealMs: Number(challenge.revealMs || SABOTAGE_REVEAL_MS)
+        }
+      : null
+  };
+}
+
+function serializeTeamSabotageState(roundId, teamId, viewerUserId = null) {
+  if (!roundId || !teamId) {
+    return null;
+  }
+
+  const round = getRoundById(roundId);
+  const operator = getTeamSabotageOperator(teamId, round);
+  const outgoing = getTeamSabotageAttempt(roundId, teamId);
+  const incoming = db.prepare(
+    `SELECT *
+     FROM team_sabotage_attempts
+     WHERE round_id = ? AND target_team_id = ? AND status = 'success'
+     ORDER BY datetime(resolved_at) DESC, rowid DESC`
+  ).all(roundId, teamId);
+  const availableTargets = TEAM_DEFINITIONS
+    .filter((team) => team.id !== teamId)
+    .filter((team) => listTeamMembers(team.id).length)
+    .filter((team) => !getTeamLossState(team.id))
+    .map((team) => ({
+      id: team.id,
+      name: team.name,
+      accent: team.accent
+    }));
+
+  return {
+    operatorUserId: operator?.id || null,
+    operatorName: operator?.display_name || "Open seat",
+    isOperator: Boolean(viewerUserId && operator?.id && viewerUserId === operator.id),
+    canStart: Boolean(viewerUserId && operator?.id && viewerUserId === operator.id && !outgoing && !getTeamLossState(teamId) && availableTargets.length > 0),
+    canResolve: Boolean(viewerUserId && operator?.id && viewerUserId === operator.id && outgoing && outgoing.status === "pending"),
+    outgoing: serializeSabotageAttempt(outgoing, teamId),
+    incoming: incoming.map((row) => serializeSabotageAttempt(row, teamId)),
+    availableTargets,
+    sabotageTypes: Object.values(SABOTAGE_TYPE_DEFINITIONS).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      summary: entry.summary
+    }))
   };
 }
 
@@ -7428,14 +7710,9 @@ function getAvailableTeamAssignment() {
     return null;
   }
 
-  options.sort((a, b) => {
-    if (a.count !== b.count) {
-      return a.count - b.count;
-    }
-    return TEAM_DEFINITIONS.findIndex((team) => team.id === a.teamId) - TEAM_DEFINITIONS.findIndex((team) => team.id === b.teamId);
-  });
-
-  return options[0];
+  const lowestCount = Math.min(...options.map((entry) => entry.count));
+  const lightestTeams = options.filter((entry) => entry.count === lowestCount);
+  return lightestTeams[crypto.randomInt(0, lightestTeams.length)];
 }
 
 function getFirstOpenSeatForTeam(teamId, ignoreUserId = null) {
@@ -7590,13 +7867,16 @@ function buildTeamRoundAssignments(teamId, roundId, totalSteps = TEAM_STEP_COUNT
   const orderedIds = members.map((member) => member.id);
   const stepAssignments = {};
   const roleAssignments = {};
+  const roundNumber = Math.max(1, Number(getRoundById(roundId)?.round_number || 1));
+  const roleOffset = orderedIds.length ? (roundNumber - 1) % orderedIds.length : 0;
+  const stepOffset = orderedIds.length ? (roundNumber - 1) % orderedIds.length : 0;
   orderedIds.forEach((userId) => {
     roleAssignments[userId] = [];
   });
 
   for (let step = 1; step <= totalSteps; step += 1) {
-    const userId = step <= orderedIds.length
-      ? orderedIds[step - 1]
+    const userId = orderedIds.length
+      ? orderedIds[(stepOffset + step - 1) % orderedIds.length]
       : getSeededTeamPick(teamId, roundId, `step-${step}`, orderedIds);
     if (userId) {
       stepAssignments[String(step)] = userId;
@@ -7604,8 +7884,8 @@ function buildTeamRoundAssignments(teamId, roundId, totalSteps = TEAM_STEP_COUNT
   }
 
   TEAM_ROLE_DEFINITIONS.forEach((role, index) => {
-    const userId = index < orderedIds.length
-      ? orderedIds[index]
+    const userId = orderedIds.length
+      ? orderedIds[(roleOffset + index) % orderedIds.length]
       : getSeededTeamPick(teamId, roundId, `role-${role.id}`, orderedIds);
     if (userId) {
       if (!roleAssignments[userId]) {
@@ -7629,6 +7909,152 @@ function getTeamResponseForRound(roundId, teamId) {
      FROM responses
      WHERE round_id = ? AND team_id = ?`
   ).get(roundId, teamId);
+}
+
+function applyTeamDeltaBundle(teamId, bundle) {
+  if (!teamId || !bundle) {
+    return;
+  }
+  ensureTeamState(teamId);
+  const team = db.prepare(
+    `SELECT sales, satisfaction, reputation
+     FROM team_state
+     WHERE team_id = ?`
+  ).get(teamId);
+  const nextSales = Math.max(0, roundNumber(Number(team?.sales || 0) + Number(bundle.sales || 0), 0));
+  const nextSatisfaction = clampPercent(Number(team?.satisfaction || 0) + Number(bundle.satisfaction || 0));
+  const nextReputation = clampPercent(Number(team?.reputation || 0) + Number(bundle.reputation || 0));
+
+  db.prepare(
+    `UPDATE team_state
+     SET sales = ?, satisfaction = ?, reputation = ?, updated_at = ?
+     WHERE team_id = ?`
+  ).run(nextSales, nextSatisfaction, nextReputation, new Date().toISOString(), teamId);
+
+  Object.entries(bundle.staff || {}).forEach(([staffId, deltas]) => {
+    const current = db.prepare(
+      `SELECT morale, trust
+       FROM team_staff_state
+       WHERE team_id = ? AND staff_id = ?`
+    ).get(teamId, staffId);
+    db.prepare(
+      `INSERT INTO team_staff_state (team_id, staff_id, morale, trust)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(team_id, staff_id) DO UPDATE SET morale = excluded.morale, trust = excluded.trust`
+    ).run(
+      teamId,
+      staffId,
+      clampPercent(Number(current?.morale ?? 65) + Number(deltas.morale || 0)),
+      clampPercent(Number(current?.trust ?? 65) + Number(deltas.trust || 0))
+    );
+  });
+}
+
+function startTeamSabotage(userId, targetTeamId, sabotageType) {
+  const game = getGameState();
+  if (!game.isOpen || !game.currentRoundId) {
+    throw new Error("A live global event has to be running before teams can launch sabotage.");
+  }
+  const round = getRoundById(game.currentRoundId);
+  if (!round || round.status !== "active") {
+    throw new Error("There is no active event to sabotage right now.");
+  }
+
+  const attackerTeamId = getTeamIdForUser(userId);
+  if (!attackerTeamId) {
+    throw new Error("Your account is not assigned to a restaurant team.");
+  }
+  const operator = getTeamSabotageOperator(attackerTeamId, round);
+  if (!operator || operator.id !== userId) {
+    throw new Error(`${operator?.display_name || "The assigned teammate"} is the covert ops lead for this round.`);
+  }
+  if (attackerTeamId === targetTeamId) {
+    throw new Error("You cannot sabotage your own restaurant.");
+  }
+  if (!SABOTAGE_TYPE_DEFINITIONS[sabotageType]) {
+    throw new Error("Choose a valid sabotage plan.");
+  }
+  if (!TEAM_LOOKUP[targetTeamId] || !listTeamMembers(targetTeamId).length) {
+    throw new Error("That target team is not active right now.");
+  }
+  if (getTeamLossState(attackerTeamId)) {
+    throw new Error("Eliminated restaurants cannot run sabotage.");
+  }
+  if (getTeamLossState(targetTeamId)) {
+    throw new Error("That restaurant is already out of the game.");
+  }
+  if (getTeamSabotageAttempt(game.currentRoundId, attackerTeamId)) {
+    throw new Error("Your team already spent its sabotage move for this round.");
+  }
+
+  db.prepare(
+    `INSERT INTO team_sabotage_attempts
+     (id, round_id, attacker_team_id, target_team_id, created_by_user_id, sabotage_type, status, challenge_json, submitted_sequence_json, outcome_note, created_at, resolved_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, NULL, '', ?, NULL)`
+  ).run(
+    crypto.randomUUID(),
+    game.currentRoundId,
+    attackerTeamId,
+    targetTeamId,
+    userId,
+    sabotageType,
+    JSON.stringify(buildSabotageChallenge()),
+    new Date().toISOString()
+  );
+}
+
+function resolveTeamSabotage(userId, submittedSequence) {
+  const game = getGameState();
+  if (!game.isOpen || !game.currentRoundId) {
+    throw new Error("There is no live event to resolve sabotage against.");
+  }
+
+  const attackerTeamId = getTeamIdForUser(userId);
+  if (!attackerTeamId) {
+    throw new Error("Your account is not assigned to a restaurant team.");
+  }
+  const round = getRoundById(game.currentRoundId);
+  const operator = getTeamSabotageOperator(attackerTeamId, round);
+  if (!operator || operator.id !== userId) {
+    throw new Error(`${operator?.display_name || "The assigned teammate"} is the only player who can finish this sabotage attempt.`);
+  }
+
+  const attempt = getTeamSabotageAttempt(game.currentRoundId, attackerTeamId);
+  if (!attempt || attempt.status !== "pending") {
+    throw new Error("Your team does not have a live sabotage attempt to resolve.");
+  }
+
+  const challenge = parseJsonValue(attempt.challenge_json, {});
+  const expectedSequence = Array.isArray(challenge.sequence) ? challenge.sequence : [];
+  const cleanSubmitted = Array.isArray(submittedSequence)
+    ? submittedSequence.map((entry) => String(entry || "").trim()).filter(Boolean)
+    : [];
+
+  if (cleanSubmitted.length !== expectedSequence.length) {
+    throw new Error(`Replay the full ${expectedSequence.length}-step covert code before submitting.`);
+  }
+
+  const meta = SABOTAGE_TYPE_DEFINITIONS[attempt.sabotage_type];
+  const success = expectedSequence.every((symbol, index) => symbol === cleanSubmitted[index]);
+  const bundle = success ? meta.success : meta.failure;
+  const impactedTeamId = success ? attempt.target_team_id : attackerTeamId;
+  const outcomeNote = success
+    ? `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival restaurant"} took the hit.`
+    : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty.`;
+
+  applyTeamDeltaBundle(impactedTeamId, bundle);
+
+  db.prepare(
+    `UPDATE team_sabotage_attempts
+     SET status = ?, submitted_sequence_json = ?, outcome_note = ?, resolved_at = ?
+     WHERE id = ?`
+  ).run(
+    success ? "success" : "failed",
+    JSON.stringify(cleanSubmitted),
+    outcomeNote,
+    new Date().toISOString(),
+    attempt.id
+  );
 }
 
 function getAvatarCatalog() {
@@ -8974,7 +9400,8 @@ function buildAdminPayload() {
       scoreTier: teamDetail?.scoreTier ?? null,
       sales: teamDetail?.sales ?? DEFAULT_STUDENT_STATE.sales,
       avgMorale: teamDetail?.avgMorale ?? null,
-      avgTrust: teamDetail?.avgTrust ?? null
+      avgTrust: teamDetail?.avgTrust ?? null,
+      sabotageState: currentRound ? serializeTeamSabotageState(currentRound.id, teamDef.id, null) : null
     };
   });
 
@@ -9293,6 +9720,7 @@ function serializeRound(row, session) {
   const existingCaseFile = session?.userId ? getCaseFile(row.id, session.userId) : null;
   const caseFile = session?.userId ? (existingCaseFile || ensureCaseFile(row.id, session.userId)) : null;
   const studentCase = caseFile ? serializeCaseFile(caseFile, row, preset, session?.userId || null) : null;
+  const sabotage = session?.userId ? serializeTeamSabotageState(row.id, getTeamIdForUser(session.userId), session.userId) : null;
 
   return {
     id: row.id,
@@ -9315,6 +9743,7 @@ function serializeRound(row, session) {
     consultants: isAdmin ? Object.keys(getNodeDefinition(preset, preset?.rootNodeId)?.consultants || {}) : undefined,
     userResponse: currentUserResponse,
     studentCase,
+    sabotage,
     completedCount: responseCount,
     inProgressCount: db.prepare(`SELECT COUNT(*) AS count FROM case_files WHERE round_id = ? AND team_id IS NOT NULL AND status = 'active'`).get(row.id).count,
     teacherSnapshot: isAdmin ? buildTeacherEventSnapshot(row.id, preset) : null
@@ -11272,6 +11701,7 @@ function resetSimulation(scope) {
   db.prepare(`DELETE FROM response_staff_effects`).run();
   db.prepare(`DELETE FROM responses`).run();
   db.prepare(`DELETE FROM rounds`).run();
+  db.prepare(`DELETE FROM team_sabotage_attempts`).run();
   db.prepare(`DELETE FROM prediction_market_work`).run();
   db.prepare(`DELETE FROM prediction_market_trades`).run();
   db.prepare(`DELETE FROM prediction_market_positions`).run();

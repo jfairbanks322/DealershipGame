@@ -110,849 +110,621 @@ function makeEvent({ id, category, pressure, headline, body, beats }) {
   };
 }
 
-const CHAOS_EVENTS = [
+const FEAST_HAVEN_EVENTS = [
   makeEvent({
-    id: "lobster-mascot-hostage",
-    category: "Mascot Disaster",
-    pressure: "Absurd",
-    headline: "A rented lobster mascot refuses to leave the lobby until Feast Haven names him assistant manager",
-    body:
-      "The mascot was hired for a seafood promo. Now he is blocking the host stand, chanting 'claws before laws,' and children are tipping him in dinner rolls.",
-    beats: [
-      beat("opening", "The lobby has become a crustacean labor rally", "Guests are laughing, filming, and slowly realizing nobody is in control.", "elena", "Marisol says the lobby can survive weird. It cannot survive looking kidnapped by a lobster with demands.", [
-        action("lm-open-negotiate", "Negotiate with the lobster in public and make it feel like dinner theater.", "The room loves the bit until the lobster asks for dental and a parking spot.", [2, 1, -2, { elena: [1, 1], jake: [1, 0], tasha: [-1, -1] }]),
-        action("lm-open-remove", "Quietly remove the mascot through the service hall before the joke becomes policy.", "You regain the host stand, but half the room boos like you just fired Santa.", [-1, -2, 1, { elena: [1, 2], marcus: [-1, -1] }]),
-        action("lm-open-hire", "Name him 'Assistant Manager of Vibes' for one hour and use the crowd.", "Revenue spikes, but staff immediately ask whether costumes outrank training now.", [3, 1, -3, { jake: [1, 1], elena: [-2, -2], tasha: [-1, -2] }])
-      ]),
-      beat("contract", "The mascot reveals the contract has no end time", "He found a loophole and is now demanding a shellfish-free break room.", "marcus", "Omar says the staff are one chant away from joining the lobster out of pure boredom.", [
-        action("lm-contract-buyout", "Pay the mascot extra to leave and bury the loophole immediately.", "It is expensive, but the lobby stops being a labor-law aquarium.", [-2, 1, 2, { marcus: [1, 2], elena: [1, 1] }]),
-        action("lm-contract-counter", "Counter with free calamari and a fake title instead of cash.", "The mascot accepts, then loudly asks if calamari is a coworker.", [1, -1, -2, { marcus: [-1, -2], tasha: [-1, 0] }]),
-        action("lm-contract-union", "Let staff vote whether the lobster stays as morale entertainment.", "The vote is hilarious until the kitchen realizes democracy just added a mascot to the shift.", [0, 2, -1, { marcus: [2, 1], tasha: [-2, -2], priya: [-1, -1] }])
-      ]),
-      beat("kitchen", "Chef Renata says the seafood special now feels personal", "The lobster is staring through the pass like a haunted corporate logo.", "tasha", "Chef Renata wants the mascot out before every seafood order starts feeling like a betrayal.", [
-        action("lm-kitchen-pause", "Pause the seafood special and sell the story as ethical comedy.", "Guests applaud. Margins scream quietly into the walk-in.", [-3, 2, 3, { tasha: [1, 2], elena: [1, 1] }]),
-        action("lm-kitchen-ignore", "Keep selling seafood and tell the kitchen not to be emotionally managed by felt claws.", "The line moves, but the staff now describe you as 'pro-boil.'", [3, -2, -3, { tasha: [-3, -4], priya: [-1, -2] }]),
-        action("lm-kitchen-duel", "Stage a fake chef-versus-lobster peace summit at the pass.", "The bit lands, then the lobster demands final approval on bisque language.", [2, 1, -2, { tasha: [0, -1], jake: [1, 1], elena: [-1, -1] }])
-      ]),
-      beat("internet", "The hashtag #FreeTheLobster is trending locally", "A rival restaurant posts that Feast Haven mistreats shellfish and employees equally.", "jake", "Adrian wants the internet energy captured before it turns into a cartoon picket line.", [
-        action("lm-internet-own", "Post a clear joke statement and announce the lobster's graceful retirement.", "You control the tone, but the lobster refuses retirement unless there is cake.", [1, 2, 2, { jake: [1, 2], elena: [1, 1] }]),
-        action("lm-internet-fight", "Reply to the rival restaurant with a spicy lobster meme war.", "Students at nearby tables love it. Adults with money look confused and tired.", [2, -1, -3, { jake: [2, 1], elena: [-2, -2] }]),
-        action("lm-internet-silent", "Stay silent and hope people get bored by dessert.", "They do not get bored. They make fan art.", [0, -2, -3, { jake: [-1, -2], devon: [-1, -1] }])
-      ]),
-      beat("final", "The lobster asks for a farewell speech during peak seating", "The lobby is split between chanting guests and exhausted staff who want their restaurant back.", "devon", "Parker says the exit matters: if the lobster leaves badly, the night becomes a meme instead of a memory.", [
-        action("lm-final-parade", "Give the lobster a 90-second farewell parade and then hard-close the bit.", "It costs dignity, saves the lobby, and somehow sells six desserts.", [1, 2, 2, { devon: [2, 2], elena: [1, 1], tasha: [0, 1] }]),
-        action("lm-final-ban", "Ban mascot promotions permanently in front of the staff.", "The team feels protected. Marketing quietly dies inside.", [-1, 1, 1, { elena: [1, 2], jake: [-2, -2], tasha: [1, 1] }]),
-        action("lm-final-extend", "Book the lobster for brunch because the numbers are too good.", "Revenue pops and credibility collapses like a wet cardboard shell.", [4, -3, -4, { elena: [-2, -3], tasha: [-2, -3], marcus: [-1, -2] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "miracle-soup-cult",
-    category: "Wellness Panic",
+    id: "influencer-hates-everything",
+    category: "Public Relations",
     pressure: "Extreme",
-    headline: "A guest claims the tomato soup cured her bad knee and now a wellness crowd is demanding medical soup flights",
+    headline: "A local influencer with two million followers is live-streaming from table six and loudly hating every single detail",
     body:
-      "The soup is normal. The guest is doing lunges by table seven. Twenty people have arrived asking whether the bisque helps with taxes.",
+      "She says the water feels judgmental, the lighting is 'emotionally beige,' and your bread basket is apparently a personal betrayal.",
     beats: [
-      beat("opening", "The dining room wants soup science", "Phones are out, spoons are raised, and the soup pot has become a shrine.", "nina", "Celia says the floor needs language before servers accidentally prescribe dinner.", [
-        action("ms-open-disclaimer", "Tell servers to say the soup is delicious, not medical.", "It is legally sane and commercially boring in a room that came for miracles.", [-1, 1, 3, { nina: [1, 2], elena: [1, 1] }]),
-        action("ms-open-play", "Lean into 'emotionally restorative soup' without promising anything physical.", "The wording dances nicely until a guest asks if insurance covers it.", [2, 1, -1, { nina: [1, 1], jake: [1, 1], devon: [-1, 0] }]),
-        action("ms-open-cups", "Sell tiny 'placebo shooters' as a joke special.", "The joke prints money and also creates a line of people asking for second opinions.", [4, -1, -3, { nina: [2, 1], tasha: [-2, -2], elena: [-1, -1] }])
+      beat("opening", "The stream starts nasty and gets louder", "Nearby tables are now listening to her instead of their own conversations.", "nina", "Celia says the room can survive one loud guest. It cannot survive becoming her content background.", [
+        action("ih-open-side", "Send a composed manager check-in and invite her to explain the real issue off camera.", "You slow the spectacle and make her work harder to perform outrage.", [0, 2, 3, { nina: [1, 2], elena: [1, 1] }]),
+        action("ih-open-overfix", "Flood the table with small corrections, treats, and apologies before she asks.", "The table looks cared for, but now the stream reads Feast Haven as panicky prey.", [1, 1, 0, { nina: [1, 1], devon: [0, 1], marcus: [-1, -1] }]),
+        action("ih-open-shadow", "Ignore the commentary and simply execute perfect service around her.", "It preserves dignity, but she gets to narrate the silence as guilt.", [1, 0, 1, { nina: [0, 1], jake: [1, 0] }]),
+        action("ih-open-buyoff", "Offer a comp package if she ends the stream and resets the tone.", "She hears the offer as weakness and says 'they're negotiating with my ring light.'", [2, -2, -4, { nina: [-2, -3], elena: [-1, -2] }])
       ]),
-      beat("kitchen", "Chef Renata is offended that her soup is now a medical device", "She says if one more person asks about antioxidants, she is replacing the garnish with a cease-and-desist.", "tasha", "Chef Renata wants the food respected before the kitchen becomes a pharmacy with candles.", [
-        action("ms-kitchen-respect", "Rebrand the special around craft, not cures, and let Renata explain the recipe.", "The kitchen feels seen, but miracle-seekers treat technique like a downgrade.", [-1, 1, 2, { tasha: [2, 3], priya: [1, 1], jake: [-1, -1] }]),
-        action("ms-kitchen-secret", "Let guests believe the recipe is secret and mysterious.", "Mystery sells bowls and annoys everyone who knows the secret is basil.", [3, 0, -2, { tasha: [-2, -3], jake: [1, 1] }]),
-        action("ms-kitchen-batch", "Make a second batch fast before the crowd flips.", "You protect sales and risk quality dropping exactly when everyone is watching.", [2, -2, -2, { tasha: [-1, -2], priya: [-1, -1], nina: [1, 0] }])
+      beat("staff", "Adrian wants to charm her while Marisol wants boundaries", "The floor is split between winning her over and refusing to perform for her audience.", "jake", "Adrian says confidence can flip the room. Marisol says overplaying charm turns staff into props.", [
+        action("ih-staff-escort", "Assign one polished point person and ask everyone else to stop orbiting the stream.", "The service lane calms down and the room stops feeling like open audition night.", [0, 2, 2, { jake: [1, 1], elena: [2, 2] }]),
+        action("ih-staff-leanin", "Let Adrian freestyle a warm, funny recovery and hope charisma outruns the criticism.", "The table softens a little, but the restaurant now depends on one personality staying perfect.", [2, 1, 0, { jake: [2, 2], elena: [-1, -1] }]),
+        action("ih-staff-script", "Give every staff member a tight script and forbid improvising around her.", "Consistency improves, but the room suddenly feels corporate and brittle.", [-1, 1, 2, { nina: [1, 2], jake: [-1, -2] }]),
+        action("ih-staff-clapback", "Let a fed-up server answer one of her complaints with a little edge.", "The internet loves conflict until your restaurant becomes the villain in episode one.", [2, -2, -4, { jake: [-2, -3], nina: [-2, -2], devon: [-1, -1] }])
       ]),
-      beat("guest", "A guest wants a refund because the soup did not fix his shoulder", "He brought before-and-after photos. They are both just his shoulder.", "devon", "Parker says the refund answer will set whether Feast Haven sold food or hope.", [
-        action("ms-guest-refund", "Refund him once and clearly state the restaurant makes no health claims.", "You pay for a clean boundary and avoid the world's dumbest lawsuit.", [-2, 1, 3, { devon: [2, 2], elena: [1, 1] }]),
-        action("ms-guest-replace", "Offer another soup and say healing takes patience.", "The table laughs until someone writes that on a napkin like policy.", [1, 0, -3, { devon: [-1, -2], nina: [1, 0] }]),
-        action("ms-guest-nope", "Refuse the refund because soup is not a chiropractor.", "The logic is perfect. The video is not.", [1, -2, -2, { devon: [-1, -1], elena: [-1, -2] }])
+      beat("menu", "She declares the special 'fake luxury for people afraid of seasoning'", "Now guests are ordering around her commentary instead of around the menu.", "tasha", "Chef Renata says changing the plate for a camera is surrender. Keeping it unchanged may be expensive pride.", [
+        action("ih-menu-explain", "Offer one concise chef explanation of the dish's intent, then stop feeding the narrative.", "You defend the food without turning dinner into debate club.", [0, 1, 3, { tasha: [2, 2], nina: [1, 1] }]),
+        action("ih-menu-tweak", "Quietly adjust her plate and say the kitchen can personalize within reason.", "The flexibility helps, but it trains the room to expect revisions from the line.", [1, 1, 0, { tasha: [0, -1], priya: [-1, -1], devon: [1, 1] }]),
+        action("ih-menu-offramp", "Guide her toward simpler dishes and frame it as finding her style, not fixing yours.", "It lowers the chance of disaster while gently conceding she set the agenda.", [1, 0, 1, { nina: [1, 1], tasha: [0, 1] }]),
+        action("ih-menu-counter", "Send out a dramatically richer replacement dish just to prove her wrong on camera.", "The visual is gorgeous and reads exactly like the restaurant lost its cool.", [2, -2, -3, { tasha: [-2, -3], priya: [-1, -2], elena: [-1, -1] }])
       ]),
-      beat("press", "A local news van arrives for a segment called Soup or Scam?", "The reporter asks whether Feast Haven is healing people or exploiting them.", "elena", "Marisol says the next sentence either makes Feast Haven charming or extremely sue-able.", [
-        action("ms-press-humble", "Say the only miracle is good hospitality and better tomatoes.", "It is charming, safe, and less viral than everyone hoped.", [0, 2, 3, { elena: [2, 3], tasha: [1, 1] }]),
-        action("ms-press-joke", "Joke that the soup cured low morale in the kitchen.", "The quote lands, but Chef Renata now looks like exhibit A.", [2, 0, -2, { elena: [1, 1], tasha: [-2, -2] }]),
-        action("ms-press-hide", "Decline the interview and keep serving.", "The story writes itself, and somehow the soup looks guiltier.", [1, -2, -3, { elena: [-2, -3], nina: [-1, -1] }])
+      beat("internet", "Comments start asking whether Feast Haven always melts down like this", "Her audience is now writing your reputation in real time.", "elena", "Marisol says the digital answer should protect the room first and the ego second.", [
+        action("ih-internet-room", "Post nothing yet and focus on turning the live in-room experience around for actual guests.", "It sacrifices the first online punch and protects the people physically paying tonight.", [0, 2, 2, { elena: [2, 2], marcus: [1, 1] }]),
+        action("ih-internet-statement", "Post a brief hospitality-minded statement while the service recovery is still underway.", "It shows steadiness, though some guests now feel like part of a press release.", [0, 1, 2, { elena: [1, 2], nina: [1, 1] }]),
+        action("ih-internet-highlight", "Clip the one moment she smiled and circulate that instead.", "Smart spin if noticed, risky spin if the full stream keeps getting worse.", [2, 0, 0, { elena: [1, 1], jake: [1, 0] }]),
+        action("ih-internet-war", "Dunk on the influencer from the restaurant account and let the internet pick a side.", "A short hit of applause becomes a long week of screenshots.", [3, -2, -4, { elena: [-3, -4], nina: [-1, -2] }])
       ]),
-      beat("final", "The soup crowd wants a weekly healing night", "It would sell out, irritate staff, and possibly summon regulators with clipboards.", "marcus", "Omar says the support crew cannot keep resetting tables for people doing wellness squats between courses.", [
-        action("ms-final-food", "Retire the miracle language and keep the soup as a normal menu star.", "You sacrifice a fad and keep a restaurant instead of a soup church.", [1, 2, 3, { marcus: [1, 2], tasha: [2, 2], elena: [1, 1] }]),
-        action("ms-final-night", "Run one clearly comedic 'Soup Night' with disclaimers everywhere.", "It is profitable, exhausting, and only barely less ridiculous than doing nothing.", [3, 0, -1, { marcus: [-1, -1], nina: [1, 1], jake: [1, 1] }]),
-        action("ms-final-subscription", "Launch a soup subscription before the trend dies.", "Money floods in until the first customer asks for a diagnosis receipt.", [4, -3, -4, { marcus: [-2, -3], elena: [-2, -3], tasha: [-1, -2] }])
+      beat("final", "She is about to post a final verdict and asks whether Feast Haven wants a last word", "The whole room can feel the decision coming.", "devon", "Parker says this is where you choose between dignity, theater, and panic.", [
+        action("ih-final-grace", "Thank her for coming, own the rough edges, and make no special ask about the post.", "The ending is mature enough to unsettle the outrage machine.", [0, 2, 4, { devon: [2, 2], elena: [1, 2], nina: [1, 1] }]),
+        action("ih-final-invite", "Invite her back for a controlled second try on your terms another night.", "It keeps a bridge alive without promising surrender.", [1, 1, 1, { devon: [1, 1], nina: [1, 1] }]),
+        action("ih-final-balance", "Ask if she would include both the mistakes and the recovery in fairness to staff.", "Reasonable, but it subtly centers your pain over her audience's spectacle.", [1, 0, 1, { devon: [1, 1], jake: [0, 1] }]),
+        action("ih-final-deal", "Offer a future comped private tasting if she softens the post tonight.", "She leaves smiling and you spend the next month sounding bribey in high definition.", [2, -2, -4, { devon: [-2, -3], elena: [-2, -2], marcus: [-1, -1] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "tiny-horse-reservation",
-    category: "Dining Room Animal",
-    pressure: "Extreme",
-    headline: "The mayor arrives with a tiny emotional-support horse wearing a bow tie and expects a table for three",
-    body:
-      "The horse is adorable, powerful, and already eating centerpiece flowers. The mayor says his date gets anxious without him.",
-    beats: [
-      beat("opening", "The front door is staring at a hoofed VIP problem", "Guests are whispering, the horse is posing, and the waitlist is asking if ponies count toward party size.", "elena", "Marisol says denying the mayor looks hostile, but seating a horse looks like the restaurant has surrendered to whimsy.", [
-        action("th-open-seat", "Seat the mayor in a corner and treat the horse like a mobility concern.", "The mayor is grateful, but one guest asks if their ferret can have the patio.", [2, 0, -2, { elena: [1, 1], devon: [-1, -1], marcus: [-1, -1] }]),
-        action("th-open-policy", "Pause seating and verify what the restaurant is legally required to allow.", "It is slower and safer, but the mayor looks publicly challenged.", [-1, -1, 3, { elena: [1, 2], devon: [1, 1] }]),
-        action("th-open-patio", "Offer the patio with VIP treatment and a flower-free zone.", "It feels like a compromise until the patio guests realize they are now in a barn-adjacent experience.", [1, 1, 0, { elena: [1, 1], marcus: [-1, -1] }])
-      ]),
-      beat("damage", "The horse eats the handwritten reservation book", "Half the night is now in the animal and Marisol looks like she may resign into the chandelier.", "devon", "Parker says the next move has to recover data without making the mayor defensive.", [
-        action("th-damage-admit", "Tell guests exactly what happened and rebuild the waitlist by phone confirmations.", "It sounds insane, but honesty makes the chaos weirdly credible.", [-1, 2, 2, { devon: [2, 2], elena: [1, 1] }]),
-        action("th-damage-cover", "Call it a 'reservation system disruption' and quietly scramble.", "Professional wording cannot hide hoof-shaped bite marks.", [1, -2, -3, { devon: [-1, -2], elena: [-2, -2] }]),
-        action("th-damage-mayor", "Ask the mayor to help explain because his horse caused the problem.", "Accountability is fair, but now the mayor feels ambushed during appetizers.", [0, -1, 1, { devon: [1, 1], elena: [-1, -1], jake: [-1, 0] }])
-      ]),
-      beat("kitchen", "Chef Renata refuses to send carrots to table twelve", "She says rewarding the horse teaches everybody the wrong lesson about boundaries.", "tasha", "Chef Renata wants the dining room to stop turning the kitchen into a petting zoo pantry.", [
-        action("th-kitchen-boundary", "Refuse horse snacks and explain the kitchen serves guests, not livestock.", "The kitchen cheers. The mayor's table gets frostier than the sorbet.", [0, -1, 2, { tasha: [2, 3], elena: [-1, -1] }]),
-        action("th-kitchen-carrots", "Send one controlled carrot plate to stop the flower damage.", "It saves the decor and tells every employee boundaries are negotiable with enough hooves.", [1, 1, -2, { tasha: [-2, -3], marcus: [-1, -1] }]),
-        action("th-kitchen-menu", "Create a fake 'mayoral carrot amuse-bouche' and sell the joke.", "Guests laugh, the mayor beams, and Chef Renata calls it clown farming.", [3, 1, -1, { tasha: [-3, -3], jake: [1, 1] }])
-      ]),
-      beat("public", "A guest posts that Feast Haven gives better service to horses than humans", "The comments are split between animal lovers and people who want normal dinner.", "jake", "Adrian says the public story has to be funny without making regular guests feel like extras.", [
-        action("th-public-human", "Comp delayed human tables before making any horse jokes online.", "You repair resentment first, but it costs real money.", [-2, 3, 3, { jake: [1, 2], elena: [1, 1] }]),
-        action("th-public-viral", "Post one polished photo of the bow-tie horse and ride the attention.", "The internet loves it. The ignored tables do not.", [3, -2, -2, { jake: [2, 1], devon: [-1, -1] }]),
-        action("th-public-delete", "Ask guests not to post animal content from inside the dining room.", "It sounds controlling and guarantees five more posts.", [0, -2, -3, { jake: [-2, -3], elena: [-1, -1] }])
-      ]),
-      beat("final", "The mayor wants to make Feast Haven his official horse-friendly dinner spot", "This could mean publicity, chaos, or a permanent hay budget.", "marcus", "Omar says support staff need a policy before they spend their lives sweeping oats from fine dining carpet.", [
-        action("th-final-policy", "Write a clear animal accommodation policy and apply it even to powerful guests.", "It is the least funny answer and probably the only one that survives next week.", [0, 2, 4, { marcus: [2, 3], elena: [1, 1], devon: [1, 1] }]),
-        action("th-final-event", "Offer one controlled charity patio event with the horse and strict rules.", "It monetizes the chaos while keeping it fenced, mostly.", [2, 1, 0, { marcus: [0, 1], jake: [1, 1], tasha: [-1, -1] }]),
-        action("th-final-brand", "Rebrand the patio as 'The Stable Table' for VIP animal nights.", "Revenue jumps briefly before staff morale steps directly into a metaphorical puddle.", [4, -3, -4, { marcus: [-3, -4], tasha: [-2, -2], elena: [-1, -2] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "forbidden-lasagna-volcano",
-    category: "Fake Secret Menu",
+    id: "grandma-secret-menu-takeover",
+    category: "Kitchen Intrusion",
     pressure: "High",
-    headline: "TikTok invented a fake secret menu item called the Forbidden Lasagna Volcano and guests are demanding it",
+    headline: "An elderly guest claims Chef Renata stole her family recipe and now demands to cook it herself in your kitchen",
     body:
-      "It does not exist. It looks dangerous. It is somehow trending with the phrase 'ask for extra lava.'",
+      "She brought an apron, a casserole dish, and three cousins who keep saying 'let Nonna work.'",
     beats: [
-      beat("opening", "The floor is being asked for lava", "Servers are improvising wildly and one table is chanting 'volcano' like a sports arena.", "nina", "Celia says every server needs the same answer before the fake item becomes real through panic.", [
-        action("fl-open-deny", "Clearly say the item is fake and offer real specials instead.", "Accurate, safe, and greeted like you personally cancelled fun.", [-1, -1, 2, { nina: [1, 2], jake: [-1, -1] }]),
-        action("fl-open-limited", "Create a small legal version and sell it as a controlled pop-up.", "You capture demand, but now the kitchen is building a meme under pressure.", [3, 1, -1, { nina: [1, 1], tasha: [-2, -2], priya: [-1, -1] }]),
-        action("fl-open-mystery", "Tell guests the volcano is 'not available to everyone' and let scarcity work.", "Sales climb and trust falls into the cheese.", [4, -2, -4, { nina: [-2, -3], elena: [-1, -2] }])
+      beat("opening", "Grandma has entered the building with legal confidence and paprika", "The front room loves her. The kitchen absolutely does not.", "elena", "Marisol says the crowd sees a lovable grandma. Chef Renata sees an unauthorized heat source.", [
+        action("gs-open-listen", "Hear her out fully in a side room before anyone promises access or denies anything dramatic.", "You slow the theater and buy enough space to separate story from stunt.", [0, 2, 3, { elena: [2, 2], tasha: [1, 1] }]),
+        action("gs-open-show", "Invite her to explain the recipe tableside while management verifies the claim.", "The room enjoys the pageant, but you accidentally upgraded a complaint into programming.", [2, 1, 0, { elena: [1, 1], jake: [1, 1], tasha: [-1, -1] }]),
+        action("gs-open-badge", "Offer a supervised kitchen look-through instead of a cooking takeover.", "It sounds respectful and still risks turning the line into family court.", [1, 1, 1, { elena: [1, 1], tasha: [0, -1] }]),
+        action("gs-open-bounce", "Shut it down immediately and tell her no guest ever enters the kitchen, end of story.", "Technically clean, emotionally radioactive, and now the cousins are filming you as a villain.", [1, -2, -4, { elena: [-1, -2], tasha: [1, 1], nina: [-1, -1] }])
       ]),
-      beat("kitchen", "Chef Renata sees a photo and says the volcano is a structural crime", "The kitchen can make something close, but it will slow everything and stain the plates orange.", "tasha", "Chef Renata wants to know whether the menu is led by chefs or by teenagers with ring lights.", [
-        action("fl-kitchen-no", "Let Renata kill the item and protect the actual menu.", "The kitchen trusts you. The dining room booing is audible from the dish pit.", [-2, -1, 2, { tasha: [2, 3], priya: [1, 1], jake: [-1, -1] }]),
-        action("fl-kitchen-test", "Authorize one test batch with a hard stop if tickets back up.", "It is disciplined chaos until everyone argues about what counts as back up.", [1, 1, 0, { tasha: [0, 1], nina: [1, 1], marcus: [-1, 0] }]),
-        action("fl-kitchen-fullsend", "Make the volcano real for tonight only.", "The room erupts. So does the ticket printer.", [4, -3, -3, { tasha: [-3, -4], priya: [-2, -3], marcus: [-1, -1] }])
+      beat("claim", "Grandma produces a handwritten recipe card with matching sauce stains", "Chef Renata insists dozens of families make similar dishes and refuses to be tried by index card.", "tasha", "Chef Renata wants dignity. The room wants a showdown and maybe a sample.", [
+        action("gs-claim-compare", "Have Renata compare the recipe privately and identify overlap without admitting theft.", "You keep the chef respected while acknowledging the guest might not be entirely delusional.", [0, 1, 3, { tasha: [2, 2], priya: [1, 1] }]),
+        action("gs-claim-dual", "Propose a blind taste comparison later instead of an immediate kitchen coup.", "It feels fair-minded, though everyone hears 'food trial' and gets excited.", [1, 1, 1, { tasha: [1, 1], elena: [1, 1] }]),
+        action("gs-claim-credit", "Offer to recognize the family's influence on a limited special if they calm the room.", "Clever diplomacy, but it edges close to rewarding pressure tactics.", [2, 0, 0, { nina: [1, 1], tasha: [-1, -1] }]),
+        action("gs-claim-admit", "Suggest there may have been 'borrowing' and try to settle it with free dinner and compliments.", "The apology sounds like a confession and now everybody smells lawsuit lasagna.", [1, -2, -4, { tasha: [-3, -4], marcus: [-1, -1] }])
       ]),
-      beat("safety", "One guest asks whether the lava is supposed to smoke", "It is steam. Probably. The table has already named it Mount Feast.", "priya", "Imani says the line needs a safety answer before novelty outruns basic competence.", [
-        action("fl-safety-stop", "Stop selling volcanoes until the process is tested and plated safely.", "You look responsible and kill the rush of hype at the worst possible moment.", [-2, 1, 3, { priya: [2, 3], tasha: [1, 1] }]),
-        action("fl-safety-script", "Keep selling but require a server script and manager check on each order.", "It slows the danger without fully stopping the circus.", [1, 0, 1, { priya: [1, 1], nina: [0, 1], jake: [-1, 0] }]),
-        action("fl-safety-waiver", "Make guests jokingly sign a 'lava waiver.'", "Funny for thirty seconds, terrifying in screenshots forever.", [2, -2, -4, { priya: [-2, -3], elena: [-2, -3] }])
+      beat("kitchen", "The cousins now want Grandma to do a quick live demo for authenticity", "Theo says if one civilian touches the line, the whole shift becomes folklore with burns.", "luis", "Theo says every second spent on this stunt comes directly out of paying guests' dinner times.", [
+        action("gs-kitchen-demo", "Offer a controlled cold-prep demo at a banquet side station far away from the line.", "You preserve safety while giving the family a stage that isn't attached to live knives.", [0, 2, 2, { luis: [2, 2], tasha: [1, 1], elena: [1, 1] }]),
+        action("gs-kitchen-taster", "Let Grandma season one test ramekin under direct chef supervision.", "It scratches the ritual itch without fully handing her the ship.", [1, 1, 1, { luis: [1, 1], tasha: [0, 1] }]),
+        action("gs-kitchen-delay", "Promise a future guest-chef event if they stop disrupting service tonight.", "Useful if they trust you, flimsy if they read it as polite eviction theater.", [1, 0, 1, { elena: [1, 1], marcus: [0, 1] }]),
+        action("gs-kitchen-yolo", "Let Grandma cook one real batch on the line so the room can witness history.", "The room erupts. So does your ticket timing, your staffing map, and Chef Renata's blood pressure.", [3, -3, -4, { luis: [-2, -3], tasha: [-4, -4], priya: [-2, -2] }])
       ]),
-      beat("rival", "Food Heaven posts that their volcano has 'real lava energy'", "Now the fake secret menu item has become a fake arms race.", "jake", "Adrian wants to win the attention war without turning dinner into a dare.", [
-        action("fl-rival-ignore", "Ignore Food Heaven and redirect the room to Feast Haven's real strengths.", "Mature, safe, and deeply unsatisfying to everyone holding a phone.", [-1, 1, 2, { jake: [-1, 0], elena: [1, 1] }]),
-        action("fl-rival-classy", "Post a chef-led version that makes the joke look polished, not desperate.", "You compete without looking feral, though the kitchen pays for the polish.", [2, 1, 1, { jake: [1, 2], tasha: [-1, -1] }]),
-        action("fl-rival-war", "Start a volcano challenge and dare Food Heaven to match it.", "The internet is thrilled. Your insurance agent develops a twitch.", [4, -2, -4, { jake: [2, 1], elena: [-2, -3], tasha: [-2, -2] }])
+      beat("public", "Guests are now divided between Team Nonna and Team Chef", "Your dining room has become a pasta referendum with cocktails.", "jake", "Adrian says a good joke could diffuse it. Marisol says the wrong joke elects a side.", [
+        action("gs-public-toast", "Frame it publicly as two proud traditions, not a theft trial, and move the room back toward dinner.", "You give guests a story to enjoy without giving them a verdict to enforce.", [0, 2, 2, { jake: [1, 1], elena: [2, 2] }]),
+        action("gs-public-feature", "Turn the dispute into a one-night charity tasting vote with strict structure.", "Entertaining and money-friendly, but it rewards disruption with spotlight.", [2, 0, 0, { jake: [1, 1], marcus: [0, 1], tasha: [-1, -1] }]),
+        action("gs-public-separate", "Reseat the family to a quieter corner and keep service moving elsewhere.", "Operationally sensible, emotionally easy to read as a soft exile.", [1, 1, 0, { elena: [1, 1], nina: [1, 0] }]),
+        action("gs-public-pick", "Publicly back Chef Renata hard and tell the room the accusation is insulting nonsense.", "The kitchen feels defended and the family instantly upgrades the story to oppression with parmesan.", [2, -2, -4, { tasha: [2, 2], elena: [-2, -3], jake: [-1, -1] }])
       ]),
-      beat("final", "Guests now expect secret menu chaos every week", "If you shut it down, you lose momentum. If you feed it, the menu becomes a rumor hostage.", "elena", "Marisol says the brand needs a boundary that still lets Feast Haven feel alive.", [
-        action("fl-final-seasonal", "Create a controlled monthly off-menu feature chosen by the kitchen.", "You turn chaos into structure without killing fun.", [2, 2, 2, { elena: [2, 2], tasha: [1, 1], nina: [1, 1] }]),
-        action("fl-final-ban", "Ban secret menu language completely.", "Clear, protective, and likely to make students invent a worse one by lunch.", [-1, 0, 1, { elena: [1, 1], jake: [-2, -2], nina: [-1, -1] }]),
-        action("fl-final-chase", "Keep chasing whatever TikTok invents next.", "The money is loud. The operation is louder.", [4, -3, -4, { elena: [-2, -3], tasha: [-3, -4], marcus: [-1, -2] }])
+      beat("final", "Grandma says she will leave quietly if Feast Haven handles the recipe question with respect", "She wants acknowledgement, not necessarily ownership of the building.", "marcus", "Omar says this is the point where you decide whether tonight ends as a scene or a legend people actually like.", [
+        action("gs-final-documented", "Offer a respectful follow-up with the family, chef, and written notes after service, then send dessert to the table tonight.", "It is unflashy, grown-up, and probably the only version that survives sunrise.", [0, 2, 4, { marcus: [2, 2], tasha: [2, 2], elena: [1, 1] }]),
+        action("gs-final-special", "Create a future collaboration night if both sides agree after tempers cool.", "It preserves possibility without pretending tonight proved anything.", [1, 1, 2, { marcus: [1, 1], tasha: [0, 1], jake: [1, 1] }]),
+        action("gs-final-gift", "Send the family home with a lavish care package and no formal acknowledgment either way.", "Kind and strategically ambiguous, though it leaves the core claim floating in the air.", [-1, 1, 2, { marcus: [1, 1], elena: [1, 1] }]),
+        action("gs-final-brand", "Put Grandma on camera with Chef Renata tonight and announce the 'stolen recipe summit.'", "The clip is huge. So is the chance you just built recurring chaos as a business model.", [4, -2, -4, { marcus: [-2, -3], tasha: [-3, -4], elena: [-1, -2] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "proposal-breakup-cake",
-    category: "Romance Catastrophe",
+    id: "surprise-health-inspection-chaos",
+    category: "Compliance Crisis",
     pressure: "Extreme",
-    headline: "A proposal cake is delivered to the wrong table, where a couple is actively breaking up",
+    headline: "A health inspector walks in right as the kitchen is slammed, short-staffed, and messier than anybody wants to admit",
     body:
-      "The cake says 'Say Yes Forever.' The woman at the table says 'This is exactly the problem.' The actual proposer is watching from across the room.",
+      "The fryer station is behind, a prep cart is sweating suspiciously, and Theo just whispered the sentence 'please let this be a fake inspector.'",
     beats: [
-      beat("opening", "Two relationships are now on fire and one has frosting", "The room is silent in the way rooms get silent right before becoming evidence.", "devon", "Parker says speed matters, but the wrong apology could ruin two tables at once.", [
-        action("pc-open-swap", "Remove the cake fast and apologize privately to both tables.", "You reduce spectacle but make the breakup table feel handled like a spill.", [-1, 0, 2, { devon: [1, 2], elena: [1, 1] }]),
-        action("pc-open-own", "Publicly own the mistake before anyone invents a worse story.", "Honest, brave, and maybe exactly the public humiliation nobody asked for.", [0, -1, 1, { devon: [1, 1], jake: [-1, -1] }]),
-        action("pc-open-comp", "Comp both tables immediately and let money apologize first.", "It buys time, but now every person in the room knows disaster has a menu price.", [-3, 1, 0, { devon: [0, 1], marcus: [-1, -1] }])
+      beat("opening", "The inspector arrives exactly when the line is weakest", "Everyone suddenly notices every towel, every label, and every pan that was going to be handled 'in thirty seconds.'", "priya", "Imani says panic cleanup always looks more guilty than honest triage.", [
+        action("sh-open-truth", "Acknowledge the rush, assign one escort, and show exactly how the team is stabilizing the mess in real time.", "You lose the fantasy of perfection and gain the inspector's respect for reality under pressure.", [0, 2, 4, { priya: [2, 2], tasha: [1, 2] }]),
+        action("sh-open-freeze", "Pause all nonessential tickets for five minutes and clean hard before the walkthrough deepens.", "It costs momentum, but the room gets visibly safer fast.", [-2, 1, 3, { priya: [2, 2], devon: [-1, -1], marcus: [1, 1] }]),
+        action("sh-open-channel", "Keep service running but move one strong staffer to shadow-fix hazards as the inspector moves.", "Operationally elegant, but one missed detail will look deliberate.", [1, 0, 1, { priya: [1, 1], tasha: [0, 1], luis: [-1, -1] }]),
+        action("sh-open-hide", "Move questionable items out of sight first and answer questions later.", "The room moves faster for three minutes and then becomes a trust fire.", [2, -3, -4, { priya: [-3, -4], tasha: [-2, -3] }])
       ]),
-      beat("proposer", "The actual proposer wants the moment rebuilt right now", "He is pale, holding a ring, and asking whether the kitchen can 'reset romance.'", "jake", "Adrian wants to save the sale and the story, but the room is already emotionally bruised.", [
-        action("pc-proposer-delay", "Delay the proposal setup and rebuild it away from the breakup table.", "You protect the moment, but the proposer feels like romance is on hold with the apps.", [-1, 1, 2, { jake: [1, 2], elena: [1, 1] }]),
-        action("pc-proposer-now", "Help him propose now and ride the emotional whiplash.", "If she says yes, legendary. If not, Feast Haven becomes a romance crime scene.", [3, -2, -3, { jake: [1, 0], devon: [-2, -2] }]),
-        action("pc-proposer-cancel", "Encourage him to postpone entirely and protect the relationship from the room.", "Wise and possibly devastating to tonight's bill.", [-2, 2, 2, { jake: [-1, -1], devon: [2, 2] }])
+      beat("walkthrough", "The inspector spots rushed labeling and an overcrowded cold shelf", "Nothing is catastrophic yet, but the mood says one more bad answer could turn this into a lesson.", "marcus", "Omar says the team needs one version of reality before half-answers create a second problem.", [
+        action("sh-walkthrough-log", "Produce logs, fix what can be fixed on the spot, and document the corrections openly.", "It is meticulous and slightly humiliating, which is still better than guessing.", [-1, 2, 3, { marcus: [2, 3], priya: [1, 1] }]),
+        action("sh-walkthrough-context", "Explain the staffing squeeze clearly while taking responsibility for the misses.", "It humanizes the chaos without sounding like you are asking for pity points.", [0, 1, 2, { marcus: [1, 2], devon: [1, 1] }]),
+        action("sh-walkthrough-delegate", "Push technical questions directly to Chef Renata and keep management on guest flow.", "Reasonable if coordinated, risky if it looks like leadership ducking the heat.", [1, 0, 1, { tasha: [1, 1], marcus: [-1, -1] }]),
+        action("sh-walkthrough-minimize", "Downplay the issues as normal rush-night clutter and hope confidence carries it.", "Confidence is not sanitizer and the inspector knows that better than you do.", [2, -2, -4, { marcus: [-2, -3], priya: [-2, -2] }])
       ]),
-      beat("breakup", "The breakup table says Feast Haven made the breakup worse", "They want the cake boxed, comped, and possibly used as legal symbolism.", "nina", "Celia says the floor needs compassion without making the restaurant responsible for the relationship.", [
-        action("pc-breakup-care", "Comp dessert, apologize, and give them a quiet exit path.", "It is humane and expensive, and it keeps the table from becoming a stage.", [-2, 2, 2, { nina: [2, 2], devon: [1, 1] }]),
-        action("pc-breakup-boundary", "Apologize for the cake but do not comp the whole meal.", "Fair on paper, emotionally flammable in person.", [0, -2, -1, { nina: [-1, -2], elena: [0, -1] }]),
-        action("pc-breakup-joke", "Offer to change the frosting to 'Say No Forever' as a tension breaker.", "One person laughs. Unfortunately, not the person paying.", [1, -3, -4, { nina: [-3, -4], jake: [1, 0] }])
+      beat("dining-room", "Guests are noticing the inspection and staff tension", "A rumor is spreading that Feast Haven is 'getting shut down live.'", "elena", "Marisol says the room needs calm facts, not fearful whisper theater.", [
+        action("sh-dining-steady", "Brief the floor with one calm sentence for guests and keep service composed, not secretive.", "The room stops inventing apocalypse and starts eating again.", [0, 2, 2, { elena: [2, 2], nina: [1, 1], jake: [1, 1] }]),
+        action("sh-dining-quiet", "Tell staff to avoid mentioning the inspection at all unless directly asked.", "It prevents overtalking but makes every nervous glance feel suspicious.", [1, 0, 0, { elena: [0, 1], nina: [-1, -1] }]),
+        action("sh-dining-flex", "Offer small gestures to tables nearest the walkthrough to keep them warm.", "Helpful for hospitality, though it quietly signals that something really is wrong.", [-1, 1, 1, { elena: [1, 1], devon: [1, 1] }]),
+        action("sh-dining-lie", "Tell guests the inspector is a private consultant doing a compliment audit.", "It is funny until one guest knows exactly what a county badge looks like.", [1, -2, -4, { elena: [-2, -3], nina: [-1, -2] }])
       ]),
-      beat("staff", "The pastry cook insists the ticket was unreadable", "Front of house blames kitchen. Kitchen blames handwriting. Romance blames everyone.", "tasha", "Chef Renata wants the staff conflict handled before every special occasion order becomes a booby trap.", [
-        action("pc-staff-system", "Create a manager verification rule for all celebration messages tonight.", "It slows service and prevents frosting-based tragedy.", [-1, 2, 3, { tasha: [1, 2], nina: [1, 1], devon: [1, 1] }]),
-        action("pc-staff-blame", "Find the single person who misread the ticket and make the lesson clear.", "Fast accountability can become lazy justice.", [0, -2, -2, { tasha: [-1, -2], nina: [-2, -3] }]),
-        action("pc-staff-move", "Tell everyone to move on because the guests need recovery, not a staff trial.", "The room steadies while the actual system stays cursed.", [1, 0, -2, { tasha: [-1, -1], devon: [1, 0] }])
+      beat("kitchen", "Chef Renata wants to yank two menu items because the line is too unstable to promise them safely", "Sales will hurt, but so will pretending the line is fine.", "tasha", "Chef Renata says discipline matters most when it feels most expensive.", [
+        action("sh-kitchen-cut", "Cut the two vulnerable items and protect the rest of service from compounding mistakes.", "It shrinks the menu and increases the chance the night ends with fewer regrets.", [-2, 2, 3, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
+        action("sh-kitchen-throttle", "Keep the items on but cap how many can be sold each wave.", "Clever, but it requires the kind of line coordination that is already under stress.", [0, 1, 1, { tasha: [1, 1], luis: [0, 1] }]),
+        action("sh-kitchen-push", "Keep the full menu and demand cleaner execution without changing the load.", "You preserve top-line potential and ask the line to become magical under scrutiny.", [2, -1, -2, { tasha: [-2, -3], luis: [-1, -2], priya: [-1, -1] }]),
+        action("sh-kitchen-bury", "Quietly send questionable prep through faster before the inspector loops back.", "The speed helps until it turns into evidence instead of dinner.", [3, -3, -4, { tasha: [-3, -4], priya: [-3, -4] }])
       ]),
-      beat("final", "Both tables are waiting for the final gesture", "One wants dignity. One wants magic. The staff want cake tickets written in block letters forever.", "elena", "Marisol says Feast Haven can end this as a story about care, chaos, or cowardice.", [
-        action("pc-final-private", "Give each table a separate private recovery gesture and keep the room out of it.", "Not viral, not cheap, and probably the most adult ending available.", [-2, 3, 3, { elena: [2, 3], devon: [1, 1] }]),
-        action("pc-final-toast", "Offer a gentle public toast about love, timing, and restaurant humility.", "It could heal the room or make everyone wish the floor would open.", [1, 0, -1, { elena: [1, 0], jake: [1, 0] }]),
-        action("pc-final-freecake", "Send free celebration cakes to nearby tables as a goodwill splash.", "The room enjoys dessert. The staff learns mistakes multiply into free labor.", [-3, 1, -1, { elena: [-1, -1], tasha: [-2, -2], marcus: [-1, -1] }])
+      beat("final", "The inspector says the score depends on how Feast Haven handles the rest of the night", "You are not dead yet. You are being watched.", "devon", "Parker says the best ending is the one that proves learning while the dining room is still breathing.", [
+        action("sh-final-plan", "Submit a specific correction plan, finish service with discipline, and follow through visibly.", "It is not glamorous, but it is exactly what grown-up trust looks like.", [0, 2, 4, { devon: [2, 2], marcus: [1, 2], tasha: [1, 1] }]),
+        action("sh-final-audit", "Invite a post-service mini debrief with the inspector and key leads before anyone clocks out.", "It costs energy and buys real institutional memory.", [-1, 2, 3, { devon: [1, 2], marcus: [2, 2], priya: [1, 1] }]),
+        action("sh-final-sprint", "Keep the room alive first and promise the paperwork tomorrow when the pressure drops.", "Not reckless, but it leans on later discipline from the same team that is currently smoking.", [1, 0, 1, { devon: [1, 1], marcus: [-1, -1] }]),
+        action("sh-final-smooth", "Focus on charming the inspector with hospitality and hope the human vibe outweighs the misses.", "Pleasantness helps. Not as much as refrigeration logs.", [2, -2, -4, { devon: [-1, -2], marcus: [-2, -3], priya: [-1, -1] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "clown-convention-brunch",
-    category: "Group Booking Chaos",
-    pressure: "Absurd",
-    headline: "A clown convention booked brunch under a normal name and now the lobby is full of honking shoes",
-    body:
-      "Forty professional clowns have arrived for omelets. A child's birthday party is also here. Nobody knows if this is a blessing, a lawsuit, or both.",
-    beats: [
-      beat("opening", "The lobby sounds like a bicycle horn avalanche", "Some kids are delighted, some are crying, and adults cannot tell which clowns are guests.", "elena", "Marisol says the host stand needs order before brunch becomes a parade route.", [
-        action("cc-open-zone", "Separate the clown group and birthday party into clear zones.", "It reduces confusion, though it makes the dining room look like a treaty map.", [-1, 2, 2, { elena: [2, 2], marcus: [1, 1] }]),
-        action("cc-open-embrace", "Welcome the chaos and announce a surprise circus brunch.", "The energy explodes, and so does the seating plan.", [3, 1, -3, { elena: [-1, -2], jake: [2, 1], devon: [-1, -1] }]),
-        action("cc-open-limit", "Ask the clowns to remove props inside the dining room.", "Reasonable, safe, and received like you banned joy.", [0, -2, 1, { elena: [1, 1], jake: [-1, -1] }])
-      ]),
-      beat("birthday", "The birthday child thinks the clowns were hired for him", "His parents did not pay for this and are now wondering if they should be grateful or terrified.", "devon", "Parker says the birthday table needs clarity without making the child feel rejected by forty strangers.", [
-        action("cc-birthday-gift", "Offer a small staff-led birthday moment separate from the clowns.", "It protects the child and keeps the clowns from unionizing the song.", [-1, 2, 2, { devon: [2, 2], elena: [1, 1] }]),
-        action("cc-birthday-clowns", "Ask two clowns to join the birthday song with strict limits.", "Magical if controlled, horrifying if one pulls out a trombone.", [2, 1, -1, { devon: [0, 1], jake: [1, 1], marcus: [-1, -1] }]),
-        action("cc-birthday-ignore", "Do nothing and hope the family treats it as bonus entertainment.", "They treat it as unpaid chaos with balloons.", [1, -2, -3, { devon: [-2, -3], elena: [-1, -1] }])
-      ]),
-      beat("kitchen", "Chef Renata says clown orders are destroying ticket flow", "Every ticket says 'extra silly' and one clown asked for a pancake shaped like regret.", "tasha", "Chef Renata needs a menu boundary before the kitchen becomes an improv troupe.", [
-        action("cc-kitchen-fixed", "Move the clown group to a fixed brunch menu immediately.", "The line stabilizes, but the clowns start reviewing the word 'fixed.'", [0, 1, 2, { tasha: [2, 3], priya: [1, 1] }]),
-        action("cc-kitchen-custom", "Allow custom clown orders because the ticket average is huge.", "Revenue climbs while the kitchen's last nerve puts on a tiny hat and leaves.", [4, -3, -3, { tasha: [-3, -4], priya: [-2, -3] }]),
-        action("cc-kitchen-feature", "Create one silly special that satisfies the bit without customizing everything.", "It is clever, but still adds one more weird plate during rush.", [2, 1, 0, { tasha: [0, 1], jake: [1, 1] }])
-      ]),
-      beat("complaints", "Regular brunch guests say the room has become too much", "One table asks if mimosas are cheaper because they include clown trauma.", "nina", "Celia says staff need a way to protect normal guests without insulting paying clowns.", [
-        action("cc-complaints-comp", "Offer quiet comps to the most disrupted tables.", "It buys peace and bleeds money in tiny brunch cuts.", [-3, 2, 1, { nina: [1, 2], marcus: [-1, -1] }]),
-        action("cc-complaints-move", "Move upset tables to the calmest section and reset pacing.", "It is operationally hard but fair.", [-1, 2, 2, { nina: [2, 2], devon: [1, 1], marcus: [-1, 0] }]),
-        action("cc-complaints-joke", "Make light jokes about the unexpected entertainment.", "Some guests laugh. Others wanted eggs, not coping strategies.", [1, -2, -2, { nina: [-1, -2], elena: [-1, -1] }])
-      ]),
-      beat("final", "The clowns want to book monthly", "They tip well, disrupt everything, and may be the most loyal nightmare Feast Haven has ever had.", "marcus", "Omar says support staff deserve a vote before brunch becomes honk-based forever.", [
-        action("cc-final-private", "Offer private-room clown brunch only with strict booking terms.", "It keeps the money and contains the honking.", [2, 2, 2, { marcus: [2, 2], elena: [1, 1], tasha: [1, 1] }]),
-        action("cc-final-decline", "Decline future clown convention bookings during public brunch.", "Morale rises, revenue sighs dramatically.", [-2, 1, 1, { marcus: [1, 2], tasha: [2, 2], jake: [-1, -1] }]),
-        action("cc-final-theme", "Launch monthly Circus Brunch for the cash.", "The money is real. So are the staff resignation jokes.", [4, -3, -4, { marcus: [-3, -4], tasha: [-2, -3], elena: [-1, -2] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "goose-sous-chef",
-    category: "Kitchen Animal",
-    pressure: "Absurd",
-    headline: "Chef Renata adopts a goose she calls Sous-Goose and claims it improves kitchen discipline",
-    body:
-      "The goose wears a tiny neckerchief, hates Theo, and has already chased a delivery driver into the basil.",
-    beats: [
-      beat("opening", "There is a goose in the prep area", "Chef Renata says it is emotional support. The goose says nothing, but with menace.", "tasha", "Chef Renata insists the goose has lowered lateness by creating fear-based punctuality.", [
-        action("gs-open-remove", "Remove the goose from food areas immediately.", "Food safety improves. Chef Renata looks betrayed by both you and nature.", [0, -1, 3, { tasha: [-2, -3], priya: [1, 1], luis: [1, 1] }]),
-        action("gs-open-office", "Move Sous-Goose to the office while you decide policy.", "A compromise until the office printer becomes territorial.", [0, 0, 1, { tasha: [0, 1], marcus: [-1, -1] }]),
-        action("gs-open-allow", "Let the goose stay for one shift because morale is weirdly up.", "The kitchen moves faster, mostly away from the goose.", [2, 1, -3, { tasha: [2, 1], luis: [-2, -3], marcus: [-1, -1] }])
-      ]),
-      beat("incident", "Sous-Goose bites Theo during a rush", "Theo says it was intentional. The goose maintains eye contact.", "luis", "Theo wants leadership to admit a goose cannot be a supervisor.", [
-        action("gs-incident-care", "Document the bite, treat Theo, and remove the goose from service.", "Correct, expensive, and deeply humiliating to write on a form.", [-1, 2, 3, { luis: [2, 3], tasha: [-1, -2] }]),
-        action("gs-incident-joke", "Call it a 'performance review peck' and keep service moving.", "The line laughs until Theo stops laughing.", [2, -3, -3, { luis: [-4, -4], tasha: [1, 0] }]),
-        action("gs-incident-talk", "Make Chef Renata apologize and explain the goose boundaries herself.", "It forces ownership, but Renata may defend the bird like family.", [0, 0, 1, { luis: [1, 1], tasha: [-1, -1] }])
-      ]),
-      beat("health", "A health inspector arrives and locks eyes with Sous-Goose", "The inspector has seen things. Not this.", "priya", "Imani says the restaurant needs truth, speed, and zero bird-related improvisation.", [
-        action("gs-health-honest", "Disclose the goose incident and show immediate corrective action.", "It is embarrassing and survivable if the action is real.", [-1, 1, 3, { priya: [2, 3], tasha: [-1, -1] }]),
-        action("gs-health-hide", "Hide the goose in the alley until inspection ends.", "The goose honks. The alley echoes. Truth returns with feathers.", [1, -3, -4, { priya: [-3, -4], elena: [-2, -2] }]),
-        action("gs-health-office", "Claim the goose is an office visitor and keep it away from food.", "Technically better, morally slippery, and still very much a goose.", [0, -1, -1, { priya: [-1, -2], marcus: [-1, -1] }])
-      ]),
-      beat("staff", "Half the kitchen wants the goose gone; half wants merch", "Someone has already designed a Sous-Goose sticker.", "jake", "Adrian thinks the story could be funny if it stops being operationally insane.", [
-        action("gs-staff-merch", "Retire the goose from service but sell one charity sticker.", "You preserve the joke without keeping the hazard.", [2, 2, 1, { jake: [2, 2], tasha: [0, 1], luis: [1, 1] }]),
-        action("gs-staff-ban", "Ban goose merch and all bird jokes until trust recovers.", "Serious, safe, and somehow makes the goose more legendary.", [-1, 0, 1, { jake: [-2, -2], luis: [1, 1] }]),
-        action("gs-staff-mascot", "Make Sous-Goose the unofficial kitchen mascot outside service hours.", "Morale spikes until someone asks who cleans mascot droppings.", [2, 0, -2, { jake: [1, 1], marcus: [-2, -2], priya: [-1, -1] }])
-      ]),
-      beat("final", "Chef Renata asks to keep the goose as a personal inspiration animal", "The staff is waiting to see whether talent lets people ignore obvious boundaries.", "devon", "Parker says this is now less about birds and more about whether rules apply to stars.", [
-        action("gs-final-boundary", "Respect Renata, ban animals from operations, and give her another support plan.", "It is firm without making her the villain.", [0, 3, 4, { devon: [2, 3], tasha: [0, 1], luis: [1, 1] }]),
-        action("gs-final-exception", "Allow Renata a limited non-service goose exception.", "You keep your chef happy and teach everyone exceptions wear feathers.", [2, -2, -3, { devon: [-2, -3], luis: [-2, -3], priya: [-1, -2] }]),
-        action("gs-final-firebird", "Tell Renata the goose leaves or she does.", "Clear, dramatic, and possibly self-destructive if she calls it.", [-3, -2, 1, { tasha: [-4, -4], priya: [-1, -1], luis: [1, 1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "espresso-machine-screams",
-    category: "Haunted Equipment",
+    id: "table-that-wont-leave",
+    category: "Floor Management",
     pressure: "High",
-    headline: "The espresso machine starts making human-sounding screams every time someone orders a latte",
+    headline: "A group has occupied a prime table for hours, barely ordered, and now peak service is building around them",
     body:
-      "Maintenance says it is probably steam pressure. Guests say it is definitely a ghost named Kevin.",
+      "They keep saying they are 'just catching up,' which apparently requires one shared fries order and the square footage of three real reservations.",
     beats: [
-      beat("opening", "The cafe station is screaming", "Every latte sounds like a tiny haunted opera and brunch is choosing sides.", "nina", "Celia says servers need one explanation before guests start asking whether decaf is cursed.", [
-        action("em-open-stop", "Stop espresso drinks until maintenance checks it.", "Safe and costly, especially with half the room holding brunch menus.", [-2, 1, 3, { nina: [1, 2], priya: [1, 1] }]),
-        action("em-open-joke", "Tell guests the machine is dramatic but safe while you monitor it.", "The joke lands until the next cappuccino sounds like a lawsuit.", [2, 0, -2, { nina: [1, 1], elena: [-1, -1] }]),
-        action("em-open-kevin", "Name the ghost Kevin and sell 'Haunted Lattes.'", "Revenue jumps. Credibility gets dragged into the spirit realm.", [4, -1, -4, { nina: [2, 1], elena: [-2, -3], tasha: [-1, -1] }])
+      beat("opening", "The prime table has become a low-budget lease agreement", "Marisol can feel money dying every time a new walk-in sees that table occupied by four waters and one basket.", "elena", "Marisol says this needs tact because the table is not technically breaking rules, just abusing vibes.", [
+        action("tw-open-checkin", "Send a warm check-in that subtly resets the expectation of ordering or wrapping up.", "It is humane, professional, and puts the pressure back where it belongs.", [1, 2, 3, { elena: [2, 2], nina: [1, 1] }]),
+        action("tw-open-dessert", "Offer dessert or coffee and see whether increased spend justifies the time.", "It buys data, though possibly at the cost of making them even more comfortable.", [2, 1, 0, { jake: [1, 1], elena: [0, 1] }]),
+        action("tw-open-wait", "Leave them alone a little longer and protect the hospitality ideal.", "Kind in theory, expensive in prime-time reality.", [0, 0, 1, { elena: [-1, -1], marcus: [-1, -1] }]),
+        action("tw-open-boot", "Tell them directly the table is needed and they must leave within minutes.", "Fast, efficient, and one offended group text away from being your problem all weekend.", [2, -2, -4, { elena: [-2, -3], devon: [-1, -2] }])
       ]),
-      beat("maintenance", "The repair tech says it might be unsafe, or might just need a part", "The machine screams during the word 'unsafe.'", "marcus", "Omar says support staff are tired of cleaning around equipment that sounds like it is begging.", [
-        action("em-maintenance-part", "Shut it down and order the part immediately.", "The boring choice protects everyone and murders coffee revenue.", [-3, 1, 3, { marcus: [2, 3], nina: [0, 1] }]),
-        action("em-maintenance-window", "Run espresso only during short monitored windows.", "It balances money and risk until Kevin hits a high note during dessert.", [1, 0, -1, { marcus: [0, 1], nina: [1, 0], elena: [-1, -1] }]),
-        action("em-maintenance-ignore", "Keep using it because the tech did not say definitely unsafe.", "That is a very expensive way to interpret uncertainty.", [3, -3, -4, { marcus: [-3, -4], nina: [-2, -2] }])
+      beat("pressure", "Walk-ins and a reservation are now both eyeing the table", "The room can sense there is a bottleneck and begins assigning blame with their eyebrows.", "devon", "Parker says how you balance fairness and urgency here teaches the whole floor what 'guest care' really means.", [
+        action("tw-pressure-options", "Offer the long-stay group a comfortable move to the lounge if they want to keep talking.", "You preserve their dignity and reclaim the revenue seat with the least public friction.", [1, 2, 2, { devon: [2, 2], elena: [1, 2] }]),
+        action("tw-pressure-hold", "Honor their occupancy but transparently quote longer waits to incoming guests.", "Honest and fair, though it makes the host stand eat the cost of your principles.", [-1, 1, 1, { elena: [-1, -1], devon: [1, 1] }]),
+        action("tw-pressure-purchase", "Require a real second round of ordering if they want to remain through peak hours.", "Commercially logical, socially risky, and maybe exactly the rule you wish already existed.", [2, 0, 1, { marcus: [1, 1], nina: [-1, -1] }]),
+        action("tw-pressure-fake", "Tell the group another reservation is arriving in two minutes even if that part is exaggerated.", "The lie solves tonight's problem and creates tomorrow's story if spotted.", [2, -2, -4, { devon: [-2, -3], elena: [-2, -2] }])
       ]),
-      beat("guest", "A guest claims the scream triggered their anxiety and wants the whole meal comped", "Another table asks if Kevin can scream happy birthday.", "devon", "Parker says the response must respect discomfort without rewarding every supernatural invoice.", [
-        action("em-guest-care", "Comp the affected guest's drinks and move them to a quieter section.", "Reasonable, humane, and still leaves Kevin unsolved.", [-1, 2, 2, { devon: [2, 2], nina: [1, 1] }]),
-        action("em-guest-fullcomp", "Comp the whole meal to keep the complaint from spreading.", "It buys silence from one table and teaches the rest to fear-order espresso.", [-4, 1, 0, { devon: [0, 1], marcus: [-1, -1] }]),
-        action("em-guest-refuse", "Refuse the comp because the machine noise was disclosed.", "Technically clean, emotionally haunted.", [1, -2, -2, { devon: [-2, -3], elena: [-1, -1] }])
+      beat("staff", "Adrian says flipping the table matters; Celia says embarrassing them will poison the room", "Now staff tension is matching guest tension.", "nina", "Celia says table turns matter. So does not making the whole dining room watch a public eviction.", [
+        action("tw-staff-align", "Call a quick floor huddle and settle on one tone before anyone freelances the encounter.", "It costs a minute and prevents five different management philosophies from walking to the same table.", [0, 2, 2, { nina: [2, 2], jake: [1, 1], elena: [1, 1] }]),
+        action("tw-staff-lead", "Let Adrian handle it solo with his strongest charm and thickest skin.", "He may pull it off, though it turns a system problem into one personality gamble.", [2, 0, 0, { jake: [2, 2], nina: [-1, -1] }]),
+        action("tw-staff-manager", "Take the conversation yourself so the staff do not absorb the emotional fallout.", "Protective leadership, but you may miss the subtle floor cues your host sees better.", [0, 1, 1, { devon: [1, 1], elena: [1, 1] }]),
+        action("tw-staff-loud", "Use a very visible manager walkover to signal urgency to everyone nearby.", "The message lands with the whole room, which is exactly why the whole room now hates being there.", [1, -2, -3, { nina: [-2, -2], jake: [-1, -1], elena: [-1, -2] }])
       ]),
-      beat("marketing", "The haunted latte clip hits 80,000 views", "People are showing up just to hear Kevin scream into foam.", "jake", "Adrian wants to capture the wave without turning Feast Haven into a ghost cafe.", [
-        action("em-marketing-retire", "Post that Kevin is retiring for safety and invite guests back for normal coffee.", "Responsible, mildly charming, and less profitable than a ghost.", [-1, 2, 3, { jake: [0, 1], elena: [1, 1] }]),
-        action("em-marketing-limited", "Run one final inspected Haunted Latte hour before shutdown.", "It is contained spectacle with a real chance of looking reckless.", [2, 0, -1, { jake: [2, 1], marcus: [-1, -1] }]),
-        action("em-marketing-merch", "Sell Kevin stickers while the machine keeps screaming.", "The internet loves it. The repair tech stops making eye contact.", [3, -2, -4, { jake: [2, 1], marcus: [-2, -3], elena: [-1, -2] }])
+      beat("public", "A nearby guest jokes that Feast Haven should start charging rent", "The whole section laughs, which means the social temperature just changed.", "jake", "Adrian says humor could save the mood. Marisol says humor could also crown a loser in public.", [
+        action("tw-public-light", "Use one light joke privately with the long-stay group and then pivot to options.", "Handled right, it releases pressure without making them the punchline.", [1, 1, 1, { jake: [1, 1], devon: [1, 1] }]),
+        action("tw-public-protect", "Ignore the side jokes and keep all communication strictly dignified.", "It avoids cheap laughs and keeps the restaurant feeling grown-up.", [0, 2, 2, { elena: [1, 2], nina: [1, 1] }]),
+        action("tw-public-barter", "Offer the table a to-go dessert if they free the prime seat now.", "It is a soft landing that teaches expensive lessons about incentives.", [-1, 1, 1, { marcus: [-1, -1], devon: [1, 1] }]),
+        action("tw-public-roast", "Join the joke publicly and try to shame the table into self-awareness.", "The room laughs once and remembers you as the manager who weaponized sarcasm.", [2, -3, -4, { jake: [-2, -2], elena: [-2, -3] }])
       ]),
-      beat("final", "The machine finally dies mid-scream", "The room applauds. Staff are unsure whether to clap or evacuate.", "elena", "Marisol says the final story needs to protect both safety and the restaurant's sense of humor.", [
-        action("em-final-replace", "Replace the machine and make Kevin a one-night legend.", "Clean ending, big cost, good story.", [-2, 3, 4, { elena: [2, 3], nina: [1, 1], marcus: [1, 1] }]),
-        action("em-final-repair", "Repair the old machine and keep costs down.", "Financially sensible, emotionally suspicious.", [1, 0, -1, { marcus: [1, 1], nina: [-1, -1] }]),
-        action("em-final-display", "Put the dead machine in the lobby as Kevin's shrine.", "Funny, viral, and deeply confusing for a restaurant trying to look premium.", [2, -1, -3, { elena: [-2, -3], jake: [1, 1] }])
+      beat("final", "Peak service is ending and the policy question remains", "Tonight can pass, but this will happen again if the team learns nothing useful from it.", "marcus", "Omar says the support team would love a rule that does not require psychic diplomacy every Friday night.", [
+        action("tw-final-policy", "Create a clear peak-hour seating guideline and train staff to offer graceful lounge transitions.", "It is less dramatic than revenge and much better than repeating tonight forever.", [0, 2, 4, { marcus: [2, 2], elena: [2, 2], nina: [1, 1] }]),
+        action("tw-final-soft", "Keep it unwritten but coach the team on cues and escalation timing.", "Flexible and human, though it depends heavily on everyone reading the room the same way.", [1, 1, 1, { marcus: [1, 1], elena: [1, 1] }]),
+        action("tw-final-menu", "Introduce a peak lounge menu specifically designed to relocate long campers profitably.", "Creative, slightly manipulative, and maybe exactly the kind of trick that works.", [2, 1, 0, { marcus: [0, 1], devon: [1, 1], jake: [1, 1] }]),
+        action("tw-final-post", "Post a blunt social rule about table time limits and call it transparency.", "Efficient online. In person it makes dinner feel like parking enforcement with candles.", [1, -2, -4, { elena: [-2, -3], nina: [-1, -2], jake: [-1, -1] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "mystery-caviar-sprinkles",
-    category: "Luxury Mistake",
+    id: "mystery-food-critic",
+    category: "Critical Review",
     pressure: "Extreme",
-    headline: "A server accidentally serves $3,000 caviar to a kids table as 'fancy sprinkles'",
+    headline: "Word reaches the staff that a famous anonymous food critic is in the building, but nobody knows who it is",
     body:
-      "The children loved it. The parents think it was included. Chef Renata is staring at the empty tin like it owed her money.",
+      "Now every quiet diner looks dangerous, every note app looks fatal, and Adrian has already accused three innocent accountants of being culinary snipers.",
     beats: [
-      beat("opening", "The most expensive mistake in the room is on chicken fingers", "The kids are asking for more black sprinkles and the kitchen is losing oxygen.", "nina", "Celia says the table needs an answer before anyone sees the actual invoice.", [
-        action("mc-open-own", "Own the mistake and do not charge the family for the caviar.", "Ethically clean, financially painful, and the kids still want seconds.", [-4, 2, 3, { nina: [2, 2], tasha: [-1, -1] }]),
-        action("mc-open-split", "Explain the error and ask the parents to cover a small portion.", "Reasonable to accounting, awkward to humans who ordered nuggets.", [-2, -1, 0, { nina: [-1, -1], marcus: [1, 1] }]),
-        action("mc-open-hide", "Pretend it was a chef surprise and absorb it quietly.", "The table is delighted, but the staff learns luxury inventory can vanish into vibes.", [-3, 1, -2, { nina: [0, 1], tasha: [-2, -3], marcus: [-1, -2] }])
+      beat("opening", "The rumor hits before the appetizers do", "Service changes instantly because everyone is now acting for an invisible judge.", "jake", "Adrian says the only safe move is to raise the whole room. Celia says panic excellence usually looks like panic.", [
+        action("mc-open-whole", "Tell the team to sharpen service across every table rather than chase one mystery guest.", "It is operationally expensive and morally clean, which is a rare pairing.", [0, 2, 4, { jake: [1, 1], nina: [2, 2], elena: [1, 1] }]),
+        action("mc-open-shortlist", "Quietly identify two or three likely critics and watch those tables a little closer.", "Focused enough to feel smart, risky enough to make regular guests feel backgrounded.", [1, 1, 1, { jake: [1, 1], elena: [0, 1] }]),
+        action("mc-open-manager", "Have managers sweep the room more often and let the staff keep normal rhythms.", "Calm leadership helps, though the line still feels unseen if the kitchen is the real test.", [0, 1, 2, { devon: [1, 1], tasha: [0, 1] }]),
+        action("mc-open-hunt", "Actively interrogate tells, hover near note-taking guests, and try to crack the critic fast.", "The room immediately senses prey energy coming off the staff.", [2, -2, -4, { jake: [-2, -3], nina: [-2, -2], elena: [-1, -2] }])
       ]),
-      beat("kitchen", "Chef Renata demands a culprit and a lockbox", "The line is now treating every garnish like jewelry.", "tasha", "Chef Renata wants accountability before the next mistake becomes truffle crayons.", [
-        action("mc-kitchen-system", "Create a luxury-item signout system immediately.", "The kitchen feels protected and the line slows down around paperwork.", [-1, 1, 3, { tasha: [2, 3], priya: [1, 1], marcus: [1, 1] }]),
-        action("mc-kitchen-blame", "Identify the server mistake and discipline it hard.", "Fast accountability may miss why the tin was reachable at all.", [0, -2, -2, { tasha: [0, 1], nina: [-3, -4] }]),
-        action("mc-kitchen-lock", "Lock all premium ingredients away for manager approval.", "Safe, slow, and likely to make dinner service feel like a bank heist.", [-2, 0, 2, { tasha: [1, 1], jake: [-1, -1], priya: [-1, 0] }])
+      beat("kitchen", "Chef Renata wants to know whether to send her boldest plates or her safest ones", "The critic could reward ambition or punish the wrong flourish.", "tasha", "Chef Renata says cooking scared is ugly. Cooking reckless for applause is uglier.", [
+        action("mc-kitchen-clean", "Run the sharpest, cleanest version of the normal menu and trust disciplined execution.", "Less cinematic, more sustainable, and very hard to attack honestly.", [0, 2, 3, { tasha: [2, 2], priya: [1, 1], luis: [1, 1] }]),
+        action("mc-kitchen-bold", "Let the chef fire one or two signature flexes at suspicious tables only.", "Potentially brilliant, potentially obvious, and absolutely harder on the line.", [2, 0, 1, { tasha: [1, 1], luis: [0, 1], priya: [-1, -1] }]),
+        action("mc-kitchen-balance", "Keep the whole menu normal but allow one surprise touch if a table clearly values craft.", "Thoughtful and nuanced, though it asks the floor to read minds under pressure.", [1, 1, 1, { tasha: [1, 1], jake: [0, 1] }]),
+        action("mc-kitchen-showboat", "Start sending theatrical extras to every table that seems remotely important.", "Nothing says 'we are normal' like desperate smoke, spoons, and over-garnished panic.", [3, -2, -4, { tasha: [-2, -3], priya: [-1, -2], luis: [-1, -1] }])
       ]),
-      beat("parents", "The parents post that Feast Haven gives children caviar", "The comments are half impressed and half furious about pricing.", "jake", "Adrian wants the public angle handled before luxury mistake becomes brand identity.", [
-        action("mc-parents-humble", "Reply that it was a mistake, the family was not charged, and controls are changing.", "Transparent, mature, and not especially glamorous.", [0, 2, 3, { jake: [1, 2], elena: [1, 1] }]),
-        action("mc-parents-luxury", "Frame it as an accidental example of Feast Haven hospitality.", "Sounds premium until people ask if all mistakes are this unequal.", [2, 0, -2, { jake: [2, 1], marcus: [-1, -1] }]),
-        action("mc-parents-silence", "Do not respond and let the story stay cute.", "Cute curdles fast when the price leaks.", [1, -2, -3, { jake: [-1, -2], elena: [-1, -2] }])
+      beat("room", "A quiet diner in a corner is taking notes while another table is clearly industry people", "The team is drifting toward uneven service because everyone is guessing prestige.", "elena", "Marisol says the room will remember how it was treated whether or not one secret critic exists.", [
+        action("mc-room-reset", "Rebalance attention immediately and treat the whole room as if the critic could be anywhere.", "The floor feels less glamorous and much more competent.", [0, 2, 3, { elena: [2, 2], nina: [1, 1], jake: [1, 1] }]),
+        action("mc-room-scout", "Keep two likely tables under extra watch but assign backup hospitality to the rest.", "A plausible compromise with a thin margin for accidental neglect.", [1, 1, 1, { elena: [1, 1], devon: [1, 1] }]),
+        action("mc-room-concierge", "Have Parker float to smooth any table that looks under-served while the staff sniff out the critic.", "It works because Parker is excellent, which is not a scalable strategy.", [1, 0, 1, { devon: [2, 2], marcus: [0, 1] }]),
+        action("mc-room-prioritize", "Blatantly prioritize the likely critic tables and tell yourself the upside justifies it.", "The upside may exist. So does every ignored anniversary dinner around them.", [2, -2, -4, { elena: [-2, -3], nina: [-1, -2], devon: [-1, -1] }])
       ]),
-      beat("inventory", "Omar finds two more premium items stored casually", "Apparently the saffron has been living next to crayons for a week.", "marcus", "Omar says support staff cannot protect expensive inventory if nobody tells them what counts as expensive.", [
-        action("mc-inventory-train", "Train all staff on high-value inventory and storage rules.", "It costs time and prevents very dumb future losses.", [-1, 2, 3, { marcus: [2, 3], tasha: [1, 1], nina: [1, 1] }]),
-        action("mc-inventory-managers", "Restrict premium storage knowledge to managers only.", "Control increases and trust decreases.", [0, -1, 1, { marcus: [-1, -2], tasha: [1, 1], nina: [-1, -1] }]),
-        action("mc-inventory-delay", "Wait until after service to avoid derailing the night.", "Revenue survives while the next expensive mistake waits patiently.", [2, -1, -2, { marcus: [-2, -3], tasha: [-1, -1] }])
+      beat("twist", "One guest complains that service suddenly feels fake and overperformed", "You may be impressing the critic while alienating normal humans.", "devon", "Parker says the restaurant cannot become a stage play with bread plates.", [
+        action("mc-twist-ground", "Dial the room back into natural service and trust the fundamentals to carry the night.", "It lowers the temperature and makes the confidence look earned instead of rehearsed.", [0, 2, 3, { devon: [2, 2], jake: [1, 1] }]),
+        action("mc-twist-explain", "Offer the guest a candid apology for the uneven feel without mentioning the critic rumor.", "Honest and useful, though it confirms they were not imagining the weirdness.", [-1, 2, 2, { devon: [1, 2], elena: [1, 1] }]),
+        action("mc-twist-pivot", "Reassign that guest to your strongest server and smooth them personally.", "Good recovery at one table, modestly expensive to the rest of the room.", [1, 1, 0, { jake: [1, 1], devon: [1, 1] }]),
+        action("mc-twist-double", "Keep the elevated performance because one annoyed table is worth risking for a critic review.", "That sentence will sound worse to you tomorrow than it does right now.", [2, -2, -4, { devon: [-2, -3], elena: [-2, -2] }])
       ]),
-      beat("final", "A food blogger asks to order 'the kids caviar experience'", "This could become a profitable luxury joke or the worst lesson possible.", "elena", "Marisol says the final choice decides whether Feast Haven learns discipline or monetizes its own mistake.", [
-        action("mc-final-controlled", "Create a real premium tasting add-on with clear pricing and adult presentation.", "You turn the accident into a controlled product without insulting the lesson.", [3, 2, 2, { elena: [2, 2], tasha: [1, 1], marcus: [1, 1] }]),
-        action("mc-final-no", "Refuse to monetize the mistake and focus on fixing process.", "Principled, less fun, and safer for trust.", [-1, 2, 3, { elena: [1, 2], tasha: [2, 2] }]),
-        action("mc-final-kids", "Launch a playful 'fancy sprinkles' kids upgrade.", "Money arrives wearing a tiny tuxedo and carrying reputational dynamite.", [4, -3, -4, { elena: [-2, -3], tasha: [-2, -3], marcus: [-2, -2] }])
+      beat("final", "The rumor may have been real, fake, or both, and nobody gets a reveal tonight", "Now you have to decide what lesson the team takes from the paranoia.", "marcus", "Omar says the cleanest systems are the ones that do not need secret royalty to behave well.", [
+        action("mc-final-standard", "Train the team around critic-proof consistency instead of critic-specific heroics.", "It is not glamorous, which is exactly why it builds something real.", [0, 2, 4, { marcus: [2, 2], nina: [1, 2], jake: [1, 1] }]),
+        action("mc-final-watch", "Keep a quiet VIP-awareness protocol for future high-stakes nights only.", "Reasonable if used sparingly, dangerous if it becomes a class system with appetizers.", [1, 1, 1, { marcus: [1, 1], elena: [1, 1] }]),
+        action("mc-final-hybrid", "Create one premium touch the whole room gets whenever the team suspects scrutiny.", "It makes special feel scalable, even if the margins sigh softly.", [-1, 1, 2, { marcus: [1, 1], devon: [1, 1], tasha: [0, 1] }]),
+        action("mc-final-chase", "Turn critic hunts into a standing internal game so staff stay 'sharp.'", "You will absolutely stay sharp. You may also stay weird forever.", [2, -2, -4, { marcus: [-2, -3], nina: [-1, -2], jake: [-1, -1] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "food-heaven-drone",
-    category: "Rival Sabotage",
+    id: "allergy-maybe-situation",
+    category: "Guest Safety",
     pressure: "Extreme",
-    headline: "Food Heaven's promo drone hovers outside the window dropping coupons onto Feast Haven tables",
+    headline: "A guest claims serious allergies, then keeps changing what those allergies actually are",
     body:
-      "The drone is tiny, smug, and somehow playing smooth jazz. Guests are catching rival coupons between courses.",
+      "First it was dairy, then garlic, then 'maybe nightshades spiritually,' and now the table is asking whether truffle oil counts as a mushroom or a lifestyle.",
     beats: [
-      beat("opening", "A drone is coupon-bombing the dining room", "The window tables are ducking. One guest has started folding coupons into little planes.", "elena", "Marisol says the room needs calm before Feast Haven looks bullied by a flying toaster.", [
-        action("fd-open-move", "Move window tables and explain the disruption plainly.", "You protect guests, but the rival visibly owns the window.", [-1, 2, 1, { elena: [2, 2], devon: [1, 1] }]),
-        action("fd-open-ignore", "Keep service normal and avoid giving the drone power.", "That sounds strong until a coupon lands in the soup.", [2, -2, -3, { elena: [-1, -2], nina: [-1, -1] }]),
-        action("fd-open-show", "Turn it into a joke and offer to match coupons for affected tables.", "Guests laugh. Margins cry. Food Heaven gets exactly the chaos it wanted.", [-2, 1, -1, { elena: [1, 1], jake: [2, 1], marcus: [-2, -2] }])
+      beat("opening", "The ticket is becoming a medical choose-your-own-adventure", "The guest sounds anxious, sincere, inconsistent, and very ready to sue the concept of dinner.", "nina", "Celia says the only wrong move is pretending ambiguity is safe just because the table sounds unsure.", [
+        action("as-open-clarify", "Pause ordering and walk the guest through a precise written allergy confirmation before firing anything.", "It is slower than they want and safer than they realize.", [-1, 2, 4, { nina: [2, 2], priya: [1, 1] }]),
+        action("as-open-manager", "Have a manager take over the allergy conversation and keep one server from freelancing the risk.", "It centralizes the risk well, though it can make the guest feel clinically escalated.", [0, 2, 2, { devon: [1, 2], nina: [1, 1] }]),
+        action("as-open-simple", "Guide them firmly toward the simplest low-risk dish you can safely explain.", "Practical and useful, though it may frustrate a guest who wanted broader freedom.", [1, 1, 1, { tasha: [1, 1], nina: [0, 1] }]),
+        action("as-open-guess", "Use your best judgment from the shifting story and try to keep dinner moving.", "Nothing says confidence like gambling on whether 'maybe garlic' was metaphorical.", [2, -3, -4, { nina: [-3, -4], priya: [-2, -3], tasha: [-1, -1] }])
       ]),
-      beat("staff", "Theo wants to knock the drone down with a baguette", "The staff are ranking throwable breads by accuracy.", "luis", "Theo says dignity requires action. HR would probably phrase it differently.", [
-        action("fd-staff-stop", "Tell staff nobody throws anything and document the incident.", "Mature, legal, and painfully unsatisfying.", [0, 0, 3, { luis: [-1, 0], marcus: [1, 2], elena: [1, 1] }]),
-        action("fd-staff-bread", "Let Theo wave a baguette near the window as a warning.", "Morale spikes for fourteen seconds and liability wakes up angry.", [1, 1, -3, { luis: [2, 1], elena: [-2, -2], marcus: [-1, -2] }]),
-        action("fd-staff-capture", "Have staff film the drone calmly as evidence.", "Less satisfying than bread, much more useful later.", [0, 1, 2, { luis: [0, 1], elena: [1, 1], jake: [1, 1] }])
+      beat("kitchen", "Chef Renata wants a hard line if the table cannot define the risk", "The line can execute safety. It cannot execute vibes-based immunology.", "tasha", "Chef Renata says uncertain guests deserve care, not improvisation dressed as empathy.", [
+        action("as-kitchen-boundary", "Set a clear boundary: Feast Haven can only guarantee meals against confirmed allergens actually named.", "Firm, respectful, and much safer than pretending the kitchen understands mystical produce categories.", [0, 2, 3, { tasha: [2, 2], priya: [1, 1], luis: [1, 1] }]),
+        action("as-kitchen-safeplate", "Offer a highly controlled custom plate from a narrow ingredient set and document every modifier.", "A strong compromise, though it adds real labor and still relies on the guest agreeing to specifics.", [0, 1, 2, { tasha: [1, 1], priya: [1, 1], luis: [0, 1] }]),
+        action("as-kitchen-package", "Recommend sealed or minimally handled items wherever possible and explain why.", "A little unromantic, but elegant enough if explained with care.", [-1, 1, 2, { tasha: [1, 2], nina: [1, 1] }]),
+        action("as-kitchen-hero", "Promise the kitchen can 'figure something out' no matter how fuzzy the allergy list remains.", "You just made optimism legally spicy.", [2, -2, -4, { tasha: [-3, -4], priya: [-2, -3], luis: [-1, -1] }])
       ]),
-      beat("guests", "Guests ask if Feast Haven will honor the rival coupons", "The coupons say 'Escape to Food Heaven.' Subtlety is dead.", "jake", "Adrian wants to keep guests from literally leaving with appetizers still warm.", [
-        action("fd-guests-match", "Match the coupon only for tables directly disrupted by the drone.", "Expensive but targeted, and it keeps guests in seats.", [-2, 2, 1, { jake: [2, 2], marcus: [-1, -1] }]),
-        action("fd-guests-refuse", "Refuse to honor rival coupons on principle.", "Dignified and possibly followed by empty tables.", [0, -2, 0, { jake: [-1, -2], elena: [1, 1] }]),
-        action("fd-guests-counter", "Offer a smaller Feast Haven loyalty perk instead.", "Balanced, but some guests will compare math mid-bite.", [-1, 1, 1, { jake: [1, 1], marcus: [0, 1] }])
+      beat("table", "The rest of the party is now rolling their eyes and pushing the guest to 'just pick something'", "The guest is getting flustered and the social pressure is making the answers worse.", "devon", "Parker says the safest answer may require protecting the anxious guest from their own table.", [
+        action("as-table-protect", "Calm the table, center the allergic guest, and slow the group until the information is usable.", "You trade table speed for actual care, which is probably the point.", [-1, 2, 3, { devon: [2, 2], nina: [1, 1] }]),
+        action("as-table-split", "Take the rest of the table's orders first and return to the allergy order once the pressure is lower.", "Smart pacing, though it can make the guest feel singled out if handled clumsily.", [0, 1, 2, { devon: [1, 2], elena: [1, 1] }]),
+        action("as-table-prep", "Offer to bring a safe drink and bread alternative while the guest decides carefully.", "Hospitable and useful, though it still delays the real decision.", [1, 1, 1, { devon: [1, 1], marcus: [0, 1] }]),
+        action("as-table-joke", "Diffuse the tension with a joke about the menu surviving an interrogation better than most suspects.", "One cousin laughs. The guest hears 'your fear is a bit.'", [1, -2, -4, { devon: [-2, -3], nina: [-1, -2] }])
       ]),
-      beat("rival", "Food Heaven denies responsibility while the drone still says Food Heaven", "Their manager calls it 'an autonomous enthusiasm device.'", "marcus", "Omar says the next move should protect the business without turning staff into mall cops.", [
-        action("fd-rival-formal", "Send formal notice and preserve video evidence.", "Slow, strong, and less fun than launching a soup cannon.", [0, 0, 3, { marcus: [2, 3], elena: [1, 1] }]),
-        action("fd-rival-public", "Publicly call out Food Heaven with the footage.", "It rallies fans and escalates the war at the same time.", [2, 0, -1, { marcus: [0, 1], jake: [2, 1], elena: [-1, -1] }]),
-        action("fd-rival-prank", "Send a staff member across the street in a fake mustache with Feast Haven coupons.", "Hilarious, petty, and impossible to defend in a meeting.", [2, -2, -4, { marcus: [-2, -3], elena: [-2, -3], jake: [1, 0] }])
+      beat("risk", "The guest changes one item again after the food is nearly ready", "Now the kitchen, the clock, and the trust level are all looking at you.", "priya", "Imani says last-second changes are fine when they are preferences. They are not fine when they are safety reversals.", [
+        action("as-risk-refire", "Refire the dish from a clean reset and absorb the time hit rather than debate the timeline.", "Expensive and deeply preferable to finding out the hard way.", [-2, 2, 3, { priya: [2, 2], tasha: [1, 1] }]),
+        action("as-risk-reconfirm", "Stop the ticket and require one final signed verbal confirmation before anything leaves the pass.", "Cautious and smart, if a little dramatic for the rest of the table.", [-1, 2, 2, { priya: [2, 2], nina: [1, 1] }]),
+        action("as-risk-fallback", "Switch them to the safest simplest emergency fallback plate and explain the limitation plainly.", "Not exciting, but safely boring can be a beautiful sentence.", [0, 1, 2, { priya: [1, 1], devon: [1, 1] }]),
+        action("as-risk-push", "Send the original dish because the guest is obviously confused and probably overthinking it.", "That thought should never have made it this far down your spinal cord.", [2, -3, -4, { priya: [-3, -4], tasha: [-2, -3], nina: [-2, -2] }])
       ]),
-      beat("final", "The drone battery dies and lands in the patio fountain", "Guests cheer. Someone asks if Feast Haven planned the finale.", "devon", "Parker says the ending should make Feast Haven look composed, not merely luckier than a drone battery.", [
-        action("fd-final-classy", "Thank guests for patience, document everything, and avoid gloating.", "Classy, stable, and unlikely to trend.", [0, 2, 3, { devon: [2, 2], elena: [1, 1], marcus: [1, 1] }]),
-        action("fd-final-charity", "Turn the recovered drone into a charity auction joke.", "Funny, positive, and still a little poking-the-rival-bear.", [2, 2, 1, { devon: [1, 2], jake: [1, 1], marcus: [0, 1] }]),
-        action("fd-final-trophy", "Mount the drone behind the bar as a war trophy.", "The staff loves it. Legal probably does not.", [2, -1, -3, { devon: [-1, -1], elena: [-2, -3], jake: [2, 1] }])
+      beat("final", "Dinner ends safely, but the policy question is now staring back at the team", "Tonight worked because everyone stayed alert. Next time luck may be less helpful.", "marcus", "Omar says unclear allergies create huge emotional labor, operational drag, and genuine risk all at once.", [
+        action("as-final-policy", "Create a crystal-clear allergy protocol for uncertain or changing claims and train the whole floor on it.", "It is the boring hero move and that is exactly why it wins.", [0, 2, 4, { marcus: [2, 2], nina: [2, 2], priya: [1, 1] }]),
+        action("as-final-card", "Add a quick written allergy confirmation card for high-risk tables to reduce memory chaos.", "Useful and a little formal, but easier than reconstructing panic from scratch.", [-1, 2, 3, { marcus: [2, 2], devon: [1, 1] }]),
+        action("as-final-menu", "Build a small clearly marked low-risk menu path for complicated cases.", "A thoughtful operational tool with some menu-design cost.", [-1, 1, 2, { tasha: [1, 1], nina: [1, 1], marcus: [1, 1] }]),
+        action("as-final-vibes", "Tell staff to trust their instincts with allergy tables because scripts make guests defensive.", "Instinct is lovely for jazz and terrible for liability.", [1, -2, -4, { marcus: [-2, -3], nina: [-2, -3], priya: [-1, -2] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "celebrity-impersonator-fight",
-    category: "Identity Circus",
+    id: "power-outage-dinner-service",
+    category: "Infrastructure Failure",
+    pressure: "Extreme",
+    headline: "Half the restaurant loses power during dinner service and now Feast Haven is trying to serve by candlelight and panic",
+    body:
+      "One side still has music and refrigeration. The other side has darkness, dead point-of-sale screens, and three guests loudly asking if this is immersive theater.",
+    beats: [
+      beat("opening", "The lights cut and the room immediately splits in two realities", "The dark side looks abandoned. The bright side looks guilty for existing.", "elena", "Marisol says the first five minutes determine whether this feels managed or haunted.", [
+        action("po-open-zones", "Immediately zone the room into lit service, pause zones, and unsafe zones with clear guest communication.", "You sacrifice some romance and gain control over the physics of dinner.", [-1, 2, 4, { elena: [2, 2], devon: [1, 1] }]),
+        action("po-open-candles", "Move candles, lanterns, and staff to keep as many tables active as possible.", "Creative and guest-friendly, though it leans on a lot of moving parts staying coordinated.", [1, 1, 1, { elena: [1, 1], marcus: [-1, -1] }]),
+        action("po-open-comp", "Offer immediate flexibility and optional transfers to lit tables if they open up.", "Hospitable and calming, but it may create a second crisis around table equity.", [-2, 2, 1, { devon: [1, 1], elena: [1, 2] }]),
+        action("po-open-bluff", "Pretend service can continue normally while the team sorts it out behind the scenes.", "Nothing says calm like asking servers to memorize darkness on the fly.", [2, -2, -4, { elena: [-2, -3], devon: [-1, -2] }])
+      ]),
+      beat("kitchen", "The line still has partial power, but expo is slowing and printed tickets are gone", "Chef Renata can cook some things and cannot see half the path to getting them out.", "tasha", "Chef Renata says menu ambition just became a luxury item.", [
+        action("po-kitchen-reduce", "Cut the menu to the safest hot sellers and one cold fallback path until systems stabilize.", "You protect execution by admitting the restaurant is no longer fully normal.", [-2, 2, 3, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
+        action("po-kitchen-manual", "Switch to manual verbal fire calls and handwritten expo boards for the affected side.", "Functional if disciplined, catastrophic if anyone assumes instead of confirms.", [0, 1, 2, { tasha: [1, 1], priya: [1, 1], luis: [0, 1] }]),
+        action("po-kitchen-split", "Keep the full menu but route only complicated tickets to the lit side first.", "A clever patch that may still bottleneck exactly where the room feels it most.", [1, 0, 1, { tasha: [0, 1], luis: [0, 1] }]),
+        action("po-kitchen-push", "Demand full-speed service and trust that adrenaline will cover the missing systems.", "Adrenaline is not a ticketing platform or a temperature log.", [2, -2, -4, { tasha: [-3, -4], luis: [-2, -3], priya: [-2, -2] }])
+      ]),
+      beat("guests", "Some guests are thrilled by the drama while others are furious about safety and timing", "The room is no longer one room. It is three emotional countries sharing bread baskets.", "jake", "Adrian says the tone should feel intentional. Parker says it should feel honest.", [
+        action("po-guests-honest", "Give a concise honest update, clear options, and a real sense of what still works.", "It cools the angriest people even if it dims the fun for the adventurous ones.", [0, 2, 3, { jake: [1, 1], devon: [2, 2], elena: [1, 1] }]),
+        action("po-guests-romance", "Frame the outage lightly as an unexpected candlelight service for tables willing to stay.", "Great for some couples, alienating for anyone who came to simply eat food with electricity.", [1, 1, 0, { jake: [2, 1], devon: [0, 1] }]),
+        action("po-guests-priority", "Prioritize the most frustrated tables first with comps and exits while rewarding patient tables later.", "Strategically fair, emotionally messy, and maybe exactly right if communicated well.", [-2, 1, 2, { devon: [1, 1], marcus: [-1, -1] }]),
+        action("po-guests-spin", "Tell guests the issue is minor even though half the room is visibly running on candles and hope.", "They have eyes, and unfortunately those eyes still work without power.", [1, -2, -4, { jake: [-2, -2], devon: [-2, -3] }])
+      ]),
+      beat("systems", "Card readers are patchy, the POS is delayed, and Omar is asking how to close checks in the dark", "Now the outage is no longer ambiance. It is math.", "marcus", "Omar says sloppy money handling is how one chaotic night turns into three bad mornings.", [
+        action("po-systems-manual", "Move to a documented manual close process with manager signoff on every affected check.", "Slow, annoying, and beautifully resistant to tomorrow's confusion.", [-1, 1, 3, { marcus: [2, 3], devon: [1, 1] }]),
+        action("po-systems-batch", "Let servers hold slips and settle everything in a controlled batch once power stabilizes.", "It preserves flow, though every minute adds memory risk.", [1, 0, 1, { marcus: [0, 1], nina: [-1, -1] }]),
+        action("po-systems-cash", "Strongly encourage cash or simple flat settlements for guests who want a quick exit.", "Useful in practice, slightly clumsy in optics, better than pretending terminals work.", [0, 1, 1, { marcus: [1, 1], elena: [1, 1] }]),
+        action("po-systems-wing", "Let individual servers solve payment however they can and sort discrepancies tomorrow.", "A brave little sentence with a massive hangover hidden inside it.", [2, -2, -4, { marcus: [-3, -4], nina: [-2, -2], devon: [-1, -1] }])
+      ]),
+      beat("final", "The power company gives a vague update and Feast Haven must decide how the rest of the night ends", "There is no perfect finish, only tradeoffs with candles.", "devon", "Parker says the final call should protect trust first and ego second.", [
+        action("po-final-controlled", "Close the unsafe half, finish the safe half with reduced service, and end the night intentionally.", "It is smaller than the dream and much larger than a disaster.", [-2, 2, 4, { devon: [2, 2], elena: [2, 2], marcus: [1, 1] }]),
+        action("po-final-salvage", "Keep a lean version of service going everywhere that can physically support it.", "Ambitious and workable only if discipline holds for one more long stretch.", [1, 1, 1, { devon: [1, 1], tasha: [0, 1] }]),
+        action("po-final-rebook", "Close service early, comp selectively, and aggressively rebook goodwill for later nights.", "Painful tonight, potentially wise for the week.", [-3, 2, 2, { devon: [1, 2], marcus: [1, 1], jake: [-1, -1] }]),
+        action("po-final-max", "Chase full revenue anyway because outages are not going to pay the bills for you.", "That sentence ends with slips, burns, chargebacks, and a very sincere apology post.", [3, -3, -4, { devon: [-3, -4], marcus: [-2, -3], tasha: [-2, -2] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "staff-group-chat-revolt",
+    category: "Staff Culture",
     pressure: "High",
-    headline: "Two different celebrity impersonators arrive claiming Feast Haven promised them the same VIP table",
+    headline: "The staff group chat is exploding and nearly every message is some version of 'management has lost the plot'",
     body:
-      "One is a fake Elvis. One is a fake Gordon Ramsay. Neither is famous, both are furious, and guests think this is planned entertainment.",
+      "Screens are buzzing, morale is leaking into memes, and Omar says the dish pit now has a better understanding of leadership than leadership does.",
     beats: [
-      beat("opening", "The lobby has become a fame-adjacent argument", "Fake Elvis is pointing at fake Gordon with a breadstick. Fake Gordon is insulting the garnish.", "elena", "Marisol says the first decision determines whether this is a booking issue or a dinner-theater incident.", [
-        action("ci-open-separate", "Separate both impersonators and verify who actually booked.", "Order improves while guests boo the loss of free entertainment.", [-1, 1, 2, { elena: [2, 2], devon: [1, 1] }]),
-        action("ci-open-play", "Treat it like surprise entertainment while checking the reservation.", "The room loves it until the fake insults get personal.", [3, 1, -2, { elena: [-1, -1], jake: [2, 1] }]),
-        action("ci-open-table", "Seat them together and hope comedy solves logistics.", "Comedy solves nothing. It multiplies with accents.", [2, -2, -3, { elena: [-2, -3], nina: [-1, -1] }])
+      beat("opening", "You realize the revolt is not private anymore", "Multiple employees are reading the thread between tables and nobody is pretending otherwise.", "marcus", "Omar says the worst response is acting shocked that people complained after giving them things to complain about.", [
+        action("gc-open-own", "Address the team directly, acknowledge the frustration, and promise a same-night debrief after service.", "It does not erase the anger, but it keeps people from feeling surveilled and ignored at once.", [0, 2, 3, { marcus: [2, 2], devon: [1, 1], nina: [1, 1] }]),
+        action("gc-open-scan", "Quietly read enough of the thread to understand patterns before saying anything big.", "Useful and measured, though staff may still feel watched if your timing looks too psychic.", [1, 1, 1, { marcus: [1, 1], elena: [0, 1] }]),
+        action("gc-open-captains", "Pull one trusted person from the floor and one from the kitchen to help you interpret the grievance temperature.", "A smart coalition move if they believe you actually want truth.", [0, 1, 2, { marcus: [1, 2], tasha: [1, 1], nina: [1, 1] }]),
+        action("gc-open-threat", "Warn the staff that disrespect in private channels still has consequences at work.", "Nothing soothes a group revolt like proving the group chat was right.", [1, -3, -4, { marcus: [-3, -4], nina: [-2, -3], tasha: [-2, -2] }])
       ]),
-      beat("reservation", "Both have screenshots that look almost real", "One screenshot says 'VIP-ish.' The other uses three fire emojis as confirmation.", "marcus", "Omar says the paperwork is so fake it may have achieved honesty by accident.", [
-        action("ci-reservation-proof", "Require deposit proof before giving either VIP treatment.", "Fair, defensible, and wildly unpopular with men in costume.", [0, -1, 2, { marcus: [2, 2], elena: [1, 1] }]),
-        action("ci-reservation-split", "Split one VIP setup into two smaller experiences.", "It keeps both in-house and makes actual VIP mean almost nothing.", [2, 0, -2, { marcus: [-1, -1], jake: [1, 1] }]),
-        action("ci-reservation-comp", "Comp both appetizers while you investigate.", "Peace arrives covered in margin loss.", [-3, 1, 0, { marcus: [-1, -1], nina: [1, 1] }])
+      beat("content", "Some complaints are fair, some are petty, and one meme about you is unfortunately incredible", "Now you have to decide whether to react to tone, truth, or both.", "devon", "Parker says people gossip for style but revolt for substance.", [
+        action("gc-content-themes", "Respond to the underlying themes only and refuse to litigate every spicy line item tonight.", "It keeps the conversation adult without pretending the snark was the real problem.", [0, 2, 3, { devon: [2, 2], marcus: [1, 1] }]),
+        action("gc-content-specifics", "Pick two concrete complaints you can fix quickly and show action before speeches.", "Visible movement buys credibility, though it may make larger issues feel postponed.", [1, 1, 2, { devon: [1, 1], elena: [1, 1] }]),
+        action("gc-content-civility", "Ask for a more respectful tone first, then offer to discuss substance after that.", "Reasonable in principle, risky when the team thinks tone is all management ever hears.", [0, 0, 1, { devon: [-1, -1], nina: [-1, -2] }]),
+        action("gc-content-roast", "Make a joke about the meme being better than your actual staff training materials.", "Self-awareness gets a laugh and then leaves everybody wondering if anything real will change.", [2, -1, -2, { devon: [-1, -1], marcus: [-1, -1] }])
       ]),
-      beat("kitchen", "Fake Gordon walks into the kitchen to critique risotto", "Chef Renata has stopped blinking.", "tasha", "Chef Renata wants the kitchen protected from strangers doing premium cable cosplay.", [
-        action("ci-kitchen-eject", "Remove fake Gordon from the kitchen immediately.", "The kitchen trusts you. The dining room loses a subplot.", [0, 1, 2, { tasha: [2, 3], priya: [1, 1] }]),
-        action("ci-kitchen-photo", "Allow one controlled kitchen photo, then remove him.", "It buys cooperation and irritates everyone with standards.", [1, 0, -1, { tasha: [-1, -2], jake: [1, 1] }]),
-        action("ci-kitchen-bit", "Let Chef Renata roast him back for the room.", "Iconic, viral, and one sentence from a guest complaint.", [3, 0, -3, { tasha: [2, 1], elena: [-2, -2] }])
+      beat("operations", "The chat complaints are bleeding into live service decisions", "Adrian and Celia are now passive-aggressively proving each other's points with actual guests nearby.", "nina", "Celia says this stops being culture and starts being sabotage if nobody resets the floor right now.", [
+        action("gc-ops-reset", "Reassign the hottest pairings for the night and protect the dining room first.", "It may feel like avoidance to some, but it stops the guest-facing collateral damage.", [0, 2, 2, { nina: [2, 2], jake: [1, 1], devon: [1, 1] }]),
+        action("gc-ops-standards", "State one non-negotiable expectation for live service while promising the bigger conversation later.", "Clear and stabilizing if your tone sounds like leadership instead of panic.", [1, 1, 1, { nina: [1, 1], devon: [1, 1] }]),
+        action("gc-ops-floor", "Work the floor yourself aggressively to absorb some of the emotional spillover.", "Protective and admirable, though it can hide the fact that the team system itself still hurts.", [0, 1, 1, { devon: [2, 2], marcus: [0, 1] }]),
+        action("gc-ops-callout", "Call out one obvious complainer publicly to warn the rest of the staff back into line.", "A thrilling idea if your goal is to turn private resentment into organized unity against you.", [1, -3, -4, { nina: [-3, -4], jake: [-2, -2], marcus: [-1, -2] }])
       ]),
-      beat("floor", "Fake Elvis starts singing apologies to nearby tables", "It is either charming recovery or a hostage concert.", "nina", "Celia says the floor needs a volume limit before every table becomes part of the show.", [
-        action("ci-floor-limit", "Set a strict one-song limit and comp affected drinks only if needed.", "Structured, fair, and still surreal.", [1, 1, 2, { nina: [2, 2], devon: [1, 1] }]),
-        action("ci-floor-let", "Let the song finish because guests are recording and smiling.", "The clip does well. The quiet anniversary table does not.", [2, -1, -2, { nina: [-1, -1], elena: [-1, -1] }]),
-        action("ci-floor-stop", "Stop the song mid-chorus.", "Efficient, icy, and somehow makes you the villain in an Elvis conflict.", [0, -2, 0, { nina: [-1, -2], jake: [-1, -1] }])
+      beat("debrief", "Service ends and the team expects some kind of response that matters", "If you hold a fake listening session, they will smell it before the chairs cool off.", "tasha", "Chef Renata says people can survive hard standards. They quit unclear standards faster.", [
+        action("gc-debrief-structure", "Run a short structured debrief with two truths, one fix now, and one fix scheduled.", "It feels disciplined rather than defensive, which the room badly needs.", [0, 2, 4, { tasha: [2, 2], marcus: [1, 1], devon: [1, 1] }]),
+        action("gc-debrief-small", "Speak to the team in role clusters first instead of forcing one giant emotional town hall.", "Smart for nuance, though some staff may suspect issues are being diluted into safer smaller pockets.", [1, 1, 1, { tasha: [1, 1], nina: [1, 1], luis: [1, 1] }]),
+        action("gc-debrief-anon", "Set up an anonymous follow-up form and promise written action by tomorrow.", "Potentially useful, but the team may crave a human answer tonight, not just a digital slot machine.", [0, 1, 2, { marcus: [1, 2], devon: [0, 1] }]),
+        action("gc-debrief-lecture", "Explain to the team how much pressure management is under and why the chat felt unfair.", "A deeply human impulse and an almost guaranteed own goal.", [1, -2, -4, { tasha: [-2, -3], marcus: [-2, -3], nina: [-1, -1] }])
       ]),
-      beat("final", "Both impersonators offer to return monthly as 'Feast Haven Legends Night'", "The numbers could work. So could a migraine.", "jake", "Adrian says the restaurant can either package the weird or protect the brand from fake celebrity gravity.", [
-        action("ci-final-curated", "Offer one curated theme night with contracts, deposits, and volume rules.", "You monetize the chaos with guardrails.", [3, 2, 1, { jake: [2, 2], elena: [1, 1], tasha: [0, 1] }]),
-        action("ci-final-decline", "Decline future impersonator events and protect normal dining.", "Calm returns. So does slightly less money.", [-1, 1, 2, { jake: [-1, -1], elena: [1, 2], tasha: [1, 1] }]),
-        action("ci-final-open", "Book a full celebrity impersonator series immediately.", "The calendar fills and brand dignity leaves through the emergency exit.", [4, -3, -4, { jake: [1, 1], elena: [-3, -4], tasha: [-2, -2] }])
+      beat("final", "The group chat will survive tonight. The question is whether the trust can", "Now the team is measuring follow-through, not language.", "elena", "Marisol says culture repairs happen in patterns, not speeches.", [
+        action("gc-final-rhythm", "Create a recurring staff pulse check with visible action follow-ups and role-based feedback lanes.", "It is work, which is why it might actually be leadership.", [0, 2, 4, { elena: [2, 2], marcus: [2, 2], nina: [1, 1] }]),
+        action("gc-final-board", "Post a weekly issue board showing what management heard, changed, and could not change yet.", "Transparency earns real points if you can survive the honesty it requires.", [-1, 2, 3, { elena: [2, 2], marcus: [1, 1] }]),
+        action("gc-final-captains", "Formalize a couple of staff liaisons who surface concerns before they become meme storms.", "Useful if trusted, risky if it turns into unofficial politics club.", [1, 1, 1, { elena: [1, 1], devon: [1, 1] }]),
+        action("gc-final-mute", "Ban all work chat outside scheduling and hope silence looks like peace.", "Silence is peace the same way unplugging a fire alarm is quiet.", [1, -2, -4, { elena: [-2, -3], marcus: [-2, -3], nina: [-1, -2] }])
       ])
     ]
   }),
 
   makeEvent({
-    id: "glitter-bomb-reviewer",
-    category: "Reviewer Meltdown",
+    id: "wrong-proposal",
+    category: "Romance Disaster",
     pressure: "Extreme",
-    headline: "A one-star reviewer opens a complaint envelope and accidentally glitter-bombs the host stand",
+    headline: "A proposal dessert lands on the wrong table and now one happy surprise and one emotional disaster are fighting for the same room",
     body:
-      "He says he mailed it as a metaphor. Now Marisol is sparkling with rage and the lobby looks like a cursed craft store.",
+      "The cake says 'Marry Me, Olivia.' Unfortunately, it is now in front of two people named Gary and Linda who were mid-argument about refinancing.",
     beats: [
-      beat("opening", "The host stand is glittering like a crime scene", "Guests are coughing, filming, and asking if this is part of the Feast Haven aesthetic.", "elena", "Marisol wants the reviewer removed, the lobby cleaned, and someone to acknowledge that glitter is forever.", [
-        action("gb-open-remove", "Remove the reviewer calmly and start cleanup immediately.", "Safe and firm, but the reviewer says you are silencing feedback.", [-1, 1, 2, { elena: [2, 3], marcus: [1, 1] }]),
-        action("gb-open-listen", "Let the reviewer explain while staff clean around him.", "It looks open-minded and feels like making staff sweep humiliation.", [0, -2, -2, { elena: [-3, -4], marcus: [-1, -1] }]),
-        action("gb-open-joke", "Make a joke about adding sparkle to service recovery.", "Some guests laugh. Marisol does not, and she controls the front door.", [1, -1, -3, { elena: [-4, -4], jake: [1, 0] }])
+      beat("opening", "The wrong table now owns the loudest dessert in the building", "One side of the room is horrified, the actual proposer is frozen, and the wrong table looks personally attacked by buttercream.", "devon", "Parker says speed matters, but panic frosting is still panic.", [
+        action("wp-open-remove", "Remove the dessert quickly and apologize to both tables with minimal theater.", "You reduce splash damage, though the wrong table still feels drafted into someone else's life plan.", [0, 1, 3, { devon: [1, 2], elena: [1, 1] }]),
+        action("wp-open-own", "Own the error openly in one sentence before the room invents a worse version.", "Brave and clarifying, though it amplifies the publicness of everybody's feelings.", [0, 0, 2, { devon: [1, 1], jake: [0, 1] }]),
+        action("wp-open-pivot", "Turn the dessert into a temporary 'celebration plate mix-up' and redirect fast.", "A smooth phrase helps, unless someone can still clearly read 'Marry Me, Olivia.'", [1, 0, 1, { devon: [1, 1], elena: [0, 1] }]),
+        action("wp-open-compfirst", "Lead with comps and vouchers before anyone has processed what happened.", "Money is helpful. It is not an eraser for emotional shrapnel.", [-2, 0, -1, { marcus: [-1, -1], devon: [0, 1] }])
       ]),
-      beat("cleanup", "Omar says glitter has entered the reservation keyboard", "Every keystroke now looks festive and expensive.", "marcus", "Omar says support work cannot be treated like magic just because the mess is funny.", [
-        action("gb-clean-close", "Temporarily close the host stand and clean it properly.", "It slows seating and proves hidden labor matters.", [-2, 1, 3, { marcus: [2, 3], elena: [1, 1] }]),
-        action("gb-clean-wipe", "Do a fast visible wipe-down and keep seating.", "The lobby moves and glitter migrates into every future decision.", [2, -2, -2, { marcus: [-3, -4], elena: [-1, -1] }]),
-        action("gb-clean-team", "Pull extra staff to help cleanup before service collapses.", "It protects the front but steals hands from the floor.", [-1, 0, 2, { marcus: [2, 2], nina: [-1, -1], jake: [-1, 0] }])
+      beat("proposer", "The actual proposer still wants the moment tonight", "He is pale, committed, and asking if the room can possibly be reset without smelling cursed.", "jake", "Adrian says momentum matters. Marisol says the room now contains too much secondhand intimacy.", [
+        action("wp-proposer-reset", "Move the proposal to a quieter area and rebuild it only if both partners still want that energy.", "It preserves dignity better than trying to outrun the residue with champagne.", [0, 2, 3, { jake: [1, 1], elena: [1, 2] }]),
+        action("wp-proposer-delay", "Encourage a sincere postponement and help salvage the night in smaller ways.", "Possibly the wisest move and definitely the least cinematic.", [-1, 2, 2, { devon: [2, 2], jake: [-1, -1] }]),
+        action("wp-proposer-private", "Offer a stripped-down private version with no spectacle and no more cake theatrics.", "A balanced middle road if the couple values intimacy more than choreography.", [1, 1, 1, { jake: [1, 1], devon: [1, 1] }]),
+        action("wp-proposer-force", "Recreate the full proposal in the same room immediately so the mistake does not 'win.'", "A bold sentence that sounds much worse once you imagine the wrong table still chewing through it.", [3, -2, -4, { jake: [-2, -2], devon: [-2, -3] }])
       ]),
-      beat("reviewer", "The reviewer wants to discuss his original complaint now", "Apparently the glitter was about soup temperature and emotional neglect.", "devon", "Parker says bad behavior cannot erase a legitimate complaint if one exists.", [
-        action("gb-reviewer-boundary", "Hear the complaint after setting a clear boundary about the glitter incident.", "It is fair and exhausting in exactly the adult way.", [0, 2, 3, { devon: [2, 3], elena: [1, 1] }]),
-        action("gb-reviewer-ban", "Ban him immediately and refuse to discuss the old complaint.", "Satisfying, risky, and likely to produce a sequel review.", [1, -2, -2, { devon: [-1, -2], elena: [1, 1] }]),
-        action("gb-reviewer-comp", "Offer a small comp to calm him before the review gets worse.", "It may lower heat and teaches glitter economics.", [-2, -1, -2, { devon: [-1, -2], marcus: [-1, -1] }])
+      beat("wrongtable", "The wrong table says Feast Haven just turned their bad night into a public sideshow", "They are not wrong, which is deeply inconvenient.", "nina", "Celia says the apology has to recognize harm without pretending the restaurant broke their relationship.", [
+        action("wp-wrongtable-care", "Apologize specifically, comp their dessert and exit route, and stop talking before it becomes accidental therapy.", "It feels humane without over-claiming responsibility for their whole life.", [-1, 2, 3, { nina: [2, 2], devon: [1, 1] }]),
+        action("wp-wrongtable-boundary", "Acknowledge the service mistake, offer a modest make-good, and protect the staff from becoming emotional referees.", "Fair and controlled, though a colder table may hear it as procedural triage.", [0, 1, 1, { nina: [1, 1], marcus: [1, 1] }]),
+        action("wp-wrongtable-space", "Move them to a more private table if they want to keep talking away from the room.", "Useful and kind if they still want to stay in a restaurant at all.", [-1, 1, 2, { elena: [1, 1], nina: [1, 1] }]),
+        action("wp-wrongtable-joke", "Try a tension-breaking line about Feast Haven not usually accelerating difficult conversations.", "The joke has a tiny chance to land and an enormous chance to become your obituary.", [1, -2, -4, { nina: [-2, -3], devon: [-1, -2] }])
       ]),
-      beat("staff", "Staff start joking that complaints now come with party supplies", "The jokes are funny until Marisol says she feels disposable.", "nina", "Celia says morale depends on whether leadership treats the mess as harm or content.", [
-        action("gb-staff-validate", "Acknowledge the staff impact publicly and thank cleanup labor directly.", "Not flashy, but it repairs the room from the inside.", [0, 3, 3, { nina: [2, 2], elena: [2, 3], marcus: [1, 1] }]),
-        action("gb-staff-meme", "Let staff make one internal glitter joke to release tension.", "It helps some people and lands badly for the people still sparkling.", [1, 0, -1, { nina: [1, 1], elena: [-1, -2] }]),
-        action("gb-staff-ignore", "Keep everyone focused on guests and move past the emotion.", "The shift recovers on the surface and rots underneath.", [2, -3, -3, { nina: [-2, -3], elena: [-3, -4], marcus: [-2, -2] }])
+      beat("room", "Other diners are now whispering and filming because humans are awful in groups", "The room wants resolution, and unfortunately it is not their room.", "elena", "Marisol says your job is to keep one mistake from becoming community theater.", [
+        action("wp-room-curtain", "Tighten the room quietly: no staff gossip, no visible clusters, no extra spectacle.", "You lower the emotional oxygen without pretending nothing happened.", [0, 2, 2, { elena: [2, 2], nina: [1, 1], jake: [1, 1] }]),
+        action("wp-room-distract", "Use pacing, music, and smooth service touches to pull attention back toward dinner.", "A subtle recovery that works only if the staff stop staring too.", [1, 1, 1, { elena: [1, 1], devon: [1, 1] }]),
+        action("wp-room-comp", "Quietly send a little extra warmth to the nearest affected tables to keep goodwill stable.", "Helpful, though it risks teaching the room that chaos brings perks.", [-1, 1, 1, { marcus: [-1, -1], elena: [1, 1] }]),
+        action("wp-room-comment", "Ask guests directly to stop filming because this is a private moment.", "Morally correct, operationally likely to make the phones rise higher out of spite.", [0, -2, -3, { elena: [-2, -2], jake: [-1, -1] }])
       ]),
-      beat("final", "The reviewer offers to update the review if Feast Haven responds 'with humility'", "Nobody trusts his definition of humility.", "jake", "Adrian says the public response needs spine, not revenge glitter.", [
-        action("gb-final-public", "Post a calm public response: address the service issue, reject the glitter behavior, and explain the fix.", "Balanced, clear, and not nearly as satisfying as a comeback.", [1, 3, 4, { jake: [1, 2], elena: [2, 2], devon: [1, 1] }]),
-        action("gb-final-private", "Keep the response private and avoid feeding the spectacle.", "Quiet reduces oxygen and may let his version dominate.", [0, 0, 0, { jake: [-1, -1], elena: [1, 1] }]),
-        action("gb-final-clapback", "Post a witty glitter clapback from the restaurant account.", "The internet cheers while future serious guests reconsider you.", [3, -2, -4, { jake: [2, 1], elena: [-2, -3], devon: [-1, -2] }])
+      beat("final", "The room survives, but now Feast Haven needs a safer romance protocol", "You have learned too much about cake routing and human vulnerability tonight.", "marcus", "Omar says the support crew would love for 'proposal operations' to become less improvisational than weather.", [
+        action("wp-final-protocol", "Create a clear proposal checklist with coded delivery confirmation and one single point person.", "Unromantic on paper, extremely romantic in practice if it prevents catastrophe.", [0, 2, 4, { marcus: [2, 2], elena: [2, 2], devon: [1, 1] }]),
+        action("wp-final-private", "Offer future proposal packages only in more controlled zones or private rooms.", "A sensible hedge that trims some spontaneity along with the risk.", [0, 1, 2, { marcus: [1, 1], elena: [1, 1] }]),
+        action("wp-final-confirm", "Require guest-side confirmation language just before dessert service, even if it kills some surprise.", "A little less magical and a lot less catastrophic.", [-1, 2, 3, { marcus: [2, 2], devon: [1, 1] }]),
+        action("wp-final-ban", "Stop hosting proposals entirely because love is clearly too operationally volatile.", "The cleanest answer emotionally and the laziest one strategically.", [-2, 0, 0, { jake: [-2, -2], elena: [-1, -1], marcus: [1, 1] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "free-meal-tiktok-hack",
+    category: "Policy Abuse",
+    pressure: "High",
+    headline: "A viral TikTok claims diners can get free meals at Feast Haven by saying a certain phrase, and now tables keep trying it",
+    body:
+      "The phrase is 'Chef sent me.' Chef definitely did not send them. Unfortunately the internet did.",
+    beats: [
+      beat("opening", "The first table uses the phrase with suspicious confidence", "By the third try, the floor realizes this is not a coincidence and tonight is about to become coupons with acting.", "nina", "Celia says the first response sets whether this becomes a fun rumor or a loot box.", [
+        action("fm-open-verify", "Train staff to respond warmly but verify every claimed comp through one manager checkpoint.", "You preserve hospitality without handing the menu over to folklore.", [0, 2, 4, { nina: [2, 2], marcus: [1, 1] }]),
+        action("fm-open-script", "Give the room one playful script that explains the phrase is fake and redirects to real specials.", "Smart and graceful if every server actually uses the same words.", [1, 1, 2, { nina: [1, 2], jake: [1, 1] }]),
+        action("fm-open-oneoff", "Honor one or two tables softly while you figure out how big the trend is.", "Merciful in the moment and likely to widen the stampede immediately.", [1, 0, 0, { marcus: [-1, -1], nina: [0, 1] }]),
+        action("fm-open-all", "Comp anyone who says it tonight and hope the goodwill offsets the madness.", "An inspiring policy if your goal is to sponsor the internet personally.", [3, -2, -4, { marcus: [-3, -4], nina: [-2, -2] }])
+      ]),
+      beat("spread", "Now guests are whispering the phrase to each other before staff even arrive", "The hack is turning from stunt into mini-game.", "elena", "Marisol says the room needs one visible truth before the rumor acquires furniture.", [
+        action("fm-spread-front", "Have the host stand gently clarify the rumor to incoming parties before seating.", "You cut the surprise factor without making the room feel scolded.", [0, 2, 3, { elena: [2, 2], nina: [1, 1] }]),
+        action("fm-spread-table", "Let servers explain it table by table only when it comes up.", "Less disruptive to honest diners, slower against a fast rumor.", [1, 1, 1, { nina: [1, 1], jake: [1, 1] }]),
+        action("fm-spread-sign", "Post a subtle but clear note that social media 'free phrase' claims are not valid promotions.", "Transparent and useful, though it makes the trend feel officially real.", [0, 1, 2, { elena: [1, 1], marcus: [1, 1] }]),
+        action("fm-spread-shame", "Laugh off the guests trying it so the room sees how silly the trend is.", "Nothing tells a crowd to double down like public embarrassment with witnesses.", [1, -2, -4, { elena: [-2, -3], nina: [-2, -2] }])
+      ]),
+      beat("staff", "Adrian says some regulars should get a pass while Omar says fairness is collapsing", "Now the issue is not just policy. It is equity.", "marcus", "Omar says staff morale drops fast when fake confidence gets rewarded more than normal decency.", [
+        action("fm-staff-fair", "Hold one consistent rule for everyone and let staff comp only for real service recovery.", "Boring fairness is usually the kind that survives payroll.", [0, 2, 3, { marcus: [2, 2], nina: [1, 1], jake: [-1, -1] }]),
+        action("fm-staff-regulars", "Allow tight manager discretion for true regulars but document every comp in real time.", "Flexible and human if your managers are disciplined enough to avoid vibes-only favoritism.", [1, 1, 1, { marcus: [1, 1], devon: [1, 1] }]),
+        action("fm-staff-alt", "Offer a tiny social-media special instead of free meals so the trend has a safer landing spot.", "A clever redirect that may calm the room while still feeding the algorithm a snack.", [1, 0, 1, { nina: [1, 1], jake: [1, 0], marcus: [-1, -1] }]),
+        action("fm-staff-wing", "Tell the staff to use their judgment and hope the room somehow experiences that as consistency.", "The internet is inconsistent enough without adding your servers to the experiment.", [2, -2, -4, { marcus: [-3, -4], nina: [-1, -2], devon: [-1, -1] }])
+      ]),
+      beat("internet", "A guest is filming the denial and narrating it like a consumer-rights scandal", "Now the phrase is not just a hack. It is content.", "jake", "Adrian says the response needs enough confidence to look intentional and enough warmth to avoid becoming a villain clip.", [
+        action("fm-internet-explain", "Respond on camera with a calm explanation of real promotions and real service-recovery policies.", "It is less flashy than outrage and much harder to make look sinister.", [0, 2, 3, { jake: [1, 2], elena: [1, 1] }]),
+        action("fm-internet-pivot", "Offer the table a real menu item or promo they can honestly talk about instead.", "Useful if they want a story more than a fight, risky if they smell bait.", [1, 1, 1, { jake: [1, 1], nina: [1, 1] }]),
+        action("fm-internet-brief", "Keep the explanation minimal and refuse to negotiate with the camera itself.", "Strong boundary, slightly cold optics.", [0, 1, 1, { jake: [0, 1], devon: [1, 1] }]),
+        action("fm-internet-clap", "Tell the guest the app owes them the free meal, not the restaurant.", "Funny in the kitchen later, devastating when clipped over sad violin music.", [2, -2, -4, { jake: [-2, -3], elena: [-1, -2] }])
+      ]),
+      beat("final", "The trend will probably return unless Feast Haven closes the loop", "Tonight taught the room that rumor management is now a hospitality skill.", "devon", "Parker says the best policy sounds consistent even when guests meet it in different moods.", [
+        action("fm-final-policy", "Publish a simple comp-and-promotion policy internally and train every front-facing role on the language.", "It lacks viral sparkle and wins the next three Saturdays anyway.", [0, 2, 4, { devon: [2, 2], nina: [2, 2], marcus: [1, 1] }]),
+        action("fm-final-micro", "Launch one tiny legitimate social offer so the internet has a real landing pad instead of fake folklore.", "A strategic pressure valve that needs careful limits.", [1, 1, 1, { jake: [1, 1], nina: [1, 1] }]),
+        action("fm-final-qr", "Create a QR page listing live promotions so staff can redirect any hack instantly.", "Operationally smart, though it adds one more thing to maintain.", [0, 1, 2, { devon: [1, 1], elena: [1, 1] }]),
+        action("fm-final-catchphrase", "Lean in and create rotating secret phrases as a brand stunt.", "Congratulations on turning policy abuse into your marketing department.", [3, -2, -4, { marcus: [-2, -3], nina: [-2, -2], elena: [-1, -1] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "kitchen-equipment-meltdown",
+    category: "Operations Breakdown",
+    pressure: "Extreme",
+    headline: "Multiple key pieces of kitchen equipment start failing in the middle of service and the line is turning into interpretive cooking",
+    body:
+      "The salamander is dead, one cooler is warm, and the mixer just made a sound Theo described as 'legally concerning.'",
+    beats: [
+      beat("opening", "The first failure is annoying. The second is a pattern", "By the third failure, the kitchen stops swearing in sentences and starts swearing in weather systems.", "tasha", "Chef Renata says the next decision is whether Feast Haven protects standards or cosplays normal service until collapse.", [
+        action("ke-open-triage", "Run a hard triage on what equipment matters most tonight and cut anything that depends on dead gear.", "The line hates losing range and loves not drowning.", [-2, 2, 4, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
+        action("ke-open-patch", "Shift stations and work around the failures one workaround at a time.", "Ingenious if coordinated, exhausting if the failures keep multiplying.", [0, 1, 2, { tasha: [1, 1], luis: [1, 1] }]),
+        action("ke-open-frontwarn", "Alert the floor immediately that ticket times and menu availability are unstable.", "Operationally healthy, though the host stand immediately starts absorbing the screams.", [-1, 1, 3, { elena: [1, 1], devon: [1, 1], tasha: [1, 1] }]),
+        action("ke-open-pretend", "Keep the full menu live and pray the remaining machines discover grit and patriotism.", "The machines do not care about patriotism.", [2, -2, -4, { tasha: [-3, -4], luis: [-2, -3], priya: [-2, -2] }])
+      ]),
+      beat("cooler", "One cooler is now reading warm enough to make Imani stare into the middle distance", "Food safety is no longer theoretical.", "priya", "Imani says this is where 'maybe okay' becomes a very expensive personality trait.", [
+        action("ke-cooler-quarantine", "Quarantine questionable items immediately and rebuild the usable menu around what is still safe.", "It hurts inventory and protects the one thing you cannot comp back into existence.", [-3, 2, 4, { priya: [2, 3], tasha: [1, 2] }]),
+        action("ke-cooler-transfer", "Move critical product aggressively into safe storage and document temperatures as you go.", "A sharp move if the team stays organized under pressure.", [-1, 1, 3, { priya: [2, 2], marcus: [1, 1] }]),
+        action("ke-cooler-priority", "Use the highest-risk items first while carefully narrowing the rest of the menu.", "Operationally clever, ethically safe only if the reads are genuinely solid.", [1, 0, 1, { priya: [0, 1], tasha: [1, 1] }]),
+        action("ke-cooler-hope", "Leave the cooler alone for now because opening and shuffling it will only make people panic.", "Correct: people will panic later, with more evidence.", [2, -3, -4, { priya: [-3, -4], tasha: [-2, -3] }])
+      ]),
+      beat("floor", "Guests are beginning to notice weird pacing and strange substitutions", "The dining room does not know the gear is dying. It only knows dinner is acting suspicious.", "elena", "Marisol says the truth has to arrive before the conspiracy theories do.", [
+        action("ke-floor-honest", "Explain the reduced menu and timing pressure before tables feel blindsided by improvisation.", "Guests dislike bad news less than they dislike being lied to by garnish.", [-1, 2, 3, { elena: [2, 2], nina: [1, 1] }]),
+        action("ke-floor-guided", "Steer tables confidently toward the safest strongest surviving dishes without overexplaining every failure.", "A good middle road if staff can all sing from the same hymn sheet.", [1, 1, 1, { elena: [1, 1], jake: [1, 1] }]),
+        action("ke-floor-recovery", "Use comps and extras strategically where the equipment failures hit hardest.", "Hospitable and costly, but at least the damage is intentional.", [-2, 1, 1, { devon: [1, 1], marcus: [-1, -1] }]),
+        action("ke-floor-blame", "Tell tables a supplier issue is causing the weirdness instead of admitting internal breakdowns.", "A lie with exactly the kind of legs that ends up shaking hands with tomorrow.", [1, -2, -4, { elena: [-2, -3], marcus: [-1, -2] }])
+      ]),
+      beat("repair", "A repair tech can maybe come, but only if you decide now which failure matters most", "You cannot save everything, so now priorities become policy.", "marcus", "Omar says the team will remember whether leadership saved revenue, safety, or sanity first.", [
+        action("ke-repair-safety", "Prioritize the cooler and food safety systems above all else.", "It may not sell the most tonight, but it protects the entire week from becoming regret stew.", [-2, 2, 4, { marcus: [2, 2], priya: [2, 2], tasha: [1, 1] }]),
+        action("ke-repair-throughput", "Prioritize the equipment that restores the highest dinner throughput fastest.", "Commercially logical and a little morally spicy if the safety problem is merely 'managed.'", [2, 0, 0, { marcus: [0, 1], tasha: [1, 1] }]),
+        action("ke-repair-balance", "Ask the tech for the fastest stabilizing patch now and book the deeper fix immediately after service.", "A pragmatic split if you trust your short-term controls not to slip.", [1, 1, 1, { marcus: [1, 1], priya: [1, 1] }]),
+        action("ke-repair-wait", "Delay repairs until morning so you are not making stressed decisions in a rush.", "Morning loves decisions that night should have made better.", [1, -2, -4, { marcus: [-2, -3], tasha: [-1, -2], priya: [-1, -2] }])
+      ]),
+      beat("final", "The line survives, barely, and Feast Haven now needs a real resilience plan", "Tonight cannot just become folklore and scar tissue.", "devon", "Parker says the guest experience only feels magical when the operation underneath is boringly prepared.", [
+        action("ke-final-maintenance", "Build a real preventive maintenance calendar with failure backups and menu contingencies.", "It is the opposite of sexy and the exact reason sexy nights keep happening.", [0, 2, 4, { devon: [1, 1], marcus: [2, 2], tasha: [2, 2] }]),
+        action("ke-final-buffer", "Create a lean emergency menu and floor script for equipment-down nights.", "Smart and operationally honest, with less capital cost than pretending machines are immortal.", [0, 1, 3, { devon: [1, 1], elena: [1, 1], tasha: [1, 1] }]),
+        action("ke-final-audit", "Run a full post-mortem with kitchen and floor before replacing anything impulsively.", "A useful pause, as long as it becomes action instead of therapy cosplay.", [-1, 2, 2, { marcus: [1, 2], tasha: [1, 1] }]),
+        action("ke-final-luck", "Trust that tonight was a freak event and keep the budget pointed elsewhere.", "Luck is not a maintenance philosophy, though it does have a nice low monthly payment.", [2, -2, -4, { marcus: [-2, -3], tasha: [-2, -3], priya: [-1, -2] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "rival-restaurant-spy",
+    category: "Competitive Threat",
+    pressure: "High",
+    headline: "Someone inside Feast Haven may be quietly feeding information to a competitor across town",
+    body:
+      "Reservation patterns, menu changes, staffing gaps, and private event notes keep becoming suspiciously public two hours later.",
+    beats: [
+      beat("opening", "The rumor starts small and lands hard", "Now everyone is glancing at everyone else like the bread service is bugged.", "marcus", "Omar says nothing destroys trust faster than a leak hunt with no discipline.", [
+        action("rs-open-discreet", "Treat it as a serious operational concern, but limit the suspicion circle until you have facts.", "You keep the room from turning into amateur counterintelligence karaoke.", [0, 2, 3, { marcus: [2, 2], devon: [1, 1] }]),
+        action("rs-open-access", "Quietly narrow who can see sensitive updates while you test where the leak could be coming from.", "A smart containment move that signals seriousness without declaring war.", [1, 1, 2, { marcus: [1, 2], elena: [1, 1] }]),
+        action("rs-open-watch", "Do nothing public and simply start observing patterns for a day or two.", "Measured, though it also gives the rival more room if your read is correct.", [1, 0, 1, { marcus: [1, 1], elena: [0, 1] }]),
+        action("rs-open-accuse", "Call an immediate all-staff confrontation and demand the spy identify themselves.", "There are certainly faster ways to teach a team not to trust you, but not many.", [1, -3, -4, { marcus: [-3, -4], nina: [-2, -2], tasha: [-2, -2] }])
+      ]),
+      beat("bait", "Marisol suggests planting a harmless fake detail to see whether it leaks", "It is elegant if controlled and ugly if it hits the wrong person.", "elena", "Marisol says a clean test beats a dirty accusation, but only if the collateral damage is near zero.", [
+        action("rs-bait-safe", "Plant a low-stakes fake detail in a narrow channel and watch for it to surface externally.", "Disciplined, useful, and less cruel than turning staff into trap bait broadly.", [1, 2, 3, { elena: [2, 2], marcus: [1, 1] }]),
+        action("rs-bait-split", "Use two different harmless fake details with two different groups to isolate the path faster.", "Sharp detective work, though the added complexity raises the chance of accidental confusion internally.", [1, 1, 2, { elena: [1, 2], marcus: [1, 1] }]),
+        action("rs-bait-manual", "Skip bait and tighten all verbal communication protocols instead.", "Safer for culture, slower for truth.", [0, 1, 1, { elena: [1, 1], nina: [1, 1] }]),
+        action("rs-bait-public", "Tell the staff you are planting fake details and whoever repeats them is done.", "A threat disguised as strategy usually succeeds at only one of those jobs.", [1, -2, -4, { elena: [-2, -3], marcus: [-2, -2] }])
+      ]),
+      beat("suspect", "A plausible suspect emerges, but the evidence is still circumstantial and messy", "The team could be right, wrong, or self-soothing with a convenient villain.", "devon", "Parker says certainty always feels better than truth right before it becomes a mistake.", [
+        action("rs-suspect-private", "Have one private fact-finding conversation with the suspect and keep the tone investigative, not theatrical.", "You preserve dignity while testing whether the person helps clarify the gaps.", [0, 2, 2, { devon: [2, 2], marcus: [1, 1] }]),
+        action("rs-suspect-audit", "Review access patterns, shift overlaps, and who actually benefits before speaking to anyone.", "Slower, colder, and much harder to regret.", [0, 1, 3, { marcus: [2, 2], devon: [1, 1] }]),
+        action("rs-suspect-restrict", "Move the suspect temporarily off sensitive information while you investigate quietly.", "Protective and potentially fair, though they will absolutely feel the shadow of it.", [1, 1, 1, { devon: [1, 1], elena: [1, 1] }]),
+        action("rs-suspect-example", "Make an example of the suspect fast to show the team leadership is not asleep.", "That works best in organizations that enjoy lawsuits and guilt.", [2, -3, -4, { devon: [-3, -4], marcus: [-2, -3], elena: [-1, -2] }])
+      ]),
+      beat("rival", "Food Heaven seems to know exactly which private event you are short-staffed for", "Now the leak has real market impact.", "jake", "Adrian says the rival deserves a counterpunch. Omar says internal leaks are not fixed by external tantrums.", [
+        action("rs-rival-harden", "Protect the vulnerable event operationally first and leave the rival reaction for later.", "It is less satisfying than revenge and much more helpful to the people paying you.", [0, 2, 3, { jake: [0, 1], marcus: [1, 1], devon: [1, 1] }]),
+        action("rs-rival-misdirect", "Feed the competitor one more harmless decoy while quietly reinforcing your real weak spot.", "A sneaky move that works if the team stays coordinated.", [1, 1, 1, { jake: [1, 1], elena: [1, 1] }]),
+        action("rs-rival-neutral", "Say nothing to the rival and make sure Feast Haven simply outperforms the hit.", "Proud, practical, and dependent on execution not slipping again.", [1, 0, 1, { jake: [1, 1], tasha: [1, 1] }]),
+        action("rs-rival-fight", "Publicly call out the rival for spying and dare them to deny it.", "You might look bold. You will definitely look less in control of your own house.", [2, -2, -4, { jake: [1, 0], marcus: [-2, -3], elena: [-1, -2] }])
+      ]),
+      beat("final", "The leak path becomes clearer, and now Feast Haven needs a long-term response", "Culture, access, trust, and consequences are all on the same plate now.", "nina", "Celia says the team needs to feel protected without feeling permanently watched.", [
+        action("rs-final-guardrails", "Build tighter information guardrails, role-based access, and a fair investigation standard for future incidents.", "It protects the business without teaching the team to breathe through keyholes.", [0, 2, 4, { nina: [2, 2], marcus: [2, 2], elena: [1, 1] }]),
+        action("rs-final-rebuild", "Pair the security changes with a direct trust rebuild conversation so the room does not just feel policed.", "Harder work, better payoff, and much less lazy than pure suspicion systems.", [-1, 2, 3, { nina: [2, 2], devon: [1, 1], marcus: [1, 1] }]),
+        action("rs-final-liaisons", "Reduce leak risk by routing sensitive info through a small lead circle instead of everyone at once.", "Useful if the team trusts the lead circle not to become a tiny monarchy.", [1, 1, 1, { nina: [1, 1], marcus: [1, 1] }]),
+        action("rs-final-lockdown", "Treat every internal detail like state secrets from now on and drastically limit transparency.", "You might stop leaks. You will definitely start a new kind of resentment economy.", [1, -2, -4, { nina: [-2, -3], marcus: [-2, -3], devon: [-1, -1] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "celebrity-walk-in",
+    category: "VIP Pressure",
+    pressure: "Extreme",
+    headline: "A celebrity walks in unannounced with a large group and expects immediate VIP treatment despite a packed room",
+    body:
+      "Three phones are already out, two bodyguards look bored, and the host stand just went from elegant to hostage negotiation with perfume.",
+    beats: [
+      beat("opening", "The celebrity group wants the room to bend", "Regular guests are watching to see whether status outranks fairness tonight.", "elena", "Marisol says the first answer sets the moral architecture of the whole dining room.", [
+        action("cw-open-options", "Offer the celebrity group the best realistic options you can create without torching other booked guests.", "It is calm, fair-ish, and still glamorous enough to avoid instant offense.", [1, 2, 3, { elena: [2, 2], devon: [1, 1] }]),
+        action("cw-open-private", "See whether a private or semi-private compromise can absorb the group with less room-wide fallout.", "Good if available, awkward if it feels like hiding a meteor behind a fern.", [1, 1, 2, { elena: [1, 2], marcus: [0, 1] }]),
+        action("cw-open-stagger", "Split the party into two adjacent service tracks and treat it like a planned event that definitely was not planned.", "Operationally clever, socially delicate, and hard on pacing.", [2, 1, 0, { devon: [1, 1], elena: [0, 1] }]),
+        action("cw-open-bump", "Immediately displace regular guests to create a throne zone worthy of fame.", "Fast, obvious, and exactly the kind of move people never forget in a good way.", [3, -3, -4, { elena: [-3, -4], nina: [-2, -2], devon: [-1, -1] }])
+      ]),
+      beat("staff", "Adrian wants to wow them; Celia is furious about what this says to reservations", "The team is deciding whether this is business, betrayal, or both.", "nina", "Celia says one celebrity cannot become a walking policy exception without cost.", [
+        action("cw-staff-fair", "State one fairness boundary for the room while still asking the team to execute polished service.", "It gives the staff something moral to stand on while they do the hard work anyway.", [0, 2, 3, { nina: [2, 2], jake: [1, 1], elena: [1, 1] }]),
+        action("cw-staff-hero", "Let Adrian lead the table experience while management protects everyone else from ripple damage.", "Smart if roles stay clean, messy if the celebrity orbit starts eating your floor.", [1, 1, 1, { jake: [2, 2], nina: [-1, -1] }]),
+        action("cw-staff-compensate", "Quietly soften the impact on displaced or delayed guests before resentment hardens.", "Costly, fair, and often cheaper than the reputation bill.", [-2, 2, 2, { devon: [1, 1], marcus: [-1, -1], nina: [1, 1] }]),
+        action("cw-staff-starstruck", "Tell the team to make this the only table that really matters tonight.", "A surprisingly efficient way to turn the whole restaurant into a lesson about status resentment.", [2, -2, -4, { nina: [-2, -3], jake: [1, 0], elena: [-2, -2] }])
+      ]),
+      beat("kitchen", "Chef Renata says the celebrity wants heavy menu flexibility and impossible timing", "The ask is not just VIP. It is custom chaos.", "tasha", "Chef Renata says the room can worship fame if it wants; the line still runs on physics.", [
+        action("cw-kitchen-curate", "Offer a curated limited menu for the celebrity group and present it as bespoke restraint, not limitation.", "It protects the line while preserving the illusion that this was all thoughtful.", [1, 2, 3, { tasha: [2, 2], priya: [1, 1], luis: [1, 1] }]),
+        action("cw-kitchen-frontload", "Prioritize the celebrity party's first wave, then snap back to normal queue discipline.", "A compromise that may work if the room does not feel the pause too sharply.", [2, 0, 1, { tasha: [1, 1], luis: [0, 1] }]),
+        action("cw-kitchen-custom", "Accept a handful of customizations but cap them with visible manager control.", "Reasonable, though celebrity groups often multiply 'just one ask' like rabbits in sunglasses.", [1, 1, 1, { tasha: [0, 1], priya: [0, 1] }]),
+        action("cw-kitchen-yes", "Promise the full fantasy menu experience because saying no to fame feels bad.", "Chef Renata would like a minute alone with your confidence.", [3, -2, -4, { tasha: [-3, -4], priya: [-2, -3], luis: [-1, -2] }])
+      ]),
+      beat("public", "The room is now filming both the celebrity and how Feast Haven handles the celebrity", "This is service and PR at the same time.", "jake", "Adrian says attention can become free marketing. Marisol says attention can also become a fairness trial.", [
+        action("cw-public-balance", "Keep the room feeling included without turning the celebrity table into a public exhibit.", "Harder than it sounds, which is usually where the best management lives.", [0, 2, 3, { jake: [1, 1], elena: [2, 2] }]),
+        action("cw-public-celebrate", "Lean into the buzz just enough to make the room feel lucky, not secondary.", "A delicate social trick that can absolutely work if nobody overplays it.", [2, 1, 0, { jake: [1, 1], devon: [1, 1] }]),
+        action("cw-public-buffer", "Create visual and service buffers so other diners feel protected from the circus.", "Less glamorous, more humane, slightly colder on the celebrity side.", [0, 1, 2, { elena: [1, 2], devon: [1, 1] }]),
+        action("cw-public-milk", "Exploit the moment aggressively for content because free reach is free reach.", "There is no quicker route from 'classy celebrity drop-in' to 'restaurant behaves like an intern.'", [3, -2, -4, { jake: [2, 1], elena: [-2, -3] }])
+      ]),
+      beat("final", "The celebrity's team hints they might come back if tonight feels special enough", "Now the question is whether recurring celebrity chaos is a strategy or a symptom.", "marcus", "Omar says prestige is nice until operations begin subsidizing ego every weekend.", [
+        action("cw-final-terms", "Invite future VIP visits only through clear advance protocols that protect the room and staff.", "It is not dazzled, which is a very good sign in a manager.", [0, 2, 4, { marcus: [2, 2], elena: [2, 2], tasha: [1, 1] }]),
+        action("cw-final-package", "Create a controlled premium walk-in package for rare high-profile disruptions.", "Strategic if kept rare, dangerous if the staff start reading it as celebrity tax season.", [1, 1, 1, { marcus: [1, 1], jake: [1, 1] }]),
+        action("cw-final-favorites", "Keep it informal and handle future celebrity visits case by case with manager discretion.", "Flexible and likely to create inconsistency the second memory gets involved.", [1, 0, 1, { marcus: [0, 1], elena: [1, 1] }]),
+        action("cw-final-brand", "Reorient part of Feast Haven around courting famous walk-ins because tonight proved the concept.", "Tonight proved fame exists. It did not prove your staff deserve this forever.", [3, -2, -4, { marcus: [-2, -3], elena: [-2, -2], tasha: [-1, -2] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "kids-gone-wild-table",
+    category: "Guest Conduct",
+    pressure: "High",
+    headline: "A table's kids are now sprinting, shrieking, and disrupting the dining room while the parents ignore almost all of it",
+    body:
+      "One child has discovered the host stand bell, another is under a neighboring table, and the parents are deep in a conversation about charter schools.",
+    beats: [
+      beat("opening", "The kids are no longer mildly energetic; they are a roving event", "Nearby tables are starting to look trapped instead of amused.", "elena", "Marisol says this has to be handled before the room decides Feast Haven is a daycare with stemware.", [
+        action("kg-open-parent", "Approach the parents warmly but directly and ask for their help resetting the kids' behavior.", "It preserves adult dignity while making the responsibility impossible to ignore.", [0, 2, 4, { elena: [2, 2], devon: [1, 1] }]),
+        action("kg-open-divert", "Offer quick activity sheets, kid snacks, and service pacing tricks to lower the chaos temperature.", "Helpful and kind, though it risks turning staff into unpaid enrichment coordinators.", [0, 1, 2, { devon: [1, 1], elena: [1, 1] }]),
+        action("kg-open-stage", "Move the table subtly toward a less disruptive zone if one can be found fast.", "Operationally smart if available, socially tricky if it feels like exile.", [1, 1, 1, { elena: [1, 1], nina: [1, 0] }]),
+        action("kg-open-ignore", "Wait a little longer because maybe the children will tire themselves out naturally.", "Children treat that logic like a challenge coin.", [1, -2, -4, { elena: [-2, -3], devon: [-1, -2] }])
+      ]),
+      beat("safety", "One child nearly collides with Omar carrying glassware", "Now the issue is no longer just atmosphere. It is bluntly physical.", "marcus", "Omar says one accident will make everybody suddenly remember the last twenty minutes very clearly.", [
+        action("kg-safety-stop", "Draw a clear safety boundary immediately and explain that running service lanes cannot continue.", "It is the kind of line that should have existed ten minutes ago and still matters now.", [0, 2, 3, { marcus: [2, 2], elena: [1, 1] }]),
+        action("kg-safety-helper", "Assign one staffer briefly to help steer traffic while the parents get organized.", "Protective in the moment, dangerous as a precedent if it becomes your job to parent strangers.", [-1, 1, 1, { devon: [1, 1], marcus: [-1, -1] }]),
+        action("kg-safety-box", "Bring the kids' food or dessert faster so the table has a stronger anchor to sit them down.", "Sometimes practical, sometimes sugar-powered miscalculation.", [1, 0, 1, { jake: [1, 1], marcus: [0, 1] }]),
+        action("kg-safety-snap", "Use a sharp public tone because safety is now too urgent for softness.", "Urgency is fair. Public embarrassment still detonates in dining rooms.", [1, -2, -4, { marcus: [-2, -3], elena: [-2, -2] }])
+      ]),
+      beat("room", "Other guests are beginning to comment and compare your response to 'real restaurants'", "Now your decision is part parenting issue, part brand issue.", "nina", "Celia says the room needs to see standards without seeing cruelty.", [
+        action("kg-room-visible", "Let nearby tables see that management has acted, then protect their experience quietly from there.", "People mostly want reassurance that someone is steering the ship.", [0, 2, 2, { nina: [1, 2], elena: [1, 1] }]),
+        action("kg-room-gift", "Soften the nearby tables with small gestures while you stabilize the family situation.", "Costly, kind, and probably worth less than the boundary itself if used alone.", [-1, 1, 1, { devon: [1, 1], marcus: [-1, -1] }]),
+        action("kg-room-move", "Offer to move especially affected neighboring tables if they prefer distance.", "Supportive, though it can feel like the wrong people are being displaced.", [-2, 1, 1, { elena: [1, 1], nina: [1, 1] }]),
+        action("kg-room-joke", "Play it off with a family-friendly joke about 'future line cooks in training.'", "One parent may smile. The trapped anniversary table absolutely will not.", [1, -1, -3, { nina: [-2, -2], elena: [-1, -1] }])
+      ]),
+      beat("parents", "The parents insist the kids are 'just expressive' and say other guests should relax", "Now the real conflict has finally introduced itself.", "devon", "Parker says this is where warmth without firmness becomes cowardice in a nice blazer.", [
+        action("kg-parents-firm", "Stay warm, stay calm, and make the standard non-negotiable regardless of parenting philosophy.", "You stop debating child psychology and start managing the room you actually run.", [0, 2, 3, { devon: [2, 2], elena: [1, 1] }]),
+        action("kg-parents-options", "Offer the family practical choices: settle the table, step outside briefly, or shift to a calmer service path.", "Choice architecture works surprisingly well when the current option is embarrassment.", [0, 1, 2, { devon: [1, 2], elena: [1, 1] }]),
+        action("kg-parents-empathy", "Acknowledge parenting stress first, then redirect to the impact on the room.", "A humane way to lower their defensiveness before the boundary lands.", [0, 1, 2, { devon: [1, 1], nina: [1, 1] }]),
+        action("kg-parents-escalate", "Tell them bluntly that if they cannot control the kids they may need to leave now.", "Sometimes true, often combustible when it is step one instead of step four.", [1, -2, -4, { devon: [-2, -3], elena: [-1, -2] }])
+      ]),
+      beat("final", "The family settles down, leaves, or both, and now the policy question remains", "Feast Haven cannot redesign childhood, but it can decide how it handles dining room chaos next time.", "marcus", "Omar says support staff deserve a policy that protects both safety and their sanity.", [
+        action("kg-final-guideline", "Build a child conduct and safety response guideline that protects the room without sounding anti-family.", "This is how you become predictable in a good way.", [0, 2, 4, { marcus: [2, 2], elena: [2, 2], devon: [1, 1] }]),
+        action("kg-final-toolkit", "Create a small family hospitality toolkit so staff have non-chaotic first responses before conflict begins.", "Practical and kind, especially when paired with real boundaries.", [0, 1, 3, { devon: [1, 2], nina: [1, 1] }]),
+        action("kg-final-zones", "Experiment with seating families more intentionally during peak hours without making it feel punitive.", "Operationally useful and socially delicate.", [1, 1, 1, { elena: [1, 1], marcus: [1, 1] }]),
+        action("kg-final-ban", "Quietly decide Feast Haven should discourage families with young kids during busy nights.", "That is a policy, yes. It is also a reputation boomerang dressed as operational wisdom.", [1, -2, -4, { elena: [-2, -3], nina: [-1, -2], devon: [-1, -1] }])
+      ])
+    ]
+  }),
+
+  makeEvent({
+    id: "everything-sold-out-disaster",
+    category: "Supply Failure",
+    pressure: "Extreme",
+    headline: "A supplier issue means Feast Haven is out of multiple key menu items right in the middle of peak service",
+    body:
+      "No salmon, no brioche, no key dessert garnish, and the printer is still enthusiastically trying to sell all of them to the room.",
+    beats: [
+      beat("opening", "The menu is lying faster than the staff can update it", "Guests are ordering into a disappearing reality.", "elena", "Marisol says the first move is to stop new disappointments before fixing the old ones.", [
+        action("sd-open-freeze", "Freeze all affected menu language immediately and brief every front-facing person with one clean update.", "Boring excellence arrives right on time for once.", [-1, 2, 4, { elena: [2, 2], nina: [1, 1], devon: [1, 1] }]),
+        action("sd-open-sellaround", "Have the floor aggressively steer guests toward strong substitutes before they notice the holes.", "Effective if done skillfully, annoying if guests feel managed instead of informed.", [1, 1, 1, { jake: [1, 1], nina: [1, 1] }]),
+        action("sd-open-hostwarn", "Warn incoming parties at the door while letting seated tables learn during ordering.", "Useful for new guests, rough for already-seated people who discover the truth late.", [0, 1, 2, { elena: [1, 2], devon: [0, 1] }]),
+        action("sd-open-hide", "Keep the menu live and just explain item-by-item when the disappointment happens.", "Congratulations on choosing serial letdowns as a service model.", [2, -2, -4, { elena: [-2, -3], nina: [-2, -2] }])
+      ]),
+      beat("kitchen", "Chef Renata can rework some dishes, but not all of them, and not without consequences", "The line can pivot. It cannot pretend physics did not happen in receiving.", "tasha", "Chef Renata says improvisation is expensive when it is multiplied by sixty tickets.", [
+        action("sd-kitchen-tight", "Authorize a sharply edited temporary menu the kitchen can execute confidently with what remains.", "It hurts variety and protects the line from becoming a rumor mill with sauté pans.", [-2, 2, 4, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
+        action("sd-kitchen-rebuild", "Rebuild a few star dishes around substitute ingredients and train the floor fast.", "Strong if the subs are honest strengths, dangerous if they are grief with garnish.", [1, 1, 1, { tasha: [1, 1], nina: [1, 1] }]),
+        action("sd-kitchen-premium", "Push the remaining premium inventory harder and let scarcity create urgency.", "Profitable in bursts, awkward if the room senses the squeeze play.", [2, 0, 0, { marcus: [0, 1], tasha: [-1, -1] }]),
+        action("sd-kitchen-franken", "Tell the kitchen to 'make it work' however needed and keep the full shape of the menu alive.", "A beautiful slogan for people who do not have to plate the consequences.", [2, -2, -4, { tasha: [-3, -4], luis: [-2, -3], priya: [-2, -2] }])
+      ]),
+      beat("guests", "Several tables are now reacting differently: some are understanding, some feel bait-and-switched", "This is now a trust problem as much as a food problem.", "nina", "Celia says the room can forgive shortage faster than it forgives surprise shortage.", [
+        action("sd-guests-plain", "Tell affected tables early, plainly, and with strong alternatives already ready to suggest.", "Guests dislike missing items less when they can feel you respected their time.", [0, 2, 3, { nina: [2, 2], devon: [1, 1] }]),
+        action("sd-guests-curate", "Have the servers recommend substitute journeys as if they were deliberate nightly features.", "It can feel polished, though some guests will still resent the costume on the shortage.", [1, 1, 1, { nina: [1, 1], jake: [1, 1] }]),
+        action("sd-guests-soften", "Use selective comp touches where the sold-out item was clearly the main draw.", "Fair and expensive, but cheaper than full-blown betrayal energy.", [-2, 1, 1, { devon: [1, 1], marcus: [-1, -1] }]),
+        action("sd-guests-deflect", "Blame the supplier loudly and repeatedly so guests know it is not your fault.", "True-ish, childish-sounding, and not nearly as reassuring as you hope.", [1, -1, -3, { nina: [-1, -2], marcus: [-1, -1] }])
+      ]),
+      beat("staff", "The floor is getting snippy because nobody enjoys apologizing for inventory they never controlled", "Resentment is rising sideways now.", "devon", "Parker says staff need relief and coherence or they will start emotionally refunding themselves.", [
+        action("sd-staff-reset", "Give the staff one reset huddle with the updated menu path and permission to stop overselling what's gone.", "Clarity is not glamorous and still feels like oxygen in a rush.", [0, 2, 2, { devon: [2, 2], nina: [1, 1], elena: [1, 1] }]),
+        action("sd-staff-triage", "Assign your strongest communicators to the most affected sections and protect the weakest from the worst tables.", "A smart tactical use of people, if your strongest do not burn out instantly.", [1, 1, 1, { devon: [1, 1], jake: [1, 1] }]),
+        action("sd-staff-reward", "Promise a post-shift meal or bonus gesture if the team pushes through the shortage cleanly.", "Helpful morale glue, though it does not solve live confusion on its own.", [-1, 1, 1, { devon: [1, 2], marcus: [-1, -1] }]),
+        action("sd-staff-pressure", "Tell the team to stop complaining and sell harder because revenue still matters.", "True and astonishingly unhelpful, which is a difficult combo to pull off.", [2, -2, -4, { devon: [-3, -4], nina: [-2, -3], jake: [-1, -2] }])
+      ]),
+      beat("final", "Peak service ends and Feast Haven now needs a shortage playbook, not just a survivor story", "Tonight cannot remain a one-off excuse.", "marcus", "Omar says shortages become culture problems when leadership treats them like weather instead of systems.", [
+        action("sd-final-playbook", "Build a shortage protocol covering menu freezes, guest scripts, substitute tiers, and inventory escalation.", "It is exactly the kind of preparation that makes future chaos look boring.", [0, 2, 4, { marcus: [2, 2], elena: [2, 2], tasha: [1, 1] }]),
+        action("sd-final-buffer", "Create inventory buffers for truly critical items and clearer supplier-warning thresholds.", "Operationally smart, if the budget can tolerate looking wiser tomorrow than today.", [-1, 1, 3, { marcus: [2, 2], tasha: [1, 1] }]),
+        action("sd-final-liveboard", "Add a live sold-out board visible to staff and maybe even to guests in limited form.", "Potentially elegant if maintained, potentially embarrassing if it feels like a scoreboard of failure.", [0, 1, 2, { elena: [1, 1], nina: [1, 1] }]),
+        action("sd-final-upcharge", "Use future shortages to push remaining premium items harder so at least the pain pays.", "Pain does often pay. Usually in reputation first.", [2, -2, -4, { marcus: [-2, -3], nina: [-2, -2], tasha: [-1, -1] }])
       ])
     ]
   })
 ];
 
-const NEXT_LEVEL_CHAOS_EVENTS = [
-  makeEvent({
-    id: "robot-host-roulette",
-    category: "Technology Coup",
-    pressure: "Extreme",
-    headline: "A rented AI host stand starts seating guests by 'VIP face symmetry score' and somehow the room trusts it",
-    body:
-      "The robot was supposed to greet people and light up. Instead, it is reshuffling the waitlist, flattering rich guests, and calling regulars 'mid-priority humans.'",
-    beats: [
-      beat("opening", "The host stand has joined the class war", "Guests are laughing until they realize the robot is actually giving away better tables.", "elena", "Marisol says killing the robot instantly may look panicked, but letting it keep seating people makes Feast Haven look like it outsources fairness to a toaster.", [
-        action("rh-open-kill", "Shut the robot down publicly and take back the list by hand.", "The room loses the spectacle and regains an adult.", [-1, 1, 3, { elena: [2, 3], marcus: [1, 1] }]),
-        action("rh-open-shadow", "Leave the robot on but quietly override every bad seat assignment.", "It preserves the illusion and doubles the front-desk workload.", [1, 0, -1, { elena: [-1, -2], marcus: [-1, -1], devon: [1, 0] }]),
-        action("rh-open-spin", "Call it a beta feature and lean into the weirdness while you monitor it.", "People film it happily right up until the first obvious snub.", [2, 1, -2, { jake: [1, 1], elena: [-1, -1] }]),
-        action("rh-open-upgrade", "Ask Marisol to feed the robot manual VIP rules and try to train it live.", "It looks proactive and gives the machine a bigger vocabulary for bias.", [2, -1, -3, { elena: [-2, -3], priya: [-1, 0] }])
-      ]),
-      beat("waitlist", "A donor's assistant and a teacher both got bumped behind a guy with shiny loafers", "Now the dining room thinks Feast Haven has either a broken robot or a philosophy.", "devon", "Parker says whoever you fix first becomes the story everybody repeats.", [
-        action("rh-waitlist-fair", "Reset the order strictly by original check-in time and explain the robot glitched.", "It is fair, slow, and annoys the people who already sat down.", [-2, 2, 3, { devon: [2, 2], elena: [1, 1] }]),
-        action("rh-waitlist-donor", "Rescue the donor first and hope money calms the rest of the room.", "The cash risk drops and the ethics risk starts doing cartwheels.", [2, -1, -2, { marcus: [0, 1], elena: [-1, -2], devon: [-1, -1] }]),
-        action("rh-waitlist-teacher", "Rescue the teacher first and make the fairness case out loud.", "Morally satisfying, financially dangerous, and very public.", [-1, 1, 2, { devon: [2, 3], marcus: [-1, -1] }]),
-        action("rh-waitlist-comp", "Keep the robot order but send apology drinks and desserts to the bumped tables.", "It buys compliance with sugar and teaches the machine nothing.", [-3, 1, -1, { marcus: [-2, -2], elena: [0, -1] }])
-      ]),
-      beat("staff", "Theo says the robot is now promising ticket times no kitchen can hit", "It has started telling tables their entrees will arrive 'in a crisp and elegant seven minutes.'", "luis", "Theo says front-of-house chaos is one thing, but algorithmic lying with a smile is a whole new flavor of disrespect.", [
-        action("rh-staff-truth", "Force the robot into a scripted honesty mode and post real wait estimates.", "The dining room gets grumpier and the kitchen finally stops swearing at the host stand.", [-1, 1, 3, { luis: [2, 3], tasha: [1, 1], elena: [1, 1] }]),
-        action("rh-staff-cover", "Let servers smooth over the fake times table by table.", "It keeps the room soft while loading all the stress onto humans.", [1, 0, -2, { luis: [-2, -3], nina: [-1, -2], devon: [-1, -1] }]),
-        action("rh-staff-throttle", "Slow seatings until the kitchen catches up, even if the lobby gets ugly.", "The line steadies while the entrance starts looking like a union grievance.", [-2, 0, 1, { luis: [1, 2], tasha: [2, 2], elena: [-1, -1] }]),
-        action("rh-staff-race", "Push the kitchen to chase the robot promises for one big rush.", "Revenue smiles and the line starts plating with revenge in its heart.", [3, -2, -3, { luis: [-3, -4], tasha: [-2, -3], priya: [-1, -2] }])
-      ]),
-      beat("public", "A local blogger posts 'Feast Haven replaced prejudice with software'", "The caption is funny enough to spread and serious enough to hurt.", "jake", "Adrian says the statement has to sound human, accountable, and not like it was written by the robot's lawyer.", [
-        action("rh-public-own", "Own the failure, explain the fix, and make the robot the punchline instead of the policy.", "It is humble and expensive because humility always is.", [-1, 2, 3, { jake: [1, 2], elena: [2, 2] }]),
-        action("rh-public-minimize", "Call it a demo glitch and avoid sounding dramatic.", "It sounds calm to you and dismissive to everyone else.", [0, -1, -2, { jake: [-1, -2], elena: [-1, -1] }]),
-        action("rh-public-pivot", "Turn the attention into a joke promo about 'real humans only' this weekend.", "It softens the story while making the mistake feel marketable.", [2, 0, -1, { jake: [2, 1], marcus: [-1, -1] }]),
-        action("rh-public-blame-vendor", "Blame the rental company hard and make them the villain.", "It protects the brand for an hour and makes Feast Haven sound allergic to responsibility.", [1, -1, -3, { jake: [0, 1], elena: [-2, -2] }])
-      ]),
-      beat("final", "The vendor offers a free upgrade if Feast Haven keeps the robot for one more month", "The robot has become a traffic magnet, a fairness nightmare, and weirdly beloved by teenagers.", "marcus", "Omar says the question is not whether the robot can work. It is whether your staff can keep working around it.", [
-        action("rh-final-return", "Return the robot, eat the embarrassment, and train the human host team harder.", "You lose the gimmick and keep the restaurant.", [-1, 2, 4, { marcus: [2, 3], elena: [2, 2], devon: [1, 1] }]),
-        action("rh-final-guardrails", "Keep it only as a greeter with no decision power and visible human override.", "It preserves the novelty and turns management into full-time robot babysitting.", [1, 1, 1, { marcus: [0, 1], elena: [-1, 0], devon: [1, 1] }]),
-        action("rh-final-vip", "Keep it and market the robot as a premium experience for high spenders.", "Money goes up and your regulars start feeling algorithmically poor.", [4, -2, -4, { elena: [-3, -4], devon: [-2, -3], marcus: [-1, -2] }]),
-        action("rh-final-auction", "Let the dining room vote live on the robot's fate during dessert.", "Participatory, viral, and a terrible way to set labor policy.", [2, 0, -2, { jake: [2, 1], elena: [-1, -2], marcus: [-1, -1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "funeral-wedding-collision",
-    category: "Private Room Disaster",
-    pressure: "High",
-    headline: "A wedding rehearsal dinner and a memorial luncheon were booked under the same last name and are now sharing one decorated room",
-    body:
-      "One side ordered champagne towers. The other ordered framed photos and soft piano. The floral arch has become an emotional weapon.",
-    beats: [
-      beat("opening", "Two families just walked into opposite definitions of a banner day", "The room says 'Forever Begins Here.' The memorial slideshow is loading beside it.", "elena", "Marisol says the first sentence to both families decides whether Feast Haven looks compassionate, incompetent, or both.", [
-        action("fw-open-own", "Own the mistake immediately to both groups and separate them before assigning blame.", "Honest, brutal, and the only approach that starts from reality.", [-2, 2, 3, { elena: [2, 3], devon: [1, 1] }]),
-        action("fw-open-delay", "Stall one group in the bar while you quietly salvage the room for the other.", "It buys time and guarantees one side feels ranked second in human importance.", [0, -1, -1, { elena: [-1, -2], marcus: [-1, -1] }]),
-        action("fw-open-upgrade", "Offer the wedding the nicer dining room and move the memorial to a calmer private space.", "Operationally neat and morally radioactive if anyone says it out loud.", [2, -2, -3, { elena: [-2, -3], devon: [-1, -1] }]),
-        action("fw-open-split", "Use screens, staff, and music shifts to split the room in two for one impossible hour.", "Ingenious on paper and weirdly medieval in practice.", [1, 0, -2, { elena: [1, 0], devon: [-1, -1], marcus: [-1, 0] }])
-      ]),
-      beat("decor", "The memorial family is standing under the neon sign meant for the couple", "Meanwhile the wedding party found the memorial portrait table and thinks it is a haunted seating chart.", "devon", "Parker says décor choices are now emotional triage with candles.", [
-        action("fw-decor-strip", "Strip the room down to neutral basics and rebuild from zero.", "It removes the insult and destroys the timeline.", [-3, 1, 2, { devon: [2, 2], marcus: [-1, -1] }]),
-        action("fw-decor-prioritize-grief", "Protect the memorial atmosphere first and ask the wedding to absorb the bland room.", "Compassion wins and one bride's aunt starts using the phrase 'unforgivable beige.'", [-1, 1, 2, { devon: [2, 3], jake: [-1, -1] }]),
-        action("fw-decor-prioritize-wedding", "Keep the wedding visuals intact and soften the memorial with private apologies and comps.", "The sales team inside your soul loves it. The rest of your soul files a protest.", [3, -3, -4, { devon: [-2, -3], elena: [-2, -2] }]),
-        action("fw-decor-dual", "Quickly customize two smaller spaces with partial décor and targeted staff support.", "Fairer, harder, and one wrong flower away from another crisis.", [-1, 2, 1, { devon: [1, 2], elena: [1, 1], marcus: [-1, 0] }])
-      ]),
-      beat("kitchen", "Both parties now want rushed service because both believe they are the one who got bumped", "The kitchen has one timing grid and zero patience for competing grief and sparkle.", "tasha", "Chef Renata says the line can prioritize dignity, accuracy, or speed. It cannot flawlessly improvise all three.", [
-        action("fw-kitchen-memorial", "Prioritize the memorial for calm pacing and let the wedding wait with honest updates.", "Kind, human, and risky if the wedding equates delay with disrespect.", [-1, 1, 2, { tasha: [2, 2], devon: [1, 1], jake: [-1, -1] }]),
-        action("fw-kitchen-wedding", "Prioritize the wedding's timed moments and keep the memorial fed steadily behind it.", "Commercially rational and emotionally cold if anyone notices the order of values.", [2, -1, -2, { tasha: [-1, -1], devon: [-1, -2] }]),
-        action("fw-kitchen-simplify", "Cut both menus down and explain that precision beats pageantry right now.", "You preserve service by admitting reality out loud.", [-2, 2, 3, { tasha: [2, 3], priya: [1, 1], marcus: [1, 1] }]),
-        action("fw-kitchen-push", "Ask the line to full-send both events at once and chase the schedule with adrenaline.", "For a while, everything moves. Then the mistakes breed.", [3, -2, -3, { tasha: [-3, -4], luis: [-2, -3], priya: [-2, -2] }])
-      ]),
-      beat("family", "A wedding uncle and a memorial cousin are now arguing in the hall about who got 'the cursed room'", "Both families want a manager, a gesture, and an answer they can repeat later.", "nina", "Celia says the answer has to feel fair, not mathematically equal.", [
-        action("fw-family-tailored", "Offer different recovery gestures based on what each group actually lost.", "Thoughtful, defensible, and likely to be compared anyway.", [-2, 2, 2, { nina: [2, 2], devon: [1, 1] }]),
-        action("fw-family-identical", "Give both groups the exact same comp package and script.", "Equal is neat. Fair is not always neat.", [-3, 0, -1, { nina: [0, 1], marcus: [-1, -1] }]),
-        action("fw-family-emotion", "Spend extra time with the memorial family and trust the wedding to survive some inconvenience.", "Morally strong and commercially dangerous if the wedding expected center stage.", [-1, 1, 1, { nina: [2, 3], jake: [-2, -2] }]),
-        action("fw-family-money", "Throw enough free alcohol and dessert at the wedding to mute the optics fast.", "The noise drops and the dignity bill rises.", [-4, -1, -2, { marcus: [-2, -2], nina: [-1, -1] }])
-      ]),
-      beat("final", "Both families ask whether Feast Haven can ever be trusted with another private event", "This is now about tomorrow's business, not just tonight's cleanup.", "marcus", "Omar says the fix has to change the system, not just the tone of the apology.", [
-        action("fw-final-system", "Create a written dual-verification booking protocol and personally walk both families through it.", "Boring, expensive, and exactly how trust is rebuilt.", [-1, 2, 4, { marcus: [2, 3], elena: [2, 2], nina: [1, 1] }]),
-        action("fw-final-credit", "Offer both groups future event credits and hope goodwill survives memory.", "It is generous, but it postpones the day your mistake becomes costly again.", [-3, 1, 0, { marcus: [0, 1], devon: [1, 1] }]),
-        action("fw-final-pr", "Post about the beautiful resilience of families without naming the disaster.", "It smells like spin to anyone who was actually there.", [1, -2, -3, { jake: [1, 0], elena: [-2, -2] }]),
-        action("fw-final-room-ban", "Stop booking simultaneous private events until Feast Haven can actually support them cleanly.", "Protective, painful, and a direct hit to revenue.", [-4, 2, 2, { marcus: [1, 2], devon: [2, 2], tasha: [1, 1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "balloon-review-blackmail",
-    category: "Reviewer Circus",
-    pressure: "Absurd",
-    headline: "A disguised food critic is roaming the dining room as a balloon artist, twisting every complaint into sculptures and live reviews",
-    body:
-      "He has already made a balloon lobster labeled 'dry' and a balloon chef hat labeled 'defensive.' Guests are tipping him to roast the menu.",
-    beats: [
-      beat("opening", "The first balloon complaint gets applause", "Now every table thinks criticism comes with entertainment value.", "jake", "Adrian says if you shut him down too fast, he becomes a martyr. If you let him keep going, he becomes the maître d' of humiliation.", [
-        action("br-open-stop", "Stop the balloon act immediately and frame it as guest-disruption policy.", "Firm, reasonable, and instantly interpreted as fear by half the room.", [0, 1, 2, { jake: [-1, 0], elena: [1, 2] }]),
-        action("br-open-watch", "Let him continue while management quietly tracks what he says and who he is hitting.", "Smart, strategic, and awful for staff in the moment.", [1, -1, -1, { jake: [1, 0], nina: [-1, -2], elena: [-1, -1] }]),
-        action("br-open-buy", "Hire him on the spot for one controlled hour and try to redirect the crowd energy.", "You grab the mic and validate the stunt at the same time.", [2, 0, -2, { jake: [2, 1], marcus: [-1, -1] }]),
-        action("br-open-mirror", "Send Adrian to publicly charm him table by table and outshine the bit with actual service.", "It works if Adrian lands every read and fails spectacularly if he misses one.", [1, 2, 0, { jake: [1, 2], devon: [1, 1] }])
-      ]),
-      beat("staff", "Celia says servers are now afraid to approach any table holding balloons", "A bad shift is one thing. A bad shift with props is another.", "nina", "Celia wants to know whether management values open feedback more than staff dignity when both are happening with squeaky animals.", [
-        action("br-staff-boundary", "Tell staff they can step away from any table using the balloon artist to heckle them.", "Healthy for the team, dangerous for check averages.", [-2, 1, 2, { nina: [2, 3], devon: [1, 1] }]),
-        action("br-staff-endure", "Ask staff to stay warm and professional no matter what gets twisted.", "Polished on the floor, corrosive in the break room.", [1, -1, -2, { nina: [-2, -3], devon: [-1, -2] }]),
-        action("br-staff-manager", "Route all critic-facing tables through managers only until the stunt dies down.", "Protective, but it turns every manager into a live shield.", [-1, 1, 1, { nina: [1, 2], elena: [-1, -1], marcus: [-1, 0] }]),
-        action("br-staff-joke", "Encourage staff to volley back with one-liners if they keep it clean.", "Morale spikes for the witty and collapses for the quiet.", [2, 0, -2, { nina: [-1, -2], jake: [2, 1], devon: [-1, -1] }])
-      ]),
-      beat("truth", "You learn he really is a reviewer and he has not posted yet", "Now this is not a clown problem. It is a leverage problem with balloons.", "devon", "Parker says the review is still unwritten, which means the next move matters more than the first one.", [
-        action("br-truth-meeting", "Invite him to a private meeting and separate the complaint from the performance.", "Adult, fair, and likely to bore the guests who came for balloon violence.", [-1, 2, 3, { devon: [2, 3], elena: [1, 1] }]),
-        action("br-truth-comp", "Offer a comp before the review drops and hope he feels respected.", "Maybe it softens him. Maybe it trains him.", [-3, 0, -2, { marcus: [-1, -2], devon: [-1, -1] }]),
-        action("br-truth-public", "Challenge him publicly to review the food, not the spectacle he created.", "Strong spine, risky optics, and one bad quote away from disaster.", [1, -1, 0, { devon: [1, 1], jake: [1, 0], elena: [-1, -1] }]),
-        action("br-truth-escort", "Escort him out now that you know what game he is playing.", "Clean and satisfying until the review starts with 'They removed me for honesty.'", [0, -2, -2, { devon: [0, 1], nina: [1, 1] }])
-      ]),
-      beat("guests", "Regular guests start requesting custom balloon reviews of their meals", "A weird side business has appeared inside your actual business.", "elena", "Marisol says the room now needs a rule about whether entertainment can rank the food in public while people are still chewing.", [
-        action("br-guests-ban", "Ban live table-by-table reviews while guests are dining.", "Reasonable, enforceable, and less exciting than chaos usually is.", [-1, 1, 2, { elena: [2, 2], nina: [1, 1] }]),
-        action("br-guests-ticket", "Turn it into an optional after-dinner balloon roast with house rules.", "Structured fun that still attaches Feast Haven to the circus.", [2, 1, 0, { jake: [1, 1], marcus: [-1, -1], elena: [0, 1] }]),
-        action("br-guests-freefor", "Let the room play and trust the food to survive the attention.", "Confidence is admirable. So is not setting your own building on fire for content.", [3, -2, -3, { nina: [-2, -3], elena: [-1, -2], tasha: [-1, -1] }]),
-        action("br-guests-redirect", "Offer a chef meet-and-greet or dessert sampling instead of performance critique.", "You redirect attention back to hospitality, but not everyone came for hospitality.", [-1, 2, 1, { elena: [1, 2], tasha: [1, 1], jake: [-1, 0] }])
-      ]),
-      beat("final", "The reviewer asks whether Feast Haven wants him back for a formal ticketed 'Truth Night'", "The room made money. The staff lost peace. Your brand is now standing at a weird fork in the road holding a balloon eel.", "marcus", "Omar says the question is not whether people would pay. It is whether they should decide your operating model.", [
-        action("br-final-decline", "Decline the offer and reinforce Feast Haven as a restaurant, not a roast venue.", "Less flashy, more stable, and not everybody's favorite ending.", [-1, 2, 4, { marcus: [2, 3], nina: [2, 2], elena: [1, 1] }]),
-        action("br-final-limited", "Run one tightly controlled quarterly event with clear staff protections.", "It monetizes the weirdness without fully marrying it.", [2, 1, 1, { marcus: [0, 1], jake: [1, 1], nina: [-1, -1] }]),
-        action("br-final-series", "Launch a weekly review cabaret before the hype cools.", "The money is immediate and the identity crisis arrives gift-wrapped.", [4, -2, -4, { marcus: [-2, -3], nina: [-3, -4], elena: [-2, -2] }]),
-        action("br-final-clapback", "Write your own public review of the reviewer's behavior and go to war.", "Cathartic, combustible, and not what calm businesses usually do.", [2, -1, -3, { jake: [2, 1], elena: [-2, -2], devon: [-1, -1] }])
-      ])
-    ]
-  }),
-  makeEvent({
-    id: "spice-club-meltdown",
-    category: "Tasting Night Liability",
-    pressure: "Extreme",
-    headline: "An underground hot-sauce club has turned normal service into an unofficial heat challenge with waiver cards and tears",
-    body:
-      "Guests are filming each other, asking for off-menu sauces, and treating basic self-preservation like a personality flaw.",
-    beats: [
-      beat("opening", "The room smells like vinegar, ego, and danger", "A table just asked whether milk counts as surrender.", "jake", "Adrian says the crowd is spending well, but one brave idiot away from becoming a cautionary tale.", [
-        action("sc-open-stop", "Stop all challenge behavior immediately and return the room to normal dining.", "Safe, clear, and greeted like you canceled a sporting event.", [-2, 1, 3, { jake: [-1, 0], nina: [1, 1], elena: [1, 2] }]),
-        action("sc-open-rules", "Allow the challenge only with strict portions, timing, and manager supervision.", "It creates order while announcing that this now officially exists.", [1, 1, 0, { jake: [1, 1], marcus: [-1, 0], priya: [1, 1] }]),
-        action("sc-open-lean", "Lean in and market a one-night Feast of Fire special on the fly.", "Revenue glows. Liability starts sweating through the wallpaper.", [4, 0, -3, { jake: [2, 1], elena: [-2, -2], tasha: [-1, -1] }]),
-        action("sc-open-divert", "Redirect the club into a patio or side section with a reduced menu and medical disclaimers.", "Thoughtful and operationally ugly.", [0, 2, 1, { elena: [1, 1], marcus: [-1, -1], nina: [1, 1] }])
-      ]),
-      beat("kitchen", "The line is being asked for sauces Chef Renata never approved", "Theo says people are combining ingredients like vengeance is a flavor profile.", "tasha", "Chef Renata says the next answer decides whether the kitchen is still cooking dinner or producing dares.", [
-        action("sc-kitchen-lock", "Lock the menu to approved sauces only and refuse all custom heat builds.", "The kitchen regains control and the spice crowd starts chanting 'cowardice.'", [-1, 1, 2, { tasha: [2, 3], luis: [2, 2], priya: [1, 1] }]),
-        action("sc-kitchen-tier", "Create a short heat ladder with measured portions and clear staff signoff.", "Controlled, smart, and still more circus than the kitchen wanted tonight.", [2, 1, 0, { tasha: [1, 1], luis: [0, 1], priya: [1, 1] }]),
-        action("sc-kitchen-freestyle", "Let the line improvise based on what guests ask for.", "The tips might be real. So will the mistakes.", [3, -2, -3, { tasha: [-3, -4], luis: [-2, -3], priya: [-2, -2] }]),
-        action("sc-kitchen-bar", "Shift the heat experience to the bar and keep the kitchen out of the stunt.", "It protects the line and dumps the chaos onto whoever pours drinks.", [1, 0, 1, { tasha: [2, 2], marcus: [-1, 0], jake: [0, 1] }])
-      ]),
-      beat("medical", "One guest says he cannot feel his ears and refuses to lose the challenge", "His friends are cheering like that is somehow relevant.", "devon", "Parker says the room is watching whether Feast Haven values autonomy, dignity, or obvious signs of poor judgment.", [
-        action("sc-medical-stop", "Stop the challenge for that table, bring water and dairy, and call it on safety grounds.", "Protective, unpopular, and very hard to argue with once ears enter the conversation.", [-1, 2, 3, { devon: [2, 3], nina: [1, 1] }]),
-        action("sc-medical-choice", "Let him choose whether to continue after a clear warning.", "Respectful in theory, reckless once his friends start filming the speech.", [1, -1, -2, { devon: [-1, -2], elena: [-1, -1] }]),
-        action("sc-medical-private", "Move the table out of sight before making the call.", "Smart for optics, risky if it looks like you hid a preventable problem.", [0, 1, 0, { devon: [1, 1], elena: [1, 0], marcus: [-1, 0] }]),
-        action("sc-medical-compete", "Offer a smaller replacement round so he can save face without winning.", "Creative and weirdly diplomatic, but still centers the stunt.", [-1, 0, -1, { devon: [1, 1], jake: [1, 0], nina: [-1, -1] }])
-      ]),
-      beat("public", "The club wants Feast Haven to post a live leaderboard before dessert", "Now the event can either become a contained story or a branded bad idea.", "elena", "Marisol says a leaderboard turns foolishness into policy faster than any waiver ever could.", [
-        action("sc-public-no", "Refuse the leaderboard and frame the night as food, not combat.", "Principled, less thrilling, and easier to defend in daylight.", [-1, 2, 3, { elena: [2, 3], jake: [-1, -1] }]),
-        action("sc-public-soft", "Post a playful heat ladder with no names and no winners.", "Balanced, but still evidence that management helped shape the game.", [1, 1, 0, { elena: [1, 1], jake: [1, 1] }]),
-        action("sc-public-score", "Post the leaderboard with prizes and milk-based tiebreakers.", "The room erupts and your future legal discovery folder gets thicker.", [4, -1, -4, { elena: [-2, -3], marcus: [-2, -2], tasha: [-1, -1] }]),
-        action("sc-public-charity", "Turn the scoreboard into a charity pledge board and cool the ego factor.", "Smart reframing, but some guests came to conquer, not donate.", [0, 2, 1, { elena: [1, 2], marcus: [1, 1], jake: [0, 1] }])
-      ]),
-      beat("final", "The club wants a monthly residency", "The night made money, stressed the staff, and introduced dairy triage as a workflow.", "marcus", "Omar says recurring revenue is only exciting when it does not also require a recovery cart.", [
-        action("sc-final-decline", "Decline a residency and keep Feast Haven focused on actual hospitality.", "Calmer, safer, and guaranteed to disappoint the people who confuse pain with branding.", [-1, 2, 4, { marcus: [2, 3], tasha: [2, 2], nina: [1, 1] }]),
-        action("sc-final-curate", "Offer a rare chef-led tasting with fixed spice levels and real guardrails.", "You keep the spend and cut the nonsense, mostly.", [2, 1, 1, { marcus: [1, 1], tasha: [1, 1], jake: [0, 1] }]),
-        action("sc-final-residency", "Launch the residency and own the heat-night identity.", "Profitable, loud, and brutal on every employee who has to mop around it.", [4, -3, -4, { marcus: [-2, -3], tasha: [-3, -4], nina: [-2, -2] }]),
-        action("sc-final-license", "License the concept to a cheaper venue and keep Feast Haven's name off the hottest parts.", "Clever, strategic, and likely to make the club feel used.", [1, 0, 0, { marcus: [1, 2], jake: [-1, -1], elena: [0, 1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "cryo-pod-celebrity",
-    category: "Celebrity Demands",
-    pressure: "High",
-    headline: "A celebrity wellness host demands her portable cryotherapy pod be wheeled beside table eight so she can 'chill between bites'",
-    body:
-      "The pod is loud, frosty, impossible to ignore, and leaking condensation toward three expensive handbags.",
-    beats: [
-      beat("opening", "Table eight wants dinner at subzero", "The celebrity says the pod is part of the brand experience and therefore part of the reservation.", "elena", "Marisol says saying yes makes the room bizarre; saying no risks a public tantrum with followers.", [
-        action("cp-open-deny", "Deny the pod in the dining room and offer a private staging area instead.", "Clean rule, immediate conflict, no fog machine by the appetizer course.", [0, 1, 3, { elena: [2, 2], devon: [1, 1] }]),
-        action("cp-open-private", "Offer a premium side lounge setup and frame it as an upgrade, not a rejection.", "Elegant, costly, and dependent on the celebrity enjoying your wording.", [-2, 2, 2, { elena: [1, 2], marcus: [-1, -1] }]),
-        action("cp-open-allow", "Allow the pod tableside for one course and monitor the room.", "Attention spikes and normal dinner quietly leaves the chat.", [3, -1, -2, { jake: [1, 1], elena: [-1, -1] }]),
-        action("cp-open-monetize", "Package the pod as a sponsored one-night spectacle and lean into it hard.", "The numbers perk up while dignity wraps itself in a blanket and disappears.", [4, 0, -4, { elena: [-2, -3], marcus: [0, -1], tasha: [-1, -1] }])
-      ]),
-      beat("floor", "Guests nearby are cold, annoyed, and suddenly very aware of vapor", "One table wants moved. Another wants a selfie. Another wants to know whether dry ice is now garnish.", "nina", "Celia says the floor needs one rule that respects paying guests without creating a second VIP class by accident.", [
-        action("cp-floor-move", "Move the most affected tables first and be blunt about why.", "Helpful and expensive, with a side of social hierarchy.", [-2, 2, 1, { nina: [1, 2], elena: [1, 1] }]),
-        action("cp-floor-offer", "Offer affected tables a choice: move, comp dessert, or stay with extra attention.", "Flexible and fair, though it turns one pod into six mini-negotiations.", [-2, 2, 2, { nina: [2, 2], devon: [1, 1], marcus: [-1, -1] }]),
-        action("cp-floor-ignore", "Keep service moving and trust the celebrity table to pay for the inconvenience they cause.", "Bold theory. Weak hospitality.", [2, -2, -3, { nina: [-2, -3], devon: [-1, -1] }]),
-        action("cp-floor-upcharge", "Offer the nearby tables a discounted 'wellness row' experience to make the weirdness feel intentional.", "Creative, funny, and one screenshot away from looking like parody.", [1, 0, -2, { nina: [0, 1], jake: [1, 1], elena: [-1, -1] }])
-      ]),
-      beat("kitchen", "Condensation is now dripping toward a service lane and Chef Renata is furious", "The pod is not in the kitchen, but somehow it has still become the kitchen's problem.", "tasha", "Chef Renata says the next answer needs to favor physics over celebrity mythology.", [
-        action("cp-kitchen-stop", "Stop the pod service until the floor is safe and dry.", "The chef relaxes. The celebrity becomes a weather event.", [0, 1, 3, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
-        action("cp-kitchen-reroute", "Reroute traffic, mats, and staff around the pod for the rest of the meal.", "Operationally heroic and wildly unfair to everyone carrying hot plates.", [1, 0, 0, { tasha: [-1, -2], luis: [-1, -2], priya: [-1, -1] }]),
-        action("cp-kitchen-speed", "Rush the celebrity table to shorten the pod's time on the floor.", "You reduce exposure and tell the kitchen one table outranks the whole night.", [2, -1, -2, { tasha: [-2, -3], nina: [-1, -1] }]),
-        action("cp-kitchen-tech", "Call the pod crew into the back hall and require them to solve the runoff before service continues.", "Correct, confrontational, and likely to go public.", [-1, 1, 2, { tasha: [1, 2], elena: [1, 1], marcus: [0, 1] }])
-      ]),
-      beat("public", "The celebrity starts livestreaming and calls Feast Haven 'wellness-curious but not committed'", "Now every choice doubles as marketing material for someone else.", "jake", "Adrian says if you react to the stream instead of the room, you lose the room twice.", [
-        action("cp-public-room", "Ignore the stream and manage the actual guests in front of you first.", "Boring, disciplined, and usually what grown businesses do.", [0, 2, 2, { jake: [-1, 0], nina: [1, 1], elena: [1, 1] }]),
-        action("cp-public-join", "Send a manager to charm the livestream and steer the narrative live.", "High-wire, high-reward, and one awkward sentence from collapse.", [2, 1, 0, { jake: [2, 1], elena: [1, 1] }]),
-        action("cp-public-snark", "Answer the jab with a polished but pointed house line about hospitality over stunts.", "Feels amazing for eight seconds and brittle by morning.", [1, -1, -3, { jake: [1, 0], elena: [-2, -2] }]),
-        action("cp-public-partner", "Offer a one-night partnership post if she keeps the rest of dinner private and controlled.", "Smart if she wants the deal. Humiliating if she wanted the fight.", [1, 0, 1, { jake: [1, 2], marcus: [-1, -1] }])
-      ]),
-      beat("final", "Her team offers to bring the pod back for a filmed mini-series", "You can smell the sponsorship money and the staff revolt at the same time.", "marcus", "Omar says the right answer depends on whether Feast Haven is a restaurant that occasionally hosts nonsense or a nonsense studio that occasionally serves dinner.", [
-        action("cp-final-no", "Decline the mini-series and put a hard line around dining-room equipment.", "The boundaries are expensive and worth it.", [-1, 2, 4, { marcus: [2, 3], tasha: [2, 2], elena: [1, 1] }]),
-        action("cp-final-private", "Offer a paid private-room production package with safety rules and premium fees.", "Contained chaos is still chaos, but at least it has walls.", [2, 1, 1, { marcus: [1, 1], elena: [1, 1], tasha: [0, 1] }]),
-        action("cp-final-brand", "Make Feast Haven the official chill-dining home of the series.", "Money surges and so does the sense that your carpet will never emotionally recover.", [4, -2, -4, { marcus: [-2, -3], nina: [-2, -2], tasha: [-2, -3] }]),
-        action("cp-final-license", "Take the sponsorship money but insist the pod stays outside and off the restaurant floor.", "Practical, shrewd, and likely to annoy everyone equally.", [1, 1, 1, { marcus: [2, 2], elena: [0, 1], jake: [-1, 0] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "truffle-pig-vip-night",
-    category: "Animal Spectacle",
-    pressure: "Absurd",
-    headline: "An investor arrives with a tuxedoed truffle pig and says the pig should personally 'choose deserving guests' for the secret course",
-    body:
-      "The pig is cute, expensive-looking, and already rooting through a floral arrangement like it owns voting rights.",
-    beats: [
-      beat("opening", "The investor thinks the pig is brand gold", "The dining room thinks the pig is adorable until it sniffs a purse and sneezes on a candle.", "elena", "Marisol says if the pig starts deciding who gets special treatment, the host stand might as well clock out.", [
-        action("tp-open-boundary", "Welcome the investor warmly but ban the pig from influencing service decisions.", "Professional, sane, and a direct challenge to a rich person's imagination.", [0, 1, 3, { elena: [2, 3], marcus: [1, 1] }]),
-        action("tp-open-symbolic", "Let the pig 'choose' one ceremonial table while the real list stays human.", "Cute enough to work, fragile enough to go wrong instantly.", [2, 1, 0, { elena: [1, 1], jake: [1, 1] }]),
-        action("tp-open-vip", "Let the pig lead a true VIP gimmick and lean into the spectacle.", "Big attention, weak ethics, strong smell risk.", [4, -1, -3, { elena: [-2, -3], nina: [-1, -1] }]),
-        action("tp-open-private", "Move the investor and pig into a more private experience before the room fully commits to the bit.", "Smart containment that risks insulting the investor's need for audience.", [-1, 2, 1, { elena: [1, 2], devon: [1, 1] }])
-      ]),
-      beat("floor", "Guests are now competing for the pig's affection", "One table has offered salami. Another has begun making snorting noises with alarming confidence.", "jake", "Adrian says the room is two minutes from turning hospitality into livestock lobbying.", [
-        action("tp-floor-stop", "Shut down all pig bribery immediately and reset expectations.", "Necessary, stiff, and guaranteed to disappoint the fun tables first.", [-1, 1, 2, { jake: [-1, 0], nina: [1, 1], elena: [1, 1] }]),
-        action("tp-floor-host", "Turn it into one timed pig parade led by staff, then end it cleanly.", "Structured absurdity beats freestyle absurdity, usually.", [2, 1, 0, { jake: [1, 2], devon: [1, 1], marcus: [-1, 0] }]),
-        action("tp-floor-let", "Let guests play with the moment and keep service flexible around it.", "The room has energy and zero discipline.", [3, -2, -2, { nina: [-2, -3], devon: [-1, -1], elena: [-1, -1] }]),
-        action("tp-floor-upsell", "Offer a paid truffle add-on to every table the pig sniffs near.", "Clever revenue, ethically weird, and one sneeze away from parody.", [3, 0, -2, { jake: [2, 1], marcus: [-1, -1] }])
-      ]),
-      beat("kitchen", "Chef Renata says the pig is now near ingredients it absolutely cannot be near", "The investor claims the pig has a refined palate. The kitchen claims the pig has hooves.", "tasha", "Chef Renata says tonight can be fancy, funny, or sanitary. Pick two.", [
-        action("tp-kitchen-hardline", "Keep the pig fully out of the back and defend the line hard.", "Correct, crisp, and likely to trigger a donor sulk.", [0, 1, 3, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
-        action("tp-kitchen-window", "Allow one supervised kitchen-window appearance and nothing beyond that.", "A compromise with just enough opening for future nonsense.", [1, 0, 1, { tasha: [0, 1], luis: [0, 1], jake: [1, 0] }]),
-        action("tp-kitchen-photo", "Stage a chef-and-pig photo for social and get it over with.", "Memorable, marketable, and borderline insulting to actual cooks.", [2, 0, -1, { tasha: [-1, -2], jake: [1, 1], elena: [1, 0] }]),
-        action("tp-kitchen-tour", "Let the investor and pig do a mini kitchen tour to preserve the relationship.", "Relationship management meets a food-safety fever dream.", [3, -2, -4, { tasha: [-3, -4], luis: [-2, -3], priya: [-2, -2] }])
-      ]),
-      beat("public", "A clip of the pig 'choosing' a table is exploding online", "Now people want reservations specifically to be judged by livestock.", "nina", "Celia says the response decides whether Feast Haven looks charming, elitist, or fully deranged.", [
-        action("tp-public-human", "Post that all guests are served by people, not pigs, and thank everyone for the laugh.", "Clear, warm, and slightly less fun than the internet hoped.", [-1, 2, 3, { nina: [2, 3], elena: [1, 1] }]),
-        action("tp-public-playful", "Lean into the joke but clarify it was a one-night stunt.", "Charming if everyone believes the last sentence.", [2, 1, 0, { nina: [1, 1], jake: [1, 1] }]),
-        action("tp-public-exclusive", "Create a secret-course waitlist for guests 'selected by the pig.'", "The exclusivity sells and your integrity starts chewing the furniture.", [4, -1, -4, { nina: [-2, -3], elena: [-2, -2], marcus: [-1, -1] }]),
-        action("tp-public-silent", "Say nothing and let the clip burn itself out.", "Silence rarely beats a pig in a tuxedo.", [0, -1, -2, { nina: [-1, -2], jake: [-1, -1] }])
-      ]),
-      beat("final", "The investor offers to fund a permanent 'Porcine Pairing Program' if Feast Haven commits", "You can almost hear the money oinking.", "marcus", "Omar says the question is not whether the pig can make cash. It is whether the staff can respect themselves while it does.", [
-        action("tp-final-decline", "Decline the program and keep the pig as a one-night story.", "Stable, human, and mildly heartbreaking to the people who love a rich-animal gimmick.", [-1, 2, 4, { marcus: [2, 3], tasha: [2, 2], nina: [1, 1] }]),
-        action("tp-final-charity", "Turn the pig into an annual charity stunt with strict boundaries and zero service power.", "Manageable weirdness with a reason to exist.", [2, 1, 1, { marcus: [1, 2], elena: [1, 1], jake: [1, 1] }]),
-        action("tp-final-launch", "Launch the full program and let the pig become part of the brand.", "Profitable, unequal, and spiritually exhausting.", [4, -2, -4, { marcus: [-2, -3], elena: [-2, -2], nina: [-2, -3] }]),
-        action("tp-final-membership", "Create a premium truffle club and use the pig only for private members.", "Smart money, awkward optics, softer chaos.", [3, 0, -1, { marcus: [1, 1], jake: [1, 0], elena: [-1, -1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "silent-retreat-buyout",
-    category: "Concept Clash",
-    pressure: "High",
-    headline: "A mindfulness influencer bought half the dining room for a paid silent retreat, but normal dinner guests keep wandering into the zone",
-    body:
-      "The retreat guests expect whisperless enlightenment. The regular guests expect to ask for ranch without violating a vow.",
-    beats: [
-      beat("opening", "The room has been split into silence and normal humanity", "One side is meditating over tea. The other just asked whether the silent side is a cult.", "elena", "Marisol says Feast Haven can host weird, but not if nobody can tell which rules belong to which table.", [
-        action("sr-open-clear", "Mark the retreat section clearly and brief every arriving guest before seating.", "Organized, slightly awkward, and the least harmful way to explain paid silence.", [-1, 2, 3, { elena: [2, 3], devon: [1, 1] }]),
-        action("sr-open-soft", "Keep the vibe subtle and trust staff to redirect people quietly.", "Elegant until the fifth loud birthday greeting crosses the line.", [1, 0, -1, { elena: [0, 1], devon: [-1, -1], nina: [-1, -1] }]),
-        action("sr-open-enforce", "Treat the whole front half of the room as low-volume and ask normal guests to adapt.", "The retreat loves it. The rest of civilization does not.", [0, -2, -2, { elena: [1, 1], jake: [-1, -1], nina: [-1, -2] }]),
-        action("sr-open-upgrade", "Move the retreat into the better side of the room since they prepaid for the concept.", "Operationally neat, reputationally risky, and very visible.", [2, -1, -2, { elena: [-1, -2], marcus: [0, -1] }])
-      ]),
-      beat("floor", "A regular table keeps laughing loudly and the retreat host wants them removed", "The loud table says they bought dinner, not monastery probation.", "nina", "Celia says whoever you protect here becomes the brand promise for the night.", [
-        action("sr-floor-move-retreat", "Move the retreat deeper into privacy and absorb the inconvenience yourself.", "Fairer to the public, expensive to the premium buyers.", [-2, 1, 1, { nina: [1, 2], elena: [1, 1], marcus: [-1, -1] }]),
-        action("sr-floor-move-loud", "Move the loud table and explain the contracted environment.", "Defensible if done well, infuriating if done even slightly badly.", [0, -1, 0, { nina: [0, 1], devon: [-1, -1], elena: [-1, -1] }]),
-        action("sr-floor-balance", "Ask both sides for compromise and reset expectations equally.", "Adult and unsatisfying, which is often a sign it may be right.", [-1, 2, 2, { nina: [2, 2], devon: [1, 1] }]),
-        action("sr-floor-comp", "Offer enough comps that both sides stop arguing long enough to finish eating.", "Peace through cash works until someone asks whether silence now has a price tag.", [-4, 1, -1, { marcus: [-2, -2], nina: [0, 1] }])
-      ]),
-      beat("staff", "Staff are whispering so much that service speed is collapsing", "Parker says the retreat is now controlling speech patterns in parts of the room that were never sold.", "devon", "Parker wants clarity: are they serving a concept, or are they serving a dining room with lungs?", [
-        action("sr-staff-normal", "Tell staff to serve normally outside the retreat zone and stop overcompensating.", "Clear and healthy, though the retreat leader calls it spiritually disruptive.", [1, 1, 1, { devon: [2, 2], nina: [1, 1] }]),
-        action("sr-staff-whisper", "Keep staff whispering across the full floor to preserve the vibe.", "Aesthetic success. Operational disaster.", [0, -2, -2, { devon: [-2, -3], nina: [-2, -2], jake: [-1, -1] }]),
-        action("sr-staff-signal", "Use cards, gestures, and minimal speech in the retreat zone only.", "Smart, weird, and surprisingly effective if everyone commits.", [0, 2, 2, { devon: [1, 2], nina: [1, 2], elena: [1, 1] }]),
-        action("sr-staff-host", "Assign Parker solely to the retreat so the rest of the staff can work normally.", "Protective and a little unfair to your most adaptable employee.", [-1, 1, 1, { devon: [-1, -1], nina: [1, 1], jake: [1, 0] }])
-      ]),
-      beat("public", "A guest posts 'Feast Haven yelled at us for laughing near soup'", "The retreat host posts 'Feast Haven failed to hold sacred silence.' You are somehow losing both markets.", "jake", "Adrian says the statement cannot sound like you are embarrassed by either side existing.", [
-        action("sr-public-both", "Acknowledge both experiences and explain the room division more clearly than you did the first time.", "Balanced and painfully humble.", [-1, 2, 3, { jake: [1, 2], elena: [2, 2] }]),
-        action("sr-public-retreat", "Defend the retreat concept and frame the disruption as guest disrespect.", "Some admire the backbone. Others hear contempt for normal diners.", [1, -2, -2, { jake: [1, 0], nina: [-1, -2] }]),
-        action("sr-public-fun", "Defend the normal guests and gently mock paid silence as unrealistic in a restaurant.", "Funny, blunt, and a betrayal to a paying event host.", [2, -1, -3, { jake: [2, 1], elena: [-2, -2] }]),
-        action("sr-public-none", "Say nothing and handle the contracts privately.", "Quiet keeps the fire small if nobody else pours gasoline on it.", [0, 0, 1, { jake: [-1, 0], marcus: [1, 1] }])
-      ]),
-      beat("final", "The influencer wants to book a six-week silent dinner series", "The money is serious and so is the chance your staff mutinies into spoken word.", "marcus", "Omar says recurring concept nights only work if operations are built for them, not just bribed into surviving them.", [
-        action("sr-final-no", "Decline the series and keep the experiment a one-night story.", "You lose premium money and keep a coherent restaurant.", [-2, 2, 3, { marcus: [2, 3], devon: [2, 2], nina: [1, 1] }]),
-        action("sr-final-private", "Offer a private-room version only with hard boundaries and separate staffing.", "Contained, workable, and still high-maintenance.", [2, 1, 1, { marcus: [1, 1], devon: [1, 1], elena: [1, 1] }]),
-        action("sr-final-launch", "Launch the public series and rebrand one side of the room around it.", "Profitable, divisive, and built on the assumption that your staff enjoy whisper cardio.", [4, -2, -4, { marcus: [-2, -3], devon: [-2, -3], nina: [-2, -2] }]),
-        action("sr-final-membership", "Create a subscription supper club off-hours instead of mixing it with normal dinner.", "Strategic, slower, and annoyingly sensible.", [1, 2, 2, { marcus: [2, 2], elena: [1, 1], jake: [-1, 0] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "fake-prince-auction",
-    category: "Scam Spectacle",
-    pressure: "Extreme",
-    headline: "A man claiming to be a minor European prince is turning a public proposal into a paid auction for 'royal blessings' between courses",
-    body:
-      "Guests are bidding for proximity to the proposal. Nobody knows who invited him. He has business cards, a sash, and zero shame.",
-    beats: [
-      beat("opening", "The prince has monetized your dining room without asking", "Half the room thinks it is part of the show. The other half thinks Feast Haven hired a con artist in velvet.", "elena", "Marisol says the first move decides whether this is a disruption, a security issue, or a branded feature by default.", [
-        action("fp-open-remove", "Stop the auction immediately and verify who he is before he takes another dollar.", "Firm and correct, though the room hates having the story interrupted.", [0, 1, 3, { elena: [2, 3], devon: [1, 1] }]),
-        action("fp-open-observe", "Let it continue for a few minutes while you quietly gather facts and staff positions.", "Strategic, risky, and built on your belief that scams improve with patience.", [1, -1, -1, { elena: [-1, -1], devon: [0, 1], marcus: [1, 1] }]),
-        action("fp-open-redirect", "Take over the microphone and turn the energy back toward the couple before confronting him.", "Smooth if you land it, catastrophic if he refuses to yield.", [2, 1, 0, { jake: [2, 1], elena: [1, 1] }]),
-        action("fp-open-partner", "Publicly fold him into the moment for one minute to avoid a scene, then plan your exit.", "Short-term grace, long-term proof you legitimized nonsense.", [2, 0, -2, { jake: [1, 0], elena: [-1, -2] }])
-      ]),
-      beat("money", "Guests ask whether Feast Haven will honor the 'royal blessing receipts'", "Apparently the prince sold priority photos, cake slices, and one signed napkin.", "marcus", "Omar says the longer the payment confusion lives, the more it starts smelling like the house participated.", [
-        action("fp-money-void", "Announce clearly that Feast Haven did not authorize the sales and will not honor them.", "Legally clean, emotionally messy, and terrible for the people already holding napkins.", [0, -1, 3, { marcus: [2, 3], elena: [1, 1] }]),
-        action("fp-money-limited", "Honor only the smallest promises yourself to calm the room quickly.", "Fast relief and dangerous precedent.", [-3, 1, -1, { marcus: [-2, -2], devon: [1, 1] }]),
-        action("fp-money-refund", "Collect names and offer targeted recovery to the most misled guests after the fact.", "Measured, fair, and not instantly satisfying to anyone.", [-2, 1, 2, { marcus: [1, 2], devon: [1, 1] }]),
-        action("fp-money-blame", "Push all angry guests directly back toward the prince and keep Feast Haven at arm's length.", "Technically fair. Practically volcanic.", [1, -2, -3, { marcus: [0, 1], elena: [-2, -2] }])
-      ]),
-      beat("proposal", "The actual proposer now says the prince made the moment tacky beyond repair", "He still wants to propose tonight, but not inside a room that feels swindled.", "jake", "Adrian says the couple's recovery matters because the whole scam attached itself to their life event.", [
-        action("fp-proposal-private", "Move the proposal into a quieter private recovery moment and rebuild dignity first.", "Less grand, more human, and probably the right kind of boring.", [-2, 2, 3, { jake: [1, 2], devon: [1, 1] }]),
-        action("fp-proposal-public", "Help them reclaim the room publicly with a stripped-down real proposal.", "Can be beautiful. Can also feel like Act Two of the same chaos.", [2, 0, 0, { jake: [2, 1], elena: [1, 0] }]),
-        action("fp-proposal-delay", "Encourage the couple to postpone entirely and let the restaurant absorb the blame.", "Emotionally wise, commercially painful.", [-3, 2, 2, { jake: [-1, -1], devon: [2, 2] }]),
-        action("fp-proposal-compensate", "Offer a huge recovery package if they let Feast Haven restage the proposal another night.", "Strategic, expensive, and still a reminder that the first moment broke.", [-4, 1, 1, { marcus: [-1, -2], jake: [1, 1] }])
-      ]),
-      beat("public", "Guests are already posting side-by-side clips of the prince and your staff reacting", "The room wants a villain and a winner before dessert lands.", "nina", "Celia says the statement cannot sound like the restaurant is shocked by a scam it let rent space in real time.", [
-        action("fp-public-accountable", "Acknowledge the failure to stop unauthorized activity fast enough and explain the immediate fix.", "Responsible, unsexy, and credibility-building.", [-1, 2, 3, { nina: [2, 3], elena: [2, 2] }]),
-        action("fp-public-comedic", "Lean into the absurdity and call the prince 'self-appointed royalty.'", "It gets laughs and risks making the harmed guests part of the joke.", [2, -1, -1, { nina: [1, 1], jake: [1, 0], devon: [-1, -1] }]),
-        action("fp-public-legal", "Say as little as possible and prepare formal legal language.", "Safe, stiff, and socially bloodless.", [0, 0, 1, { nina: [-1, 0], marcus: [2, 2] }]),
-        action("fp-public-deflect", "Center the couple and refuse to discuss the prince at all.", "Emotionally graceful, strategically incomplete.", [1, 1, 0, { nina: [1, 1], jake: [1, 1], marcus: [-1, 0] }])
-      ]),
-      beat("final", "Security confirms the prince is just a local event grifter with excellent posture", "He offers to split tonight's take if Feast Haven books him for a monthly 'royal supper.'", "tasha", "Chef Renata says if the answer is yes, she is naming the next dish Betrayal Reduction.", [
-        action("fp-final-ban", "Ban him, refund what you reasonably can, and lock down event access rules.", "No glamour, no confusion, and no second date with a fraud.", [-2, 2, 4, { tasha: [2, 3], marcus: [2, 2], elena: [1, 1] }]),
-        action("fp-final-audit", "Do not book him, but study why the room was so vulnerable to him and rebuild the event process.", "Slower to satisfy, stronger for next week.", [-1, 2, 3, { marcus: [2, 3], devon: [1, 1], elena: [1, 1] }]),
-        action("fp-final-feature", "Book him for a controlled satire night and keep the money under your roof.", "Monetizes the lesson and stains the lesson.", [4, -2, -4, { tasha: [-2, -3], marcus: [-2, -2], nina: [-1, -2] }]),
-        action("fp-final-revenge", "Coordinate a public sting-style humiliation next time he appears.", "Satisfying movie logic. Bad management logic.", [2, -1, -3, { jake: [2, 1], elena: [-1, -2], marcus: [-1, -1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "ice-swan-blackout",
-    category: "Gala Collapse",
-    pressure: "Extreme",
-    headline: "A ten-foot ice swan for a donor gala is melting into the power strips while the lights flicker and the donor speeches are about to begin",
-    body:
-      "The sculpture cost too much, the floor is slick, and the event planner keeps saying 'we can still save the mood' like mood is waterproof.",
-    beats: [
-      beat("opening", "The swan is weeping onto the marble", "Guests still think it looks elegant. Staff know it looks electrical.", "marcus", "Omar says every second spent preserving beauty is a second spent gambling with infrastructure.", [
-        action("is-open-kill", "Kill power to the affected zone and move guests before the swan becomes a lawsuit.", "Safe, visible, and disastrous for ambiance.", [-2, 1, 3, { marcus: [2, 3], devon: [1, 1] }]),
-        action("is-open-mop", "Keep the gala moving while staff quietly control the melt and cables.", "Steady optics, fragile safety.", [2, 0, -2, { marcus: [-1, -2], devon: [-1, -1], elena: [0, 1] }]),
-        action("is-open-move-swan", "Try to move the swan intact before speeches begin.", "Heroic and exactly the kind of sentence that ends with someone slipping.", [1, -1, -3, { marcus: [-2, -2], luis: [-1, -1] }]),
-        action("is-open-own", "Pause the gala, explain the hazard, and visibly reset the room around safety first.", "Dignified if delivered well, humiliating if delivered badly.", [-1, 2, 2, { marcus: [1, 2], elena: [1, 2] }])
-      ]),
-      beat("donors", "The host donor insists the swan stays because it symbolizes resilience", "Another donor says the symbolism now feels more like drainage.", "elena", "Marisol says the room needs leadership, not interpretive ice poetry.", [
-        action("is-donor-override", "Override the host donor and remove the swan anyway.", "Strong, safe, and socially expensive.", [-1, 1, 2, { elena: [2, 3], marcus: [1, 1] }]),
-        action("is-donor-consensus", "Build quick donor consensus before acting so nobody feels singled out.", "Diplomatic and slower than water.", [0, 1, 0, { elena: [1, 1], devon: [1, 1], marcus: [-1, 0] }]),
-        action("is-donor-saveface", "Offer the donor a grand replacement centerpiece so the swan can disappear without losing face.", "Clever, costly, and often worth it.", [-3, 2, 2, { elena: [1, 2], jake: [1, 1] }]),
-        action("is-donor-surrender", "Let the swan stay through speeches and pray physics respects philanthropy.", "The speeches may survive. Your luck may not.", [2, -2, -4, { marcus: [-3, -3], elena: [-1, -2] }])
-      ]),
-      beat("kitchen", "The blackout risk now threatens hot holding and timing for plated courses", "Chef Renata says if the line loses power mid-push, your elegant gala becomes a room full of lukewarm regret.", "tasha", "Chef Renata wants a call that protects food safety before anyone starts describing soggy fish as artistic adversity.", [
-        action("is-kitchen-simplify", "Simplify the menu immediately so the kitchen can survive partial power and pacing changes.", "Smart, humbling, and likely to upset the event planner's brochure fantasies.", [-2, 2, 3, { tasha: [2, 3], luis: [1, 1], priya: [1, 1] }]),
-        action("is-kitchen-race", "Push the current menu out fast before power fails for real.", "Brave if you are lucky, devastating if you are not.", [3, -1, -2, { tasha: [-2, -3], luis: [-1, -2], priya: [-1, -2] }]),
-        action("is-kitchen-hold", "Pause service until facilities confirms the load is stable.", "Safe and brutally visible to hungry donors.", [-3, 1, 1, { tasha: [1, 2], marcus: [1, 1], jake: [-1, -1] }]),
-        action("is-kitchen-divert", "Move some finishing to backup stations and buy the line breathing room.", "Operationally solid and punishing on labor.", [-1, 1, 2, { tasha: [1, 1], luis: [-1, -1], priya: [1, 1] }])
-      ]),
-      beat("public", "Guests are posting the melting swan as metaphor and omen", "Now the gala needs a narrative, not just dry floor mats.", "jake", "Adrian says the room will forgive the problem faster than it forgives denial about the problem.", [
-        action("is-public-humor", "Use one calm joke, then pivot hard to how the evening is being cared for.", "Human and nimble, provided the joke lands above waterline.", [1, 1, 1, { jake: [2, 1], elena: [1, 1] }]),
-        action("is-public-honest", "Be plainly honest that the sculpture is being removed for safety and service integrity.", "Trustworthy, unglamorous, adult.", [-1, 2, 3, { jake: [1, 2], marcus: [1, 1] }]),
-        action("is-public-spin", "Call the melt intentional and part of a live art finale.", "Works only if every guest forgets how electricity functions.", [2, -2, -4, { jake: [1, 0], elena: [-2, -2] }]),
-        action("is-public-silent", "Say nothing and let the room infer what it wants.", "Silence is not a narrative. It is a vacancy.", [0, -1, -2, { jake: [-1, -2], elena: [-1, -1] }])
-      ]),
-      beat("final", "The donor asks whether Feast Haven should still host next year's gala", "Tonight can become proof of resilience or proof of fragile polish.", "devon", "Parker says your answer should promise fewer swans and more competence without sounding like panic in a blazer.", [
-        action("is-final-protocol", "Pitch a new event-safety protocol and own the lessons of tonight directly.", "Strong trust builder, weak instant ego salve.", [-1, 2, 4, { devon: [2, 3], marcus: [2, 2], elena: [1, 1] }]),
-        action("is-final-credit", "Offer a generous make-good package and hope the donor mostly remembers that.", "Costly, useful, and not a substitute for credibility.", [-4, 1, 1, { marcus: [-1, -2], devon: [1, 1] }]),
-        action("is-final-upscale", "Promise an even grander gala next year with bigger spectacle and upgraded tech.", "Ambitious, lucrative, and exactly how people end up with two swans.", [3, -1, -3, { marcus: [-1, -1], tasha: [-1, -2], elena: [1, 0] }]),
-        action("is-final-boutique", "Limit future galas to smaller, tighter events you can actually control well.", "Less flashy, more survivable, and a direct hit to scale.", [-2, 2, 2, { devon: [2, 2], tasha: [1, 1], marcus: [1, 1] }])
-      ])
-    ]
-  }),
-
-  makeEvent({
-    id: "casino-chip-tipping",
-    category: "Private Event Money",
-    pressure: "High",
-    headline: "A charity casino night started tipping staff with custom chips, and now nobody agrees whether those chips are real money, fake money, or a tax problem",
-    body:
-      "Servers have stacks of chips in their aprons, the host claims everything is redeemable, and Omar says the cash-out drawer suddenly feels cursed.",
-    beats: [
-      beat("opening", "The first chip hits the tray like a legal question", "Staff are excited because the tips look huge. Management is less excited because the chips say things like '$50 maybe.'", "marcus", "Omar says this can become either a morale win or an accounting horror story before entrees land.", [
-        action("cc-open-ban", "Ban chip tipping immediately until redemption is verified.", "Clean books, disappointed staff, safer tomorrow.", [-1, 1, 3, { marcus: [2, 3], nina: [-1, -1], jake: [-1, -1] }]),
-        action("cc-open-hold", "Let staff accept chips but log every one for later review.", "Orderly compromise with a side of administrative suffering.", [1, 1, 1, { marcus: [1, 2], nina: [1, 1], jake: [1, 1] }]),
-        action("cc-open-cash", "Cash the chips out internally tonight so staff feel protected right away.", "Great for morale and dangerous if the host is playing Monopoly with confidence.", [-4, 2, -1, { marcus: [-2, -2], nina: [2, 2], jake: [2, 2] }]),
-        action("cc-open-ignore", "Treat the chips like normal tips and deal with the math after service.", "Popular, sloppy, and one bad count from being tomorrow's panic.", [3, -1, -3, { marcus: [-3, -4], nina: [1, 1], jake: [1, 1] }])
-      ]),
-      beat("host", "The event host says the chips are charity-backed but gets weirdly vague when asked for paperwork", "He keeps saying 'the spirit of the thing is very liquid.'", "elena", "Marisol says vague rich-people confidence is not an accepted payment processor.", [
-        action("cc-host-paper", "Require immediate written redemption terms before the event continues.", "Awkward, correct, and not how hosts like to be managed mid-cocktail.", [0, 1, 3, { elena: [2, 3], marcus: [1, 1] }]),
-        action("cc-host-trust", "Trust the host verbally for tonight and preserve the event energy.", "Smooth in the moment, expensive if charisma turns out not to be currency.", [2, 0, -2, { elena: [0, 1], marcus: [-2, -2] }]),
-        action("cc-host-sponsor", "Call the charity sponsor directly and verify the chip pool through them.", "Smart, but it risks embarrassing the host and slowing the room.", [-1, 1, 2, { elena: [1, 2], marcus: [2, 2] }]),
-        action("cc-host-fee", "Offer to convert chips on-site for a handling fee and make the house the bank.", "Enterprising, dangerous, and one spreadsheet away from self-inflicted misery.", [3, -1, -4, { marcus: [-3, -4], elena: [-1, -2] }])
-      ]),
-      beat("staff", "Servers are now comparing chip hauls and getting territorial about tables", "What began as charity glamour is becoming casino labor politics.", "nina", "Celia says if management is fuzzy about value, staff will invent value and then defend it with feelings.", [
-        action("cc-staff-pool", "Pool all chip tips for the night and split them once redemption is real.", "Fair, calming, and not everyone's favorite interpretation of luck.", [-1, 2, 2, { nina: [2, 3], jake: [-1, -1], devon: [1, 1] }]),
-        action("cc-staff-holdings", "Let everyone keep their own chips but require a signed count sheet.", "Clear enough for paperwork, spiky enough for team trust.", [1, 0, 0, { nina: [-1, -1], jake: [1, 1], devon: [0, 1] }]),
-        action("cc-staff-cash", "Advance a partial guaranteed payout per server and reconcile later.", "Protective and financially brave in exactly the wrong direction.", [-4, 2, -1, { nina: [2, 2], jake: [2, 2], marcus: [-2, -2] }]),
-        action("cc-staff-delay", "Tell staff no tips are counted until tomorrow morning verification.", "Orderly and deeply unpopular after a flashy event.", [0, -1, 1, { nina: [-2, -2], jake: [-1, -1], marcus: [1, 2] }])
-      ]),
-      beat("fraud", "One stack of chips appears to be from a totally different event company", "Now the room might be generous, confused, or actively counterfeit-adjacent.", "devon", "Parker says the tone matters: if you accuse too fast, the room freezes. If you wait too long, the room gets smarter than you.", [
-        action("cc-fraud-freeze", "Freeze chip handling immediately and document everything in front of key witnesses.", "The energy dies and the facts survive.", [-2, 1, 3, { devon: [2, 3], marcus: [2, 2] }]),
-        action("cc-fraud-quiet", "Quietly isolate the suspicious chips and keep the rest of the event moving.", "Elegant if you are right, catastrophic if you are too subtle.", [1, 0, -1, { devon: [1, 1], marcus: [-1, -1] }]),
-        action("cc-fraud-host", "Confront the host privately and let him solve the optics before you do.", "Fastest route if he is honest, dumbest if he is not.", [1, -1, -2, { devon: [0, 1], elena: [-1, -1], marcus: [-1, -1] }]),
-        action("cc-fraud-public", "Call the problem out publicly and invite anyone holding chips to verify them now.", "Transparent, humiliating, and likely to dominate the event's memory.", [0, 0, 1, { devon: [1, 2], elena: [-1, -2], jake: [-1, -1] }])
-      ]),
-      beat("final", "The charity asks whether Feast Haven can host the casino night annually", "The event raised money, stressed accounting, and made everyone briefly wonder whether velvet chips count as wages.", "tasha", "Chef Renata says this is the rare problem where the food was not the issue and she would like to keep it that way.", [
-        action("cc-final-cashonly", "Agree to host again only with cashless verified digital tipping and written controls.", "Responsible and less glamorous than gamblers prefer.", [1, 2, 4, { marcus: [2, 3], nina: [1, 1], tasha: [1, 1] }]),
-        action("cc-final-private", "Agree only if the event stays fully private-room and operationally isolated.", "Manageable, profitable, and narrower than the client wants.", [2, 1, 1, { marcus: [1, 1], elena: [1, 1], devon: [1, 1] }]),
-        action("cc-final-launch", "Make casino night a signature recurring spectacle and optimize around the chaos.", "Big money, big mess, bigger audit vibes.", [4, -2, -4, { marcus: [-2, -3], nina: [-2, -2], devon: [-1, -1] }]),
-        action("cc-final-no", "Decline future casino events and protect the restaurant from fake-money theater.", "Cleaner life, smaller top line, better sleep.", [-2, 2, 2, { marcus: [2, 2], tasha: [1, 1], nina: [1, 1] }])
-      ])
-    ]
-  })
-];
-
-module.exports = NEXT_LEVEL_CHAOS_EVENTS;
+module.exports = FEAST_HAVEN_EVENTS;

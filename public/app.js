@@ -8,8 +8,23 @@ const state = {
       body: ""
     },
     marketPublishPopup: null,
-    selectedAvatarId: null
+    selectedAvatarId: null,
+    sabotageDraft: {
+      targetTeamId: "",
+      sabotageType: ""
+    },
+    sabotageInput: [],
+    sabotageRevealUntil: 0
   }
+};
+
+const SABOTAGE_SYMBOL_META = {
+  cloche: { label: "Cloche" },
+  bell: { label: "Bell" },
+  glass: { label: "Glass" },
+  fork: { label: "Fork" },
+  knife: { label: "Knife" },
+  flame: { label: "Flame" }
 };
 
 const STAFF_DIRECTORY = {
@@ -211,6 +226,7 @@ if (refs.predictionMarketList) {
 }
 refs.teacherControls.addEventListener("click", handleTeacherControlsClick);
 refs.studentRoundPanel.addEventListener("click", handleStudentRoundClick);
+refs.studentRoundPanel.addEventListener("change", handleStudentRoundChange);
 refs.studentRoster.addEventListener("click", handleStudentRosterClick);
 refs.studentRoster.addEventListener("submit", handleStudentRosterSubmit);
 
@@ -231,6 +247,7 @@ async function bootstrap(showErrors = true) {
     state.data = await response.json();
     syncScenarioDraft();
     syncAvatarSelection();
+    syncSabotageState();
     render();
   } catch (error) {
     if (showErrors) {
@@ -280,6 +297,38 @@ function syncAvatarSelection() {
 
   if (refs.studentAvatarInput) {
     refs.studentAvatarInput.value = state.ui.selectedAvatarId || "";
+  }
+}
+
+function syncSabotageState() {
+  const sabotage = state.data?.currentRound?.sabotage;
+  if (!sabotage) {
+    state.ui.sabotageDraft.targetTeamId = "";
+    state.ui.sabotageDraft.sabotageType = "";
+    state.ui.sabotageInput = [];
+    state.ui.sabotageRevealUntil = 0;
+    return;
+  }
+
+  const targetStillExists = sabotage.availableTargets?.some((team) => team.id === state.ui.sabotageDraft.targetTeamId);
+  if (!targetStillExists) {
+    state.ui.sabotageDraft.targetTeamId = sabotage.availableTargets?.[0]?.id || "";
+  }
+
+  const typeStillExists = sabotage.sabotageTypes?.some((type) => type.id === state.ui.sabotageDraft.sabotageType);
+  if (!typeStillExists) {
+    state.ui.sabotageDraft.sabotageType = sabotage.sabotageTypes?.[0]?.id || "";
+  }
+
+  if (sabotage.outgoing?.status !== "pending") {
+    state.ui.sabotageInput = [];
+    state.ui.sabotageRevealUntil = 0;
+    return;
+  }
+
+  const challengeLength = sabotage.outgoing?.challenge?.sequence?.length || 0;
+  if (state.ui.sabotageInput.length > challengeLength) {
+    state.ui.sabotageInput = state.ui.sabotageInput.slice(0, challengeLength);
   }
 }
 
@@ -476,6 +525,62 @@ async function handlePredictionMarketListClick(event) {
 }
 
 async function handleStudentRoundClick(event) {
+  const startButton = event.target.closest("button[data-sabotage-start]");
+  if (startButton) {
+    await postJson("/api/team-sabotage/start", {
+      targetTeamId: state.ui.sabotageDraft.targetTeamId,
+      sabotageType: state.ui.sabotageDraft.sabotageType
+    });
+    return;
+  }
+
+  const typeButton = event.target.closest("button[data-sabotage-type]");
+  if (typeButton) {
+    state.ui.sabotageDraft.sabotageType = String(typeButton.dataset.sabotageType || "");
+    render();
+    return;
+  }
+
+  const revealButton = event.target.closest("button[data-sabotage-reveal]");
+  if (revealButton) {
+    const sabotage = state.data?.currentRound?.sabotage;
+    const revealMs = Number(sabotage?.outgoing?.challenge?.revealMs || 4500);
+    state.ui.sabotageRevealUntil = Date.now() + revealMs;
+    render();
+    window.setTimeout(() => {
+      if (Date.now() >= state.ui.sabotageRevealUntil) {
+        render();
+      }
+    }, revealMs + 50);
+    return;
+  }
+
+  const symbolButton = event.target.closest("button[data-sabotage-symbol]");
+  if (symbolButton) {
+    const sabotage = state.data?.currentRound?.sabotage;
+    const expectedLength = sabotage?.outgoing?.challenge?.sequence?.length || 0;
+    if (expectedLength && state.ui.sabotageInput.length < expectedLength) {
+      state.ui.sabotageInput = [...state.ui.sabotageInput, String(symbolButton.dataset.sabotageSymbol || "")];
+      render();
+    }
+    return;
+  }
+
+  const clearButton = event.target.closest("button[data-sabotage-clear]");
+  if (clearButton) {
+    state.ui.sabotageInput = [];
+    render();
+    return;
+  }
+
+  const submitSabotageButton = event.target.closest("button[data-sabotage-submit]");
+  if (submitSabotageButton) {
+    await postJson("/api/team-sabotage/resolve", {
+      sequence: state.ui.sabotageInput
+    });
+    return;
+  }
+
   const button = event.target.closest("button[data-option-id]");
   if (!button) {
     return;
@@ -484,6 +589,14 @@ async function handleStudentRoundClick(event) {
   await postJson("/api/respond", {
     optionId: button.dataset.optionId
   });
+}
+
+function handleStudentRoundChange(event) {
+  const targetSelect = event.target.closest("select[data-sabotage-target]");
+  if (targetSelect) {
+    state.ui.sabotageDraft.targetTeamId = String(targetSelect.value || "");
+    render();
+  }
 }
 
 async function handleStudentRosterClick(event) {
@@ -555,6 +668,7 @@ async function postJson(url, payload) {
     if (data && typeof data === "object" && "game" in data) {
       state.data = data;
       syncScenarioDraft();
+      syncSabotageState();
       render();
     } else {
       await bootstrap(false);
@@ -673,7 +787,7 @@ function renderMarketStatus() {
       <p class="note">
         ${game.isOpen
           ? currentRound
-            ? "All four teams are working the same live event, but each shared restaurant can branch differently based on team choices."
+            ? "All six teams are working the same live event, but each shared restaurant can branch differently based on team choices."
             : "Session is open. Launch a global event when you want every team to start the next chain."
           : "Open the class session before teams can start making management decisions."}
       </p>
@@ -763,7 +877,7 @@ function renderStudentView() {
         <div class="mini-stat"><span>Manager Style</span><strong>${escapeHtml(user.managerProfile.title)}</strong></div>
       </div>
     </div>
-    <p class="note">${escapeHtml(`${user.managerProfile.summary} Current tier: ${user.scoreTier.label}. Your role loadout is there to guide discussion, but the live turn owner locks in each step.`)}</p>
+    <p class="note">${escapeHtml(`${user.managerProfile.summary} Current tier: ${user.scoreTier.label}. Your role loadout is there to guide discussion, and short-handed teams rotate any double-role burden from round to round.`)}</p>
     ${
       user.warnings.length
         ? `<div class="warning-list">${user.warnings.map((warning) => `<div class="warning-chip">${escapeHtml(warning)}</div>`).join("")}</div>`
@@ -822,11 +936,13 @@ function renderStudentRoundPanel() {
   const stepLabel = studentCase ? `Step ${studentCase.stepIndex} of ${studentCase.totalSteps}` : "";
   const eventOverview = renderCaseEventOverview(currentRound, studentCase);
   const caseTimeline = renderCaseTimeline(studentCase);
+  const sabotagePanel = renderSabotagePanel(currentRound.sabotage, user);
 
   if (user.isEliminated) {
     return `
       <div class="case-chain-layout">
         ${currentRound ? eventOverview : ""}
+        ${sabotagePanel}
         <article class="decision-card case-step-card loss-card">
           <div class="section-head compact">
           <p class="eyebrow">Restaurant Eliminated</p>
@@ -853,6 +969,7 @@ function renderStudentRoundPanel() {
     return `
       <div class="case-chain-layout">
         ${eventOverview}
+        ${sabotagePanel}
         <article class="decision-card case-step-card">
           <div class="section-head compact">
             <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)} · Event Complete</p>
@@ -893,6 +1010,7 @@ function renderStudentRoundPanel() {
     return `
       <div class="case-chain-layout">
         ${eventOverview}
+        ${sabotagePanel}
         <article class="decision-card case-step-card">
           <div class="section-head compact">
             <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)} · ${stepLabel}</p>
@@ -929,6 +1047,7 @@ function renderStudentRoundPanel() {
     return `
       <div class="case-chain-layout">
         ${eventOverview}
+        ${sabotagePanel}
         <article class="decision-card case-step-card">
           <div class="section-head compact">
             <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)} · ${stepLabel}</p>
@@ -1607,7 +1726,7 @@ function renderAdminTeamBoard(teams, currentRound) {
       <div class="section-head compact">
         <div>
           <p class="eyebrow">Restaurant Teams</p>
-          <h3>Four restaurants, five seats each</h3>
+          <h3>Six restaurants, four seats each</h3>
         </div>
       </div>
       <div class="team-ops-grid">
@@ -1619,6 +1738,7 @@ function renderAdminTeamBoard(teams, currentRound) {
 
 function renderAdminTeamCard(team, currentRound) {
   const liveCase = team.currentCase;
+  const sabotageState = team.sabotageState;
   const statusTone = team.currentResponse
     ? "pill-open"
     : liveCase
@@ -1632,7 +1752,7 @@ function renderAdminTeamCard(team, currentRound) {
       <div class="team-ops-header">
         <div>
           <span class="eyebrow">${escapeHtml(team.name)}</span>
-          <h4>${team.memberCount}/5 seats filled</h4>
+          <h4>${team.memberCount}/4 seats filled</h4>
         </div>
         <span class="pill ${statusTone}">${escapeHtml(team.progressLabel || "Waiting")}</span>
       </div>
@@ -1671,7 +1791,35 @@ function renderAdminTeamCard(team, currentRound) {
             `
           : currentRound && team.memberCount
             ? `<p class="note">This team is waiting for its live case to load.</p>`
-            : `<p class="note">${team.memberCount ? "Roles and extra steps randomize when the next global event launches." : "Seats stay open until players join this restaurant."}</p>`
+            : `<p class="note">${team.memberCount ? "Roles and any extra step pressure rotate each event, so short-handed teams share the burden over time." : "Seats stay open until players join this restaurant."}</p>`
+      }
+      ${
+        sabotageState
+          ? `
+              <div class="note">
+                Covert lead: <strong>${escapeHtml(sabotageState.operatorName || "Open seat")}</strong>
+              </div>
+              <div class="note">
+                Covert ops:
+                <strong>${
+                  sabotageState.outgoing
+                    ? escapeHtml(
+                        sabotageState.outgoing.status === "pending"
+                          ? `Attempt live on ${sabotageState.outgoing.targetTeamName}`
+                          : sabotageState.outgoing.status === "success"
+                            ? `Hit ${sabotageState.outgoing.targetTeamName}`
+                            : `Caught targeting ${sabotageState.outgoing.targetTeamName}`
+                      )
+                    : "Unused"
+                }</strong>
+                ${
+                  sabotageState.incoming?.length
+                    ? `<span> · Targeted ${sabotageState.incoming.length} time${sabotageState.incoming.length === 1 ? "" : "s"}</span>`
+                    : ""
+                }
+              </div>
+            `
+          : ""
       }
       ${
         team.roleLoadouts?.length
@@ -1990,6 +2138,156 @@ function renderImpactSummary(impact, label) {
         <div class="impact-chip ${impact.reputationDelta >= 0 ? "positive" : "negative"}">Reputation ${formatSigned(impact.reputationDelta)}</div>
       </div>
     </div>
+  `;
+}
+
+function getSabotageSymbolLabel(symbol) {
+  return SABOTAGE_SYMBOL_META[symbol]?.label || String(symbol || "").toUpperCase();
+}
+
+function isSabotageSequenceVisible() {
+  return Number(state.ui.sabotageRevealUntil || 0) > Date.now();
+}
+
+function renderSabotagePanel(sabotage, user) {
+  if (!sabotage) {
+    return "";
+  }
+
+  const incomingNotices = (sabotage.incoming || [])
+    .map(
+      (attempt) => `
+        <div class="sabotage-alert sabotage-alert-danger">
+          <strong>Incoming sabotage from ${escapeHtml(attempt.attackerTeamName)}</strong>
+          <span>${escapeHtml(attempt.outcomeNote || `${attempt.sabotageLabel} landed against your restaurant.`)}</span>
+        </div>
+      `
+    )
+    .join("");
+
+  if (sabotage.outgoing?.status === "success" || sabotage.outgoing?.status === "failed") {
+    return `
+      <article class="decision-card sabotage-card">
+        <div class="section-head compact">
+          <p class="eyebrow">Covert Ops</p>
+          <h3>${sabotage.outgoing.status === "success" ? "Sabotage Landed" : "Sabotage Failed"}</h3>
+        </div>
+        ${incomingNotices}
+        <div class="choice-lockup">
+          <span class="choice-pill">${escapeHtml(sabotage.outgoing.sabotageLabel)}</span>
+          <span class="choice-pill">${escapeHtml(sabotage.outgoing.targetTeamName)}</span>
+        </div>
+        <p>${escapeHtml(sabotage.outgoing.outcomeNote || sabotage.outgoing.sabotageSummary)}</p>
+        <p class="note">Each restaurant only gets one sabotage attempt per live event.</p>
+      </article>
+    `;
+  }
+
+  if (sabotage.outgoing?.status === "pending" && sabotage.outgoing.challenge) {
+    const challenge = sabotage.outgoing.challenge;
+    const visible = isSabotageSequenceVisible();
+    const expectedLength = challenge.sequence.length;
+
+    return `
+      <article class="decision-card sabotage-card sabotage-card-live">
+        <div class="section-head compact">
+          <p class="eyebrow">Covert Ops</p>
+          <h3>Mini-Game: Memory Sweep</h3>
+        </div>
+        ${incomingNotices}
+        <div class="relationship-callout">
+          <strong>Assigned covert ops lead</strong>
+          <span>${
+            sabotage.isOperator
+              ? "This round belongs to you. Beat the mini-game and the sabotage lands."
+              : `${escapeHtml(sabotage.operatorName || "A teammate")} is the only player who can finish this covert action this round.`
+          }</span>
+        </div>
+        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}. Memorize the sweep code, then tap it back exactly. Miss it and your own restaurant gets caught.`)}</p>
+        <div class="sabotage-sequence">
+          ${(visible ? challenge.sequence : Array.from({ length: expectedLength }, () => "hidden"))
+            .map((symbol) => `
+              <span class="sabotage-sequence-chip ${symbol === "hidden" ? "is-hidden" : ""}">
+                ${escapeHtml(symbol === "hidden" ? "?" : getSabotageSymbolLabel(symbol))}
+              </span>
+            `)
+            .join("")}
+        </div>
+        <div class="action-row">
+          <button class="secondary" type="button" data-sabotage-reveal ${sabotage.canResolve ? "" : "disabled"}>${visible ? "Code Live" : "Reveal Code"}</button>
+          <button class="subtle" type="button" data-sabotage-clear ${sabotage.canResolve && state.ui.sabotageInput.length ? "" : "disabled"}>Clear Attempt</button>
+        </div>
+        <div class="sabotage-input-row">
+          ${Array.from({ length: expectedLength }, (_, index) => `
+            <span class="sabotage-input-chip ${state.ui.sabotageInput[index] ? "is-filled" : ""}">
+              ${escapeHtml(state.ui.sabotageInput[index] ? getSabotageSymbolLabel(state.ui.sabotageInput[index]) : "Waiting")}
+            </span>
+          `).join("")}
+        </div>
+        <div class="sabotage-symbol-grid">
+          ${challenge.symbolPool.map((symbol) => `
+            <button class="option-button sabotage-symbol-button" type="button" data-sabotage-symbol="${escapeHtml(symbol)}" ${sabotage.canResolve && state.ui.sabotageInput.length < expectedLength ? "" : "disabled"}>
+              <span class="option-label">${escapeHtml(getSabotageSymbolLabel(symbol))}</span>
+              <span class="option-meta">Add to code</span>
+            </button>
+          `).join("")}
+        </div>
+        <div class="action-row">
+          <button class="danger-button" type="button" data-sabotage-submit ${sabotage.canResolve && state.ui.sabotageInput.length === expectedLength ? "" : "disabled"}>Resolve Sabotage</button>
+        </div>
+        <p class="note">${escapeHtml(`${user.team?.name || "Your restaurant"} can only submit one full code attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats.`)}</p>
+      </article>
+    `;
+  }
+
+  return `
+    <article class="decision-card sabotage-card">
+      <div class="section-head compact">
+        <p class="eyebrow">Covert Ops</p>
+        <h3>Sabotage Window</h3>
+      </div>
+      ${incomingNotices}
+      <div class="relationship-callout">
+        <strong>Rotating covert ops lead</strong>
+        <span>${
+          sabotage.isOperator
+            ? "This round’s sabotage attempt belongs to you."
+            : `${escapeHtml(sabotage.operatorName || "A teammate")} is up for covert ops on this event.`
+        }</span>
+      </div>
+      <p>Every team gets one covert move per live event. Pick a rival, choose the kind of disruption, then beat the mini-game to make it stick.</p>
+      <label class="stack sabotage-select-block">
+        <span>Target Restaurant</span>
+        <select data-sabotage-target ${sabotage.canStart ? "" : "disabled"}>
+          ${(sabotage.availableTargets || [])
+            .map((team) => `
+              <option value="${escapeHtml(team.id)}" ${team.id === state.ui.sabotageDraft.targetTeamId ? "selected" : ""}>
+                ${escapeHtml(team.name)}
+              </option>
+            `)
+            .join("")}
+        </select>
+      </label>
+      <div class="sabotage-type-grid">
+        ${(sabotage.sabotageTypes || [])
+          .map((type) => `
+            <button
+              class="option-button sabotage-type-button ${type.id === state.ui.sabotageDraft.sabotageType ? "is-selected" : ""}"
+              type="button"
+              data-sabotage-type="${escapeHtml(type.id)}"
+              ${sabotage.canStart ? "" : "disabled"}
+            >
+              <span class="option-label">${escapeHtml(type.label)}</span>
+              <span class="option-meta">${escapeHtml(type.summary)}</span>
+            </button>
+          `)
+          .join("")}
+      </div>
+      <div class="action-row">
+        <button class="danger-button" type="button" data-sabotage-start ${sabotage.canStart ? "" : "disabled"}>Start Sabotage Mini-Game</button>
+      </div>
+      <p class="note">If your team wins the mini-game, the rival takes the hit. If you miss it, your own restaurant gets caught and penalized.</p>
+    </article>
   `;
 }
 
