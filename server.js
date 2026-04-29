@@ -70,6 +70,7 @@ const TEAM_ROLE_DEFINITIONS = [
 const TEAM_LOOKUP = Object.fromEntries(TEAM_DEFINITIONS.map((team) => [team.id, team]));
 const SABOTAGE_SYMBOL_POOL = ["cloche", "bell", "glass", "fork", "knife", "flame"];
 const SABOTAGE_REVEAL_MS = 4500;
+const SABOTAGE_COUNT_CHOICES = ["1", "2", "3", "4", "5", "6"];
 const SABOTAGE_TYPE_DEFINITIONS = {
   "reservation-spoof": {
     id: "reservation-spoof",
@@ -150,6 +151,145 @@ const SABOTAGE_TYPE_DEFINITIONS = {
     }
   }
 };
+
+function shuffleList(values) {
+  const copy = Array.isArray(values) ? values.slice() : [];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = crypto.randomInt(0, index + 1);
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function randomSymbol(exclusions = []) {
+  const blocked = new Set(exclusions);
+  const pool = SABOTAGE_SYMBOL_POOL.filter((symbol) => !blocked.has(symbol));
+  return pool[crypto.randomInt(0, pool.length)];
+}
+
+function randomUniqueSymbols(count, exclusions = []) {
+  const blocked = new Set(exclusions);
+  const pool = shuffleList(SABOTAGE_SYMBOL_POOL.filter((symbol) => !blocked.has(symbol)));
+  return pool.slice(0, count);
+}
+
+function buildMemorySweepChallenge() {
+  const displaySequence = Array.from(
+    { length: 5 },
+    () => SABOTAGE_SYMBOL_POOL[crypto.randomInt(0, SABOTAGE_SYMBOL_POOL.length)]
+  );
+  return {
+    gameId: "memory-sweep",
+    gameLabel: "Memory Sweep",
+    prompt: "Memorize the covert code, then tap it back exactly.",
+    symbolPool: SABOTAGE_SYMBOL_POOL,
+    displaySequence,
+    answerSequence: displaySequence,
+    revealMs: SABOTAGE_REVEAL_MS
+  };
+}
+
+function buildReverseRelayChallenge() {
+  const displaySequence = Array.from(
+    { length: 5 },
+    () => SABOTAGE_SYMBOL_POOL[crypto.randomInt(0, SABOTAGE_SYMBOL_POOL.length)]
+  );
+  return {
+    gameId: "reverse-relay",
+    gameLabel: "Reverse Relay",
+    prompt: "Memorize the code, then enter it in reverse order.",
+    symbolPool: SABOTAGE_SYMBOL_POOL,
+    displaySequence,
+    answerSequence: displaySequence.slice().reverse(),
+    revealMs: SABOTAGE_REVEAL_MS
+  };
+}
+
+function buildCountLockChallenge() {
+  const targetSymbol = randomSymbol();
+  const targetCount = crypto.randomInt(2, 6);
+  const fillerPool = SABOTAGE_SYMBOL_POOL.filter((symbol) => symbol !== targetSymbol);
+  const displayGrid = shuffleList([
+    ...Array.from({ length: targetCount }, () => targetSymbol),
+    ...Array.from({ length: 12 - targetCount }, () => fillerPool[crypto.randomInt(0, fillerPool.length)])
+  ]);
+  const options = shuffleList(
+    Array.from(
+      new Set([
+        String(targetCount),
+        String(Math.max(1, targetCount - 1)),
+        String(Math.min(6, targetCount + 1)),
+        SABOTAGE_COUNT_CHOICES.find((value) => ![String(targetCount), String(Math.max(1, targetCount - 1)), String(Math.min(6, targetCount + 1))].includes(value)) || "6"
+      ])
+    )
+  ).slice(0, 4);
+
+  return {
+    gameId: "count-lock",
+    gameLabel: "Count Lock",
+    prompt: `Count how many ${targetSymbol} symbols appear in the sweep.`,
+    symbolPool: SABOTAGE_SYMBOL_POOL,
+    targetSymbol,
+    displayGrid,
+    options,
+    answerSequence: [String(targetCount)],
+    revealMs: 0
+  };
+}
+
+function buildIntruderChallenge() {
+  const oddSymbol = randomSymbol();
+  const repeatedSymbol = randomSymbol([oddSymbol]);
+  const fillerSymbols = randomUniqueSymbols(2, [oddSymbol, repeatedSymbol]);
+  const displayGrid = shuffleList([
+    oddSymbol,
+    repeatedSymbol,
+    repeatedSymbol,
+    repeatedSymbol,
+    fillerSymbols[0],
+    fillerSymbols[0],
+    fillerSymbols[1],
+    fillerSymbols[1]
+  ]);
+  const options = shuffleList([oddSymbol, repeatedSymbol, ...fillerSymbols]);
+
+  return {
+    gameId: "spot-the-intruder",
+    gameLabel: "Spot The Intruder",
+    prompt: "One symbol only appears once. Pick the intruder before the trace closes.",
+    symbolPool: SABOTAGE_SYMBOL_POOL,
+    displayGrid,
+    options,
+    answerSequence: [oddSymbol],
+    revealMs: 0
+  };
+}
+
+function buildPatternPulseChallenge() {
+  const pattern = randomUniqueSymbols(3);
+  const displaySequence = Array.from({ length: 5 }, (_, index) => pattern[index % pattern.length]);
+  const nextSymbol = pattern[displaySequence.length % pattern.length];
+  const options = shuffleList([nextSymbol, ...randomUniqueSymbols(3, [nextSymbol])]);
+
+  return {
+    gameId: "pattern-pulse",
+    gameLabel: "Pattern Pulse",
+    prompt: "Read the repeating signal and choose the next symbol in the pattern.",
+    symbolPool: SABOTAGE_SYMBOL_POOL,
+    displaySequence,
+    options,
+    answerSequence: [nextSymbol],
+    revealMs: 0
+  };
+}
+
+const SABOTAGE_CHALLENGE_BUILDERS = [
+  buildMemorySweepChallenge,
+  buildReverseRelayChallenge,
+  buildCountLockChallenge,
+  buildIntruderChallenge,
+  buildPatternPulseChallenge
+];
 const PREDICTION_MARKET_START_CASH = 40;
 const PREDICTION_MARKET_SEED_LIQUIDITY = 120;
 const PREDICTION_MARKET_TIMEZONE = process.env.PREDICTION_MARKET_TIMEZONE || "America/Detroit";
@@ -6801,11 +6941,8 @@ function listRoundSabotageAttempts(roundId) {
 }
 
 function buildSabotageChallenge() {
-  return {
-    symbolPool: SABOTAGE_SYMBOL_POOL,
-    sequence: Array.from({ length: 5 }, () => SABOTAGE_SYMBOL_POOL[crypto.randomInt(0, SABOTAGE_SYMBOL_POOL.length)]),
-    revealMs: SABOTAGE_REVEAL_MS
-  };
+  const builder = SABOTAGE_CHALLENGE_BUILDERS[crypto.randomInt(0, SABOTAGE_CHALLENGE_BUILDERS.length)];
+  return builder();
 }
 
 function getTeamSabotageOperator(teamId, round) {
@@ -6852,6 +6989,17 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
   const challenge = parseJsonValue(row.challenge_json, {});
   const submittedSequence = parseJsonValue(row.submitted_sequence_json, []);
   const includeChallenge = row.status === "pending" && viewerTeamId === row.attacker_team_id;
+  const resolvedImpact = row.status === "success"
+    ? meta.success
+    : row.status === "failed"
+      ? meta.failure
+      : null;
+  const impactedTeamId = row.status === "success"
+    ? row.target_team_id
+    : row.status === "failed"
+      ? row.attacker_team_id
+      : null;
+  const impactedTeamName = impactedTeamId ? getTeamMeta(impactedTeamId)?.name || "Restaurant Team" : null;
 
   return {
     id: row.id,
@@ -6867,14 +7015,31 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
     sabotageSummary: meta.summary,
     status: row.status,
     outcomeNote: row.outcome_note || "",
+    resolvedImpact: resolvedImpact
+      ? {
+          salesDelta: Number(resolvedImpact.sales || 0),
+          satisfactionDelta: Number(resolvedImpact.satisfaction || 0),
+          reputationDelta: Number(resolvedImpact.reputation || 0)
+        }
+      : null,
+    impactedTeamId,
+    impactedTeamName,
+    viewerWasImpacted: Boolean(viewerTeamId && impactedTeamId && viewerTeamId === impactedTeamId),
     createdAt: row.created_at,
     resolvedAt: row.resolved_at || null,
     submittedSequence,
     challenge: includeChallenge
       ? {
+          gameId: challenge.gameId || "memory-sweep",
+          gameLabel: challenge.gameLabel || "Memory Sweep",
+          prompt: challenge.prompt || "Beat the covert challenge before security catches your trail.",
           symbolPool: Array.isArray(challenge.symbolPool) && challenge.symbolPool.length ? challenge.symbolPool : SABOTAGE_SYMBOL_POOL,
-          sequence: Array.isArray(challenge.sequence) ? challenge.sequence : [],
-          revealMs: Number(challenge.revealMs || SABOTAGE_REVEAL_MS)
+          displaySequence: Array.isArray(challenge.displaySequence) ? challenge.displaySequence : [],
+          displayGrid: Array.isArray(challenge.displayGrid) ? challenge.displayGrid : [],
+          targetSymbol: challenge.targetSymbol || null,
+          options: Array.isArray(challenge.options) ? challenge.options : [],
+          revealMs: Number(challenge.revealMs || SABOTAGE_REVEAL_MS),
+          answerLength: Array.isArray(challenge.answerSequence) ? challenge.answerSequence.length : 0
         }
       : null
   };
@@ -8050,7 +8215,7 @@ function resolveTeamSabotage(userId, submittedSequence) {
   }
 
   const challenge = parseJsonValue(attempt.challenge_json, {});
-  const expectedSequence = Array.isArray(challenge.sequence) ? challenge.sequence : [];
+  const expectedSequence = Array.isArray(challenge.answerSequence) ? challenge.answerSequence : [];
   const cleanSubmitted = Array.isArray(submittedSequence)
     ? submittedSequence.map((entry) => String(entry || "").trim()).filter(Boolean)
     : [];

@@ -10,6 +10,8 @@ const state = {
     marketPublishPopup: null,
     sabotageCaughtPopup: null,
     seenSabotageBroadcastIds: [],
+    seenSabotageOutcomeKeys: [],
+    toastQueue: [],
     selectedAvatarId: null,
     sabotageDraft: {
       targetTeamId: "",
@@ -275,6 +277,7 @@ async function bootstrap(showErrors = true) {
     syncAvatarSelection();
     syncSabotageState();
     syncSabotageBroadcast();
+    syncSabotageOutcomeNotices();
     render();
   } catch (error) {
     if (showErrors) {
@@ -350,12 +353,11 @@ function syncSabotageState() {
   if (sabotage.outgoing?.status !== "pending") {
     state.ui.sabotageInput = [];
     state.ui.sabotageRevealUntil = 0;
-    return;
-  }
-
-  const challengeLength = sabotage.outgoing?.challenge?.sequence?.length || 0;
-  if (state.ui.sabotageInput.length > challengeLength) {
-    state.ui.sabotageInput = state.ui.sabotageInput.slice(0, challengeLength);
+  } else {
+    const challengeLength = getSabotageExpectedLength(sabotage.outgoing?.challenge);
+    if (state.ui.sabotageInput.length > challengeLength) {
+      state.ui.sabotageInput = state.ui.sabotageInput.slice(0, challengeLength);
+    }
   }
 }
 
@@ -371,6 +373,47 @@ function syncSabotageBroadcast() {
 
   state.ui.seenSabotageBroadcastIds = [...state.ui.seenSabotageBroadcastIds, broadcast.id].slice(-12);
   state.ui.sabotageCaughtPopup = broadcast;
+}
+
+function syncSabotageOutcomeNotices() {
+  const sabotage = state.data?.currentRound?.sabotage;
+  if (!sabotage) {
+    return;
+  }
+
+  const notices = [];
+  if (sabotage.outgoing?.resolvedAt && (sabotage.outgoing.status === "success" || sabotage.outgoing.status === "failed")) {
+    notices.push({ key: `outgoing:${sabotage.outgoing.id}`, attempt: sabotage.outgoing, direction: "outgoing" });
+  }
+  (sabotage.incoming || [])
+    .filter((attempt) => attempt.resolvedAt && attempt.status === "success")
+    .forEach((attempt) => {
+      notices.push({ key: `incoming:${attempt.id}`, attempt, direction: "incoming" });
+    });
+
+  notices.forEach((notice) => {
+    if (state.ui.seenSabotageOutcomeKeys.includes(notice.key)) {
+      return;
+    }
+    state.ui.seenSabotageOutcomeKeys = [...state.ui.seenSabotageOutcomeKeys, notice.key].slice(-24);
+    showToast(buildSabotageOutcomeToast(notice.attempt, notice.direction));
+  });
+}
+
+function buildSabotageOutcomeToast(attempt, direction) {
+  const salesDelta = Number(attempt?.resolvedImpact?.salesDelta || 0);
+  const amount = `$${Math.abs(Math.round(salesDelta)).toLocaleString()}k`;
+  const gainOrLoss = salesDelta >= 0 ? "gained" : "lost";
+
+  if (direction === "incoming") {
+    return `${attempt.attackerTeamName} sabotaged your team. You ${gainOrLoss} ${amount} in revenue.`;
+  }
+
+  if (attempt.status === "success") {
+    return `Sabotage landed on ${attempt.targetTeamName}. They ${gainOrLoss} ${amount} in revenue.`;
+  }
+
+  return `Sabotage failed. Your team ${gainOrLoss} ${amount} in revenue and got exposed.`;
 }
 
 function setAuthPending(isPending) {
@@ -603,11 +646,18 @@ async function handleStudentRoundClick(event) {
   const symbolButton = event.target.closest("button[data-sabotage-symbol]");
   if (symbolButton) {
     const sabotage = state.data?.currentRound?.sabotage;
-    const expectedLength = sabotage?.outgoing?.challenge?.sequence?.length || 0;
+    const expectedLength = getSabotageExpectedLength(sabotage?.outgoing?.challenge);
     if (expectedLength && state.ui.sabotageInput.length < expectedLength) {
       state.ui.sabotageInput = [...state.ui.sabotageInput, String(symbolButton.dataset.sabotageSymbol || "")];
       render();
     }
+    return;
+  }
+
+  const choiceButton = event.target.closest("button[data-sabotage-choice]");
+  if (choiceButton) {
+    state.ui.sabotageInput = [String(choiceButton.dataset.sabotageChoice || "")];
+    render();
     return;
   }
 
@@ -2215,20 +2265,144 @@ function isSabotageSequenceVisible() {
   return Number(state.ui.sabotageRevealUntil || 0) > Date.now();
 }
 
+function getSabotageExpectedLength(challenge) {
+  return Number(challenge?.answerLength || 0);
+}
+
+function isSabotageSequenceChallenge(challenge) {
+  return ["memory-sweep", "reverse-relay"].includes(challenge?.gameId);
+}
+
+function renderSabotageImpact(attempt, label) {
+  if (!attempt?.resolvedImpact) {
+    return "";
+  }
+  return renderImpactSummary(attempt.resolvedImpact, label);
+}
+
+function renderSabotageIncomingNotice(attempt) {
+  return `
+    <div class="sabotage-alert sabotage-alert-danger">
+      <strong>Incoming sabotage from ${escapeHtml(attempt.attackerTeamName)}</strong>
+      <span>${escapeHtml(attempt.outcomeNote || `${attempt.sabotageLabel} landed against your restaurant.`)}</span>
+      ${renderSabotageImpact(attempt, "Your team took")}
+    </div>
+  `;
+}
+
+function renderSabotageSequenceGame(challenge, sabotage) {
+  const visible = isSabotageSequenceVisible();
+  const expectedLength = getSabotageExpectedLength(challenge);
+  const sequence = Array.isArray(challenge.displaySequence) ? challenge.displaySequence : [];
+  return `
+    <p>${escapeHtml(challenge.prompt || "Memorize the covert code before it vanishes.")}</p>
+    <div class="sabotage-sequence">
+      ${(visible ? sequence : Array.from({ length: expectedLength }, () => "hidden"))
+        .map((symbol) => `
+          <span class="sabotage-sequence-chip ${symbol === "hidden" ? "is-hidden" : ""}">
+            ${escapeHtml(symbol === "hidden" ? "?" : getSabotageSymbolLabel(symbol))}
+          </span>
+        `)
+        .join("")}
+    </div>
+    <div class="action-row">
+      <button class="secondary" type="button" data-sabotage-reveal ${sabotage.canResolve ? "" : "disabled"}>${visible ? "Code Live" : "Reveal Code"}</button>
+      <button class="subtle" type="button" data-sabotage-clear ${sabotage.canResolve && state.ui.sabotageInput.length ? "" : "disabled"}>Clear Attempt</button>
+    </div>
+    <div class="sabotage-input-row">
+      ${Array.from({ length: expectedLength }, (_, index) => `
+        <span class="sabotage-input-chip ${state.ui.sabotageInput[index] ? "is-filled" : ""}">
+          ${escapeHtml(state.ui.sabotageInput[index] ? getSabotageSymbolLabel(state.ui.sabotageInput[index]) : "Waiting")}
+        </span>
+      `).join("")}
+    </div>
+    <div class="sabotage-symbol-grid">
+      ${(challenge.symbolPool || []).map((symbol) => `
+        <button class="option-button sabotage-symbol-button" type="button" data-sabotage-symbol="${escapeHtml(symbol)}" ${sabotage.canResolve && state.ui.sabotageInput.length < expectedLength ? "" : "disabled"}>
+          <span class="option-label">${escapeHtml(getSabotageSymbolLabel(symbol))}</span>
+          <span class="option-meta">Add to code</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderSabotageChoiceGame(challenge, sabotage) {
+  const selected = state.ui.sabotageInput[0] || "";
+  const optionLabel = (value) => {
+    if (SABOTAGE_SYMBOL_META[value]) {
+      return getSabotageSymbolLabel(value);
+    }
+    return String(value);
+  };
+  return `
+    <p>${escapeHtml(challenge.prompt || "Choose the correct covert response before the trail closes.")}</p>
+    ${
+      challenge.targetSymbol
+        ? `<p class="note">Target symbol: <strong>${escapeHtml(getSabotageSymbolLabel(challenge.targetSymbol))}</strong></p>`
+        : ""
+    }
+    ${
+      challenge.displaySequence?.length
+        ? `
+          <div class="sabotage-sequence">
+            ${challenge.displaySequence
+              .map((symbol) => `
+                <span class="sabotage-sequence-chip">
+                  ${escapeHtml(getSabotageSymbolLabel(symbol))}
+                </span>
+              `)
+              .join("")}
+          </div>
+        `
+        : ""
+    }
+    ${
+      challenge.displayGrid?.length
+        ? `
+          <div class="sabotage-grid-preview">
+            ${challenge.displayGrid
+              .map((entry) => `
+                <span class="sabotage-grid-chip">
+                  ${escapeHtml(getSabotageSymbolLabel(entry))}
+                </span>
+              `)
+              .join("")}
+          </div>
+        `
+        : ""
+    }
+    <div class="sabotage-choice-grid">
+      ${(challenge.options || []).map((value) => `
+        <button
+          class="option-button sabotage-choice-button ${selected === String(value) ? "is-selected" : ""}"
+          type="button"
+          data-sabotage-choice="${escapeHtml(String(value))}"
+          ${sabotage.canResolve ? "" : "disabled"}
+        >
+          <span class="option-label">${escapeHtml(optionLabel(value))}</span>
+          <span class="option-meta">${selected === String(value) ? "Locked in" : "Choose response"}</span>
+        </button>
+      `).join("")}
+    </div>
+    <div class="sabotage-input-row">
+      <span class="sabotage-input-chip ${selected ? "is-filled" : ""}">
+        ${escapeHtml(selected ? optionLabel(selected) : "No answer locked")}
+      </span>
+    </div>
+    <div class="action-row">
+      <button class="subtle" type="button" data-sabotage-clear ${sabotage.canResolve && selected ? "" : "disabled"}>Clear Attempt</button>
+    </div>
+  `;
+}
+
 function renderSabotagePanel(sabotage, user) {
   if (!sabotage) {
     return "";
   }
 
   const incomingNotices = (sabotage.incoming || [])
-    .map(
-      (attempt) => `
-        <div class="sabotage-alert sabotage-alert-danger">
-          <strong>Incoming sabotage from ${escapeHtml(attempt.attackerTeamName)}</strong>
-          <span>${escapeHtml(attempt.outcomeNote || `${attempt.sabotageLabel} landed against your restaurant.`)}</span>
-        </div>
-      `
-    )
+    .map((attempt) => renderSabotageIncomingNotice(attempt))
     .join("");
 
   if (sabotage.outgoing?.status === "success" || sabotage.outgoing?.status === "failed") {
@@ -2244,6 +2418,10 @@ function renderSabotagePanel(sabotage, user) {
           <span class="choice-pill">${escapeHtml(sabotage.outgoing.targetTeamName)}</span>
         </div>
         <p>${escapeHtml(sabotage.outgoing.outcomeNote || sabotage.outgoing.sabotageSummary)}</p>
+        ${renderSabotageImpact(
+          sabotage.outgoing,
+          sabotage.outgoing.status === "success" ? "Damage dealt" : "Penalty your team took"
+        )}
         <p class="note">Each restaurant only gets one sabotage attempt per live event.</p>
       </article>
     `;
@@ -2251,14 +2429,16 @@ function renderSabotagePanel(sabotage, user) {
 
   if (sabotage.outgoing?.status === "pending" && sabotage.outgoing.challenge) {
     const challenge = sabotage.outgoing.challenge;
-    const visible = isSabotageSequenceVisible();
-    const expectedLength = challenge.sequence.length;
+    const expectedLength = getSabotageExpectedLength(challenge);
+    const gameMarkup = isSabotageSequenceChallenge(challenge)
+      ? renderSabotageSequenceGame(challenge, sabotage)
+      : renderSabotageChoiceGame(challenge, sabotage);
 
     return `
       <article class="decision-card sabotage-card sabotage-card-live">
         <div class="section-head compact">
           <p class="eyebrow">Covert Ops</p>
-          <h3>Mini-Game: Memory Sweep</h3>
+          <h3>Mini-Game: ${escapeHtml(challenge.gameLabel || "Covert Puzzle")}</h3>
         </div>
         ${incomingNotices}
         <div class="relationship-callout">
@@ -2269,39 +2449,12 @@ function renderSabotagePanel(sabotage, user) {
               : `${escapeHtml(sabotage.operatorName || "A teammate")} is the only player who can finish this covert action this round.`
           }</span>
         </div>
-        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}. Memorize the sweep code, then tap it back exactly. Miss it and your own restaurant gets caught.`)}</p>
-        <div class="sabotage-sequence">
-          ${(visible ? challenge.sequence : Array.from({ length: expectedLength }, () => "hidden"))
-            .map((symbol) => `
-              <span class="sabotage-sequence-chip ${symbol === "hidden" ? "is-hidden" : ""}">
-                ${escapeHtml(symbol === "hidden" ? "?" : getSabotageSymbolLabel(symbol))}
-              </span>
-            `)
-            .join("")}
-        </div>
-        <div class="action-row">
-          <button class="secondary" type="button" data-sabotage-reveal ${sabotage.canResolve ? "" : "disabled"}>${visible ? "Code Live" : "Reveal Code"}</button>
-          <button class="subtle" type="button" data-sabotage-clear ${sabotage.canResolve && state.ui.sabotageInput.length ? "" : "disabled"}>Clear Attempt</button>
-        </div>
-        <div class="sabotage-input-row">
-          ${Array.from({ length: expectedLength }, (_, index) => `
-            <span class="sabotage-input-chip ${state.ui.sabotageInput[index] ? "is-filled" : ""}">
-              ${escapeHtml(state.ui.sabotageInput[index] ? getSabotageSymbolLabel(state.ui.sabotageInput[index]) : "Waiting")}
-            </span>
-          `).join("")}
-        </div>
-        <div class="sabotage-symbol-grid">
-          ${challenge.symbolPool.map((symbol) => `
-            <button class="option-button sabotage-symbol-button" type="button" data-sabotage-symbol="${escapeHtml(symbol)}" ${sabotage.canResolve && state.ui.sabotageInput.length < expectedLength ? "" : "disabled"}>
-              <span class="option-label">${escapeHtml(getSabotageSymbolLabel(symbol))}</span>
-              <span class="option-meta">Add to code</span>
-            </button>
-          `).join("")}
-        </div>
+        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}. Beat the covert puzzle and the hit lands. Miss it and your own restaurant gets caught.`)}</p>
+        ${gameMarkup}
         <div class="action-row">
           <button class="danger-button" type="button" data-sabotage-submit ${sabotage.canResolve && state.ui.sabotageInput.length === expectedLength ? "" : "disabled"}>Resolve Sabotage</button>
         </div>
-        <p class="note">${escapeHtml(`${user.team?.name || "Your restaurant"} can only submit one full code attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats.`)}</p>
+        <p class="note">${escapeHtml(`${user.team?.name || "Your restaurant"} can only submit one full sabotage attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats.`)}</p>
       </article>
     `;
   }
@@ -2434,12 +2587,26 @@ function getStaffMeta(staffId) {
 }
 
 function showToast(message) {
-  refs.toast.textContent = message;
+  if (!message) {
+    return;
+  }
+  state.ui.toastQueue.push(message);
+  flushToastQueue();
+}
+
+function flushToastQueue() {
+  if (showToast.active || !state.ui.toastQueue.length) {
+    return;
+  }
+  showToast.active = true;
+  refs.toast.textContent = state.ui.toastQueue.shift();
   refs.toast.classList.remove("hidden");
   clearTimeout(showToast.timeout);
   showToast.timeout = setTimeout(() => {
     refs.toast.classList.add("hidden");
-  }, 3200);
+    showToast.active = false;
+    flushToastQueue();
+  }, 3400);
 }
 
 function formatRevenue(value) {
