@@ -38,12 +38,10 @@ const DEFAULT_STUDENT_STATE = {
 const TEAM_STEP_COUNT = 5;
 const TEAM_MAX_SIZE = 4;
 const TEAM_DEFINITIONS = [
-  { id: "team-sunflare", name: "Sunflare Supper Club", accent: "gold" },
-  { id: "team-midnight", name: "Midnight Marble", accent: "black" },
-  { id: "team-ember", name: "Ember Alley", accent: "red" },
-  { id: "team-citrine", name: "Citrine Room", accent: "amber" },
-  { id: "team-velvet", name: "Velvet Lantern", accent: "red" },
-  { id: "team-gilded", name: "Gilded Clover", accent: "gold" }
+  { id: "team-farm-door", name: "The Farm Door", accent: "gold" },
+  { id: "team-gretas-place", name: "Greta's Place", accent: "red" },
+  { id: "team-four-brunettes", name: "Four Brunettes", accent: "black" },
+  { id: "team-delights", name: "Delights", accent: "amber" }
 ];
 const TEAM_ROLE_DEFINITIONS = [
   {
@@ -6194,6 +6192,61 @@ async function handleApi(req, res, pathname) {
     return;
   }
 
+  if (req.method === "POST" && pathname === "/api/team-alliances/offer") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to propose an alliance." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => offerTeamAlliance(session.userId, String(body.targetTeamId || "").trim()));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/team-alliances/respond") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to respond to an alliance." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => respondTeamAlliance(
+        session.userId,
+        String(body.allianceId || "").trim(),
+        String(body.decision || "").trim()
+      ));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/team-alliances/break") {
+    if (!session?.userId || session.isAdmin) {
+      sendJson(res, 401, { error: "Log in as a student to end an alliance." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+
+    try {
+      runInTransaction(() => breakTeamAlliance(session.userId, String(body.allianceId || "").trim()));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
   if (req.method === "POST" && pathname === "/api/admin/settings") {
     if (!session?.isAdmin) {
       sendJson(res, 401, { error: "Teacher access required." });
@@ -6541,6 +6594,21 @@ function initializeDatabase() {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS team_alliances (
+      id TEXT PRIMARY KEY,
+      team_a_id TEXT NOT NULL,
+      team_b_id TEXT NOT NULL,
+      proposed_by_team_id TEXT NOT NULL,
+      proposed_to_team_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      betrayal_team_id TEXT,
+      betrayal_round_id TEXT,
+      betrayal_note TEXT,
+      created_at TEXT NOT NULL,
+      responded_at TEXT,
+      ended_at TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS staff_state (
       user_id TEXT NOT NULL,
       staff_id TEXT NOT NULL,
@@ -6749,6 +6817,8 @@ function initializeDatabase() {
       target_team_id TEXT NOT NULL,
       created_by_user_id TEXT NOT NULL,
       sabotage_type TEXT NOT NULL,
+      alliance_id TEXT,
+      is_betrayal INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL,
       challenge_json TEXT NOT NULL,
       submitted_sequence_json TEXT,
@@ -6785,6 +6855,7 @@ function initializeDatabase() {
   ensureCaseFileTeamColumns();
   ensureCaseChoiceActorColumn();
   ensureResponseTeamColumns();
+  ensureTeamSabotageColumns();
   ensureLateMigrationIndexes();
   ensureExistingUsersHaveTeams();
 
@@ -6845,10 +6916,21 @@ function ensureResponseTeamColumns() {
   }
 }
 
+function ensureTeamSabotageColumns() {
+  const columns = db.prepare(`PRAGMA table_info(team_sabotage_attempts)`).all().map((row) => row.name);
+  if (!columns.includes("alliance_id")) {
+    db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN alliance_id TEXT`);
+  }
+  if (!columns.includes("is_betrayal")) {
+    db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN is_betrayal INTEGER NOT NULL DEFAULT 0`);
+  }
+}
+
 function ensureLateMigrationIndexes() {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_case_files_team ON case_files (team_id);
     CREATE INDEX IF NOT EXISTS idx_responses_team ON responses (team_id, round_id);
+    CREATE INDEX IF NOT EXISTS idx_team_alliances_status ON team_alliances (status, team_a_id, team_b_id);
   `);
 }
 
@@ -6940,6 +7022,242 @@ function listRoundSabotageAttempts(roundId) {
   ).all(roundId);
 }
 
+function getAllianceOtherTeamId(row, teamId) {
+  if (!row || !teamId) {
+    return null;
+  }
+  return row.team_a_id === teamId ? row.team_b_id : row.team_a_id;
+}
+
+function getAllianceLockStatuses() {
+  return ["pending", "active"];
+}
+
+function getTeamAllianceLock(teamId, excludeAllianceId = null) {
+  if (!teamId) {
+    return null;
+  }
+  const statuses = getAllianceLockStatuses();
+  const rows = db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE (team_a_id = ? OR team_b_id = ?)
+       AND status IN (${statuses.map(() => "?").join(", ")})
+     ORDER BY datetime(created_at) DESC, rowid DESC`
+  ).all(teamId, teamId, ...statuses);
+  return rows.find((row) => row.id !== excludeAllianceId) || null;
+}
+
+function getAllianceById(allianceId) {
+  if (!allianceId) {
+    return null;
+  }
+  return db.prepare(`SELECT * FROM team_alliances WHERE id = ?`).get(allianceId);
+}
+
+function getActiveAllianceBetweenTeams(teamAId, teamBId) {
+  if (!teamAId || !teamBId) {
+    return null;
+  }
+  return db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE status = 'active'
+       AND ((team_a_id = ? AND team_b_id = ?) OR (team_a_id = ? AND team_b_id = ?))
+     ORDER BY datetime(responded_at) DESC, rowid DESC
+     LIMIT 1`
+  ).get(teamAId, teamBId, teamBId, teamAId);
+}
+
+function getAllianceVisibility(row, viewerTeamId = null) {
+  const otherTeamId = viewerTeamId ? getAllianceOtherTeamId(row, viewerTeamId) : null;
+  return {
+    otherTeamId,
+    otherTeamName: otherTeamId ? getTeamMeta(otherTeamId)?.name || "Restaurant Team" : null
+  };
+}
+
+function serializeAllianceRow(row, viewerTeamId = null) {
+  if (!row) {
+    return null;
+  }
+  const view = getAllianceVisibility(row, viewerTeamId);
+  return {
+    id: row.id,
+    teamAId: row.team_a_id,
+    teamAName: getTeamMeta(row.team_a_id)?.name || "Restaurant Team",
+    teamBId: row.team_b_id,
+    teamBName: getTeamMeta(row.team_b_id)?.name || "Restaurant Team",
+    proposedByTeamId: row.proposed_by_team_id,
+    proposedByTeamName: getTeamMeta(row.proposed_by_team_id)?.name || "Restaurant Team",
+    proposedToTeamId: row.proposed_to_team_id,
+    proposedToTeamName: getTeamMeta(row.proposed_to_team_id)?.name || "Restaurant Team",
+    status: row.status,
+    betrayalTeamId: row.betrayal_team_id || null,
+    betrayalTeamName: row.betrayal_team_id ? getTeamMeta(row.betrayal_team_id)?.name || "Restaurant Team" : null,
+    betrayalRoundId: row.betrayal_round_id || null,
+    betrayalNote: row.betrayal_note || "",
+    createdAt: row.created_at,
+    respondedAt: row.responded_at || null,
+    endedAt: row.ended_at || null,
+    otherTeamId: view.otherTeamId,
+    otherTeamName: view.otherTeamName,
+    viewerIsProposer: Boolean(viewerTeamId && row.proposed_by_team_id === viewerTeamId),
+    viewerIsRecipient: Boolean(viewerTeamId && row.proposed_to_team_id === viewerTeamId)
+  };
+}
+
+function serializeAllianceState(teamId, viewerUserId = null) {
+  if (!teamId) {
+    return null;
+  }
+  const activeAlliance = db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE (team_a_id = ? OR team_b_id = ?)
+       AND status = 'active'
+     ORDER BY datetime(responded_at) DESC, rowid DESC
+     LIMIT 1`
+  ).get(teamId, teamId);
+  const pendingIncoming = db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE proposed_to_team_id = ? AND status = 'pending'
+     ORDER BY datetime(created_at) DESC, rowid DESC`
+  ).all(teamId);
+  const pendingOutgoing = db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE proposed_by_team_id = ? AND status = 'pending'
+     ORDER BY datetime(created_at) DESC, rowid DESC
+     LIMIT 1`
+  ).get(teamId);
+  const latestBetrayal = db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE (team_a_id = ? OR team_b_id = ?)
+       AND status = 'betrayed'
+     ORDER BY datetime(ended_at) DESC, rowid DESC
+     LIMIT 1`
+  ).get(teamId, teamId);
+
+  const lock = getTeamAllianceLock(teamId);
+  const availablePartners = TEAM_DEFINITIONS
+    .filter((team) => team.id !== teamId)
+    .filter((team) => listTeamMembers(team.id).length)
+    .filter((team) => !getTeamLossState(team.id))
+    .filter((team) => !getTeamAllianceLock(team.id))
+    .map((team) => ({
+      id: team.id,
+      name: team.name,
+      accent: team.accent
+    }));
+
+  return {
+    activeAlliance: serializeAllianceRow(activeAlliance, teamId),
+    pendingIncoming: pendingIncoming.map((row) => serializeAllianceRow(row, teamId)),
+    pendingOutgoing: serializeAllianceRow(pendingOutgoing, teamId),
+    latestBetrayal: serializeAllianceRow(latestBetrayal, teamId),
+    canOffer: Boolean(viewerUserId && !lock && availablePartners.length),
+    canRespond: Boolean(viewerUserId && pendingIncoming.length),
+    canBreak: Boolean(viewerUserId && activeAlliance),
+    availablePartners
+  };
+}
+
+function offerTeamAlliance(userId, targetTeamId) {
+  const game = getGameState();
+  if (!game.isOpen) {
+    throw new Error("Open the class session before teams can negotiate alliances.");
+  }
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    throw new Error("Your account is not assigned to a restaurant team.");
+  }
+  if (teamId === targetTeamId) {
+    throw new Error("You cannot ally with your own team.");
+  }
+  if (!TEAM_LOOKUP[targetTeamId] || !listTeamMembers(targetTeamId).length) {
+    throw new Error("That team is not active right now.");
+  }
+  if (getTeamLossState(teamId) || getTeamLossState(targetTeamId)) {
+    throw new Error("Eliminated restaurants cannot form alliances.");
+  }
+  if (getTeamAllianceLock(teamId)) {
+    throw new Error("Your team already has an alliance or alliance offer in progress.");
+  }
+  if (getTeamAllianceLock(targetTeamId)) {
+    throw new Error("That team already has an alliance or alliance offer in progress.");
+  }
+
+  db.prepare(
+    `INSERT INTO team_alliances
+     (id, team_a_id, team_b_id, proposed_by_team_id, proposed_to_team_id, status, betrayal_team_id, betrayal_round_id, betrayal_note, created_at, responded_at, ended_at)
+     VALUES (?, ?, ?, ?, ?, 'pending', NULL, NULL, '', ?, NULL, NULL)`
+  ).run(
+    crypto.randomUUID(),
+    teamId,
+    targetTeamId,
+    teamId,
+    targetTeamId,
+    new Date().toISOString()
+  );
+}
+
+function respondTeamAlliance(userId, allianceId, decision) {
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    throw new Error("Your account is not assigned to a restaurant team.");
+  }
+  const alliance = getAllianceById(allianceId);
+  if (!alliance || alliance.status !== "pending") {
+    throw new Error("That alliance offer is no longer available.");
+  }
+  if (alliance.proposed_to_team_id !== teamId) {
+    throw new Error("Only the invited team can respond to this alliance.");
+  }
+  if (!["accept", "reject"].includes(decision)) {
+    throw new Error("Choose whether to accept or reject the alliance.");
+  }
+
+  if (decision === "accept") {
+    if (getTeamAllianceLock(alliance.team_a_id, alliance.id) || getTeamAllianceLock(alliance.team_b_id, alliance.id)) {
+      throw new Error("One of those teams is no longer free to lock in this alliance.");
+    }
+    db.prepare(
+      `UPDATE team_alliances
+       SET status = 'active', responded_at = ?
+       WHERE id = ?`
+    ).run(new Date().toISOString(), alliance.id);
+    return;
+  }
+
+  db.prepare(
+    `UPDATE team_alliances
+     SET status = 'rejected', responded_at = ?, ended_at = ?
+     WHERE id = ?`
+  ).run(new Date().toISOString(), new Date().toISOString(), alliance.id);
+}
+
+function breakTeamAlliance(userId, allianceId) {
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    throw new Error("Your account is not assigned to a restaurant team.");
+  }
+  const alliance = getAllianceById(allianceId);
+  if (!alliance || alliance.status !== "active") {
+    throw new Error("That alliance is no longer active.");
+  }
+  if (![alliance.team_a_id, alliance.team_b_id].includes(teamId)) {
+    throw new Error("Only an allied team can end this alliance.");
+  }
+  db.prepare(
+    `UPDATE team_alliances
+     SET status = 'broken', ended_at = ?
+     WHERE id = ?`
+  ).run(new Date().toISOString(), alliance.id);
+}
+
 function buildSabotageChallenge() {
   const builder = SABOTAGE_CHALLENGE_BUILDERS[crypto.randomInt(0, SABOTAGE_CHALLENGE_BUILDERS.length)];
   return builder();
@@ -6989,6 +7307,7 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
   const challenge = parseJsonValue(row.challenge_json, {});
   const submittedSequence = parseJsonValue(row.submitted_sequence_json, []);
   const includeChallenge = row.status === "pending" && viewerTeamId === row.attacker_team_id;
+  const isBetrayal = Boolean(Number(row.is_betrayal || 0));
   const resolvedImpact = row.status === "success"
     ? meta.success
     : row.status === "failed"
@@ -7000,12 +7319,19 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
       ? row.attacker_team_id
       : null;
   const impactedTeamName = impactedTeamId ? getTeamMeta(impactedTeamId)?.name || "Restaurant Team" : null;
+  const maskAttacker = isBetrayal && row.status === "success" && viewerTeamId && viewerTeamId === row.target_team_id;
+  const attackerTeamName = maskAttacker
+    ? "Unknown ally"
+    : getTeamMeta(row.attacker_team_id)?.name || "Attacking Team";
+  const displayOutcomeNote = maskAttacker
+    ? `The sabotage landed cleanly, but whoever sold your team out stayed hidden.`
+    : row.outcome_note || "";
 
   return {
     id: row.id,
     roundId: row.round_id,
     attackerTeamId: row.attacker_team_id,
-    attackerTeamName: getTeamMeta(row.attacker_team_id)?.name || "Attacking Team",
+    attackerTeamName,
     targetTeamId: row.target_team_id,
     targetTeamName: getTeamMeta(row.target_team_id)?.name || "Target Team",
     createdByUserId: row.created_by_user_id,
@@ -7013,8 +7339,11 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
     sabotageType: row.sabotage_type,
     sabotageLabel: meta.label,
     sabotageSummary: meta.summary,
+    isBetrayal,
+    allianceId: row.alliance_id || null,
     status: row.status,
     outcomeNote: row.outcome_note || "",
+    displayOutcomeNote,
     resolvedImpact: resolvedImpact
       ? {
           salesDelta: Number(resolvedImpact.sales || 0),
@@ -7066,7 +7395,8 @@ function serializeTeamSabotageState(roundId, teamId, viewerUserId = null) {
     .map((team) => ({
       id: team.id,
       name: team.name,
-      accent: team.accent
+      accent: team.accent,
+      isAllied: Boolean(getActiveAllianceBetweenTeams(teamId, team.id))
     }));
 
   return {
@@ -7106,7 +7436,9 @@ function getLatestSabotageBroadcast(roundId) {
   return {
     ...serialized,
     type: "caught",
-    headline: `${serialized.attackerTeamName} got caught trying to sabotage ${serialized.targetTeamName}.`,
+    headline: serialized.isBetrayal
+      ? `${serialized.attackerTeamName} got caught betraying ally ${serialized.targetTeamName}.`
+      : `${serialized.attackerTeamName} got caught trying to sabotage ${serialized.targetTeamName}.`,
     detail: serialized.outcomeNote || `${serialized.attackerTeamName} failed a covert ${serialized.sabotageLabel} attempt aimed at ${serialized.targetTeamName}.`
   };
 }
@@ -7965,13 +8297,40 @@ function ensureExistingUsersHaveTeams() {
      ORDER BY datetime(created_at) ASC, display_name COLLATE NOCASE ASC`
   ).all();
 
+  const activeTeamIds = new Set(TEAM_DEFINITIONS.map((team) => team.id));
+  const claimedSeatsByTeam = new Map();
+
   users.forEach((user) => {
-    if (user.team_id && Number.isFinite(Number(user.team_seat))) {
-      ensureTeamState(user.team_id);
-      return;
+    const teamId = user.team_id;
+    const seat = Number(user.team_seat);
+    const seatIsValid = Number.isInteger(seat) && seat >= 1 && seat <= TEAM_MAX_SIZE;
+    const teamIsValid = teamId && activeTeamIds.has(teamId);
+
+    if (teamIsValid && seatIsValid) {
+      const claimedSeats = claimedSeatsByTeam.get(teamId) || new Set();
+      if (!claimedSeats.has(seat)) {
+        claimedSeats.add(seat);
+        claimedSeatsByTeam.set(teamId, claimedSeats);
+        ensureTeamState(teamId);
+        return;
+      }
     }
 
-    const assignment = getAvailableTeamAssignment();
+    let assignment = null;
+    if (teamIsValid) {
+      const fallbackSeat = getFirstOpenSeatForTeam(teamId, user.id);
+      if (fallbackSeat) {
+        assignment = {
+          teamId,
+          seat: fallbackSeat
+        };
+      }
+    }
+
+    if (!assignment) {
+      assignment = getAvailableTeamAssignment();
+    }
+
     if (!assignment) {
       return;
     }
@@ -7981,10 +8340,13 @@ function ensureExistingUsersHaveTeams() {
        SET team_id = ?, team_seat = ?
        WHERE id = ?`
     ).run(assignment.teamId, assignment.seat, user.id);
+    const claimedSeats = claimedSeatsByTeam.get(assignment.teamId) || new Set();
+    claimedSeats.add(Number(assignment.seat));
+    claimedSeatsByTeam.set(assignment.teamId, claimedSeats);
     ensureTeamState(assignment.teamId);
   });
 
-  getTeamIdsInUse().forEach((teamId) => ensureTeamState(teamId));
+  TEAM_DEFINITIONS.forEach((team) => ensureTeamState(team.id));
 }
 
 function ensureTeamState(teamId) {
@@ -8140,6 +8502,27 @@ function applyTeamDeltaBundle(teamId, bundle) {
   });
 }
 
+function scaleTeamDeltaBundle(bundle, factor) {
+  if (!bundle) {
+    return null;
+  }
+  const safeFactor = Number(factor || 1);
+  return {
+    sales: roundNumber(Number(bundle.sales || 0) * safeFactor, 0),
+    satisfaction: roundNumber(Number(bundle.satisfaction || 0) * safeFactor, 0),
+    reputation: roundNumber(Number(bundle.reputation || 0) * safeFactor, 0),
+    staff: Object.fromEntries(
+      Object.entries(bundle.staff || {}).map(([staffId, deltas]) => [
+        staffId,
+        {
+          morale: roundNumber(Number(deltas.morale || 0) * safeFactor, 0),
+          trust: roundNumber(Number(deltas.trust || 0) * safeFactor, 0)
+        }
+      ])
+    )
+  };
+}
+
 function startTeamSabotage(userId, targetTeamId, sabotageType) {
   const game = getGameState();
   if (!game.isOpen || !game.currentRoundId) {
@@ -8176,11 +8559,12 @@ function startTeamSabotage(userId, targetTeamId, sabotageType) {
   if (getTeamSabotageAttempt(game.currentRoundId, attackerTeamId)) {
     throw new Error("Your team already spent its sabotage move for this round.");
   }
+  const alliance = getActiveAllianceBetweenTeams(attackerTeamId, targetTeamId);
 
   db.prepare(
     `INSERT INTO team_sabotage_attempts
-     (id, round_id, attacker_team_id, target_team_id, created_by_user_id, sabotage_type, status, challenge_json, submitted_sequence_json, outcome_note, created_at, resolved_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, NULL, '', ?, NULL)`
+     (id, round_id, attacker_team_id, target_team_id, created_by_user_id, sabotage_type, alliance_id, is_betrayal, status, challenge_json, submitted_sequence_json, outcome_note, created_at, resolved_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NULL, '', ?, NULL)`
   ).run(
     crypto.randomUUID(),
     game.currentRoundId,
@@ -8188,6 +8572,8 @@ function startTeamSabotage(userId, targetTeamId, sabotageType) {
     targetTeamId,
     userId,
     sabotageType,
+    alliance?.id || null,
+    alliance ? 1 : 0,
     JSON.stringify(buildSabotageChallenge()),
     new Date().toISOString()
   );
@@ -8226,13 +8612,28 @@ function resolveTeamSabotage(userId, submittedSequence) {
 
   const meta = SABOTAGE_TYPE_DEFINITIONS[attempt.sabotage_type];
   const success = expectedSequence.every((symbol, index) => symbol === cleanSubmitted[index]);
-  const bundle = success ? meta.success : meta.failure;
+  const isBetrayal = Boolean(Number(attempt.is_betrayal || 0));
+  const baseBundle = success ? meta.success : meta.failure;
+  const bundle = isBetrayal
+    ? scaleTeamDeltaBundle(baseBundle, success ? 1.4 : 1.25)
+    : baseBundle;
   const impactedTeamId = success ? attempt.target_team_id : attackerTeamId;
   const outcomeNote = success
-    ? `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival restaurant"} took the hit.`
-    : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty.`;
+    ? isBetrayal
+      ? `The betrayal stayed hidden. ${getTeamMeta(attempt.target_team_id)?.name || "Your allied rival"} took an even harder hit because they never saw it coming.`
+      : `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival restaurant"} took the hit.`
+    : isBetrayal
+      ? `Your alliance betrayal blew up in public. ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty and everyone knows who you targeted.`
+      : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty.`;
 
   applyTeamDeltaBundle(impactedTeamId, bundle);
+  if (isBetrayal && !success && attempt.alliance_id) {
+    db.prepare(
+      `UPDATE team_alliances
+       SET status = 'betrayed', betrayal_team_id = ?, betrayal_round_id = ?, betrayal_note = ?, ended_at = ?
+       WHERE id = ? AND status = 'active'`
+    ).run(attackerTeamId, game.currentRoundId, outcomeNote, new Date().toISOString(), attempt.alliance_id);
+  }
 
   db.prepare(
     `UPDATE team_sabotage_attempts
@@ -9051,6 +9452,7 @@ function serializeTeam(teamId) {
   const lingeringEffects = getVisibleLingeringEffects(teamId, effectRoundNumber, 6);
   const currentResponse = currentRoundId ? getTeamResponseForRound(currentRoundId, teamId) : null;
   const managerFlags = getManagerFlags(teamId);
+  const allianceState = serializeAllianceState(teamId, null);
   const decisionHistory = db.prepare(
     `SELECT r.id, r.round_number, r.headline, p.option_label, p.outcome_text, p.note_text,
             p.sales_delta, p.satisfaction_delta, p.reputation_delta, p.submitted_at
@@ -9117,6 +9519,7 @@ function serializeTeam(teamId) {
     scoreTier,
     restaurantState,
     lingeringEffects,
+    allianceState,
     isEliminated: Boolean(lossState),
     lossState,
     staff: decoratedStaff,
@@ -9184,7 +9587,8 @@ function serializeUser(userId) {
     warnings: team.warnings,
     managerProfile: team.managerProfile,
     currentResponse: team.currentResponse,
-    decisionHistory: team.decisionHistory
+    decisionHistory: team.decisionHistory,
+    allianceState: serializeAllianceState(team.teamId, user.id)
   };
 }
 
@@ -9591,6 +9995,7 @@ function buildAdminPayload() {
       sales: teamDetail?.sales ?? DEFAULT_STUDENT_STATE.sales,
       avgMorale: teamDetail?.avgMorale ?? null,
       avgTrust: teamDetail?.avgTrust ?? null,
+      allianceState: teamDetail?.allianceState || null,
       sabotageState: currentRound ? serializeTeamSabotageState(currentRound.id, teamDef.id, null) : null
     };
   });
@@ -11893,6 +12298,7 @@ function resetSimulation(scope) {
   db.prepare(`DELETE FROM response_staff_effects`).run();
   db.prepare(`DELETE FROM responses`).run();
   db.prepare(`DELETE FROM rounds`).run();
+  db.prepare(`DELETE FROM team_alliances`).run();
   db.prepare(`DELETE FROM team_sabotage_attempts`).run();
   db.prepare(`DELETE FROM prediction_market_work`).run();
   db.prepare(`DELETE FROM prediction_market_trades`).run();

@@ -29,6 +29,32 @@
   box-shadow: 0 22px 48px rgba(120, 10, 10, 0.24);
 }
 
+.alliance-card {
+  border-color: rgba(110, 170, 255, 0.24);
+  background:
+    linear-gradient(145deg, rgba(12, 16, 32, 0.96), rgba(8, 8, 20, 0.94)),
+    linear-gradient(120deg, rgba(110, 170, 255, 0.08), rgba(255, 200, 57, 0.04));
+}
+
+.alliance-card-live {
+  box-shadow: 0 22px 48px rgba(18, 46, 92, 0.24);
+}
+
+.alliance-card-pending {
+  box-shadow: 0 18px 40px rgba(28, 40, 84, 0.2);
+}
+
+.alliance-note-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.choice-pill-betrayal {
+  background: rgba(110, 170, 255, 0.14);
+  color: #d4e8ff;
+}
+
 .sabotage-select-block {
   gap: 8px;
 }
@@ -1278,6 +1304,10 @@ button:disabled {
 .team-role-list {
   display: grid;
   gap: 8px;
+}
+
+.alliance-team-note strong {
+  color: #d4e8ff;
 }
 
 .team-seat-row,

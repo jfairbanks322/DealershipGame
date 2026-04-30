@@ -12,6 +12,9 @@ const state = {
     seenSabotageBroadcastIds: [],
     seenSabotageOutcomeKeys: [],
     toastQueue: [],
+    allianceDraft: {
+      targetTeamId: ""
+    },
     selectedAvatarId: null,
     sabotageDraft: {
       targetTeamId: "",
@@ -275,6 +278,7 @@ async function bootstrap(showErrors = true) {
     state.data = await response.json();
     syncScenarioDraft();
     syncAvatarSelection();
+    syncAllianceState();
     syncSabotageState();
     syncSabotageBroadcast();
     syncSabotageOutcomeNotices();
@@ -361,6 +365,18 @@ function syncSabotageState() {
   }
 }
 
+function syncAllianceState() {
+  const alliance = state.data?.user?.allianceState;
+  if (!alliance) {
+    state.ui.allianceDraft.targetTeamId = "";
+    return;
+  }
+  const partnerStillExists = (alliance.availablePartners || []).some((team) => team.id === state.ui.allianceDraft.targetTeamId);
+  if (!partnerStillExists) {
+    state.ui.allianceDraft.targetTeamId = alliance.availablePartners?.[0]?.id || "";
+  }
+}
+
 function syncSabotageBroadcast() {
   const broadcast = state.data?.currentRound?.sabotageBroadcast;
   if (!broadcast || broadcast.type !== "caught") {
@@ -404,16 +420,17 @@ function buildSabotageOutcomeToast(attempt, direction) {
   const salesDelta = Number(attempt?.resolvedImpact?.salesDelta || 0);
   const amount = `$${Math.abs(Math.round(salesDelta)).toLocaleString()}k`;
   const gainOrLoss = salesDelta >= 0 ? "gained" : "lost";
+  const betrayalLabel = attempt?.isBetrayal ? " betrayal" : " sabotage";
 
   if (direction === "incoming") {
-    return `${attempt.attackerTeamName} sabotaged your team. You ${gainOrLoss} ${amount} in revenue.`;
+    return `${attempt.attackerTeamName}${betrayalLabel} hit your team. You ${gainOrLoss} ${amount} in revenue.`;
   }
 
   if (attempt.status === "success") {
-    return `Sabotage landed on ${attempt.targetTeamName}. They ${gainOrLoss} ${amount} in revenue.`;
+    return `${attempt.isBetrayal ? "Betrayal" : "Sabotage"} landed on ${attempt.targetTeamName}. They ${gainOrLoss} ${amount} in revenue.`;
   }
 
-  return `Sabotage failed. Your team ${gainOrLoss} ${amount} in revenue and got exposed.`;
+  return `${attempt.isBetrayal ? "Betrayal" : "Sabotage"} failed. Your team ${gainOrLoss} ${amount} in revenue and got exposed.`;
 }
 
 function setAuthPending(isPending) {
@@ -676,6 +693,31 @@ async function handleStudentRoundClick(event) {
     return;
   }
 
+  const allianceOfferButton = event.target.closest("button[data-alliance-offer]");
+  if (allianceOfferButton) {
+    await postJson("/api/team-alliances/offer", {
+      targetTeamId: state.ui.allianceDraft.targetTeamId
+    });
+    return;
+  }
+
+  const allianceResponseButton = event.target.closest("button[data-alliance-response]");
+  if (allianceResponseButton) {
+    await postJson("/api/team-alliances/respond", {
+      allianceId: allianceResponseButton.dataset.allianceId,
+      decision: allianceResponseButton.dataset.allianceResponse
+    });
+    return;
+  }
+
+  const allianceBreakButton = event.target.closest("button[data-alliance-break]");
+  if (allianceBreakButton) {
+    await postJson("/api/team-alliances/break", {
+      allianceId: allianceBreakButton.dataset.allianceId
+    });
+    return;
+  }
+
   const button = event.target.closest("button[data-option-id]");
   if (!button) {
     return;
@@ -687,6 +729,13 @@ async function handleStudentRoundClick(event) {
 }
 
 function handleStudentRoundChange(event) {
+  const allianceTarget = event.target.closest("select[data-alliance-target]");
+  if (allianceTarget) {
+    state.ui.allianceDraft.targetTeamId = String(allianceTarget.value || "");
+    render();
+    return;
+  }
+
   const targetSelect = event.target.closest("select[data-sabotage-target]");
   if (targetSelect) {
     state.ui.sabotageDraft.targetTeamId = String(targetSelect.value || "");
@@ -763,7 +812,10 @@ async function postJson(url, payload) {
     if (data && typeof data === "object" && "game" in data) {
       state.data = data;
       syncScenarioDraft();
+      syncAllianceState();
       syncSabotageState();
+      syncSabotageBroadcast();
+      syncSabotageOutcomeNotices();
       render();
     } else {
       await bootstrap(false);
@@ -903,7 +955,7 @@ function renderMarketStatus() {
       <p class="note">
         ${game.isOpen
           ? currentRound
-            ? "All six teams are working the same live event, but each shared restaurant can branch differently based on team choices."
+            ? "All four teams are working the same live event, but each shared restaurant can branch differently based on team choices."
             : "Session is open. Launch a global event when you want every team to start the next chain."
           : "Open the class session before teams can start making management decisions."}
       </p>
@@ -1052,12 +1104,14 @@ function renderStudentRoundPanel() {
   const stepLabel = studentCase ? `Step ${studentCase.stepIndex} of ${studentCase.totalSteps}` : "";
   const eventOverview = renderCaseEventOverview(currentRound, studentCase);
   const caseTimeline = renderCaseTimeline(studentCase);
+  const alliancePanel = renderAlliancePanel(user.allianceState, user);
   const sabotagePanel = renderSabotagePanel(currentRound.sabotage, user);
 
   if (user.isEliminated) {
     return `
       <div class="case-chain-layout">
         ${currentRound ? eventOverview : ""}
+        ${alliancePanel}
         ${sabotagePanel}
         <article class="decision-card case-step-card loss-card">
           <div class="section-head compact">
@@ -1085,6 +1139,7 @@ function renderStudentRoundPanel() {
     return `
       <div class="case-chain-layout">
         ${eventOverview}
+        ${alliancePanel}
         ${sabotagePanel}
         <article class="decision-card case-step-card">
           <div class="section-head compact">
@@ -1105,7 +1160,13 @@ function renderStudentRoundPanel() {
   }
 
   if (!studentCase) {
-    return `<div class="empty-state">Your team case has not started yet. Refresh in a moment if the teacher just launched the event.</div>`;
+    return `
+      <div class="case-chain-layout">
+        ${alliancePanel}
+        ${sabotagePanel}
+        <div class="empty-state">Your team case has not started yet. Refresh in a moment if the teacher just launched the event.</div>
+      </div>
+    `;
   }
 
   const turnNotice = studentCase.status === "active"
@@ -1126,6 +1187,7 @@ function renderStudentRoundPanel() {
     return `
       <div class="case-chain-layout">
         ${eventOverview}
+        ${alliancePanel}
         ${sabotagePanel}
         <article class="decision-card case-step-card">
           <div class="section-head compact">
@@ -1163,6 +1225,7 @@ function renderStudentRoundPanel() {
     return `
       <div class="case-chain-layout">
         ${eventOverview}
+        ${alliancePanel}
         ${sabotagePanel}
         <article class="decision-card case-step-card">
           <div class="section-head compact">
@@ -1205,13 +1268,18 @@ function renderStudentRoundPanel() {
   }
 
   return `
-    <article class="decision-card">
-      <div class="section-head compact">
-        <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)}</p>
-        <h3>${escapeHtml(currentRound.headline)}</h3>
-      </div>
-      <p>${escapeHtml(currentRound.body)}</p>
-    </article>
+    <div class="case-chain-layout">
+      ${eventOverview}
+      ${alliancePanel}
+      ${sabotagePanel}
+      <article class="decision-card">
+        <div class="section-head compact">
+          <p class="eyebrow">${escapeHtml(currentRound.category)} · ${escapeHtml(currentRound.pressure)}</p>
+          <h3>${escapeHtml(currentRound.headline)}</h3>
+        </div>
+        <p>${escapeHtml(currentRound.body)}</p>
+      </article>
+    </div>
   `;
 }
 
@@ -1842,7 +1910,7 @@ function renderAdminTeamBoard(teams, currentRound) {
       <div class="section-head compact">
         <div>
           <p class="eyebrow">Restaurant Teams</p>
-          <h3>Six restaurants, four seats each</h3>
+          <h3>Four restaurants, four seats each</h3>
         </div>
       </div>
       <div class="team-ops-grid">
@@ -1855,6 +1923,7 @@ function renderAdminTeamBoard(teams, currentRound) {
 function renderAdminTeamCard(team, currentRound) {
   const liveCase = team.currentCase;
   const sabotageState = team.sabotageState;
+  const allianceState = team.allianceState;
   const statusTone = team.currentResponse
     ? "pill-open"
     : liveCase
@@ -1934,6 +2003,33 @@ function renderAdminTeamCard(team, currentRound) {
                     : ""
                 }
               </div>
+            `
+          : ""
+      }
+      ${
+        allianceState
+          ? `
+              <div class="note alliance-team-note">
+                Diplomacy:
+                <strong>${
+                  allianceState.activeAlliance
+                    ? `Allied with ${escapeHtml(allianceState.activeAlliance.otherTeamName || "partner")}`
+                    : allianceState.pendingOutgoing
+                      ? `Offer sent to ${escapeHtml(allianceState.pendingOutgoing.otherTeamName || "partner")}`
+                      : allianceState.pendingIncoming?.length
+                        ? `Offer from ${escapeHtml(allianceState.pendingIncoming[0].proposedByTeamName || "partner")}`
+                        : "No alliance active"
+                }</strong>
+              </div>
+              ${
+                allianceState.latestBetrayal
+                  ? `<div class="note">Latest betrayal: ${
+                      allianceState.latestBetrayal.betrayalTeamId === team.id
+                        ? `They burned ${escapeHtml(allianceState.latestBetrayal.otherTeamName || "an ally")}.`
+                        : `${escapeHtml(allianceState.latestBetrayal.betrayalTeamName || "An ally")} burned them.`
+                    }</div>`
+                  : ""
+              }
             `
           : ""
       }
@@ -2284,9 +2380,127 @@ function renderSabotageIncomingNotice(attempt) {
   return `
     <div class="sabotage-alert sabotage-alert-danger">
       <strong>Incoming sabotage from ${escapeHtml(attempt.attackerTeamName)}</strong>
-      <span>${escapeHtml(attempt.outcomeNote || `${attempt.sabotageLabel} landed against your restaurant.`)}</span>
+      <span>${escapeHtml(attempt.displayOutcomeNote || attempt.outcomeNote || `${attempt.sabotageLabel} landed against your restaurant.`)}</span>
       ${renderSabotageImpact(attempt, "Your team took")}
     </div>
+  `;
+}
+
+function renderAlliancePanel(allianceState, user) {
+  if (!allianceState) {
+    return "";
+  }
+
+  const latestBetrayal = allianceState.latestBetrayal;
+  const betrayalCallout = latestBetrayal
+    ? `
+        <div class="alliance-note-row">
+          <span class="warning-chip">
+            ${escapeHtml(
+              latestBetrayal.betrayalTeamId === user.teamId
+                ? `Recent fallout: your team burned ${latestBetrayal.otherTeamName || "an ally"}.`
+                : `Recent fallout: ${latestBetrayal.betrayalTeamName || "An ally"} sold your team out.`
+            )}
+          </span>
+        </div>
+      `
+    : "";
+
+  if (allianceState.pendingIncoming?.length) {
+    const offer = allianceState.pendingIncoming[0];
+    return `
+      <article class="decision-card alliance-card alliance-card-pending">
+        <div class="section-head compact">
+          <p class="eyebrow">Diplomacy</p>
+          <h3>Alliance Offer Waiting</h3>
+        </div>
+        ${betrayalCallout}
+        <div class="relationship-callout">
+          <strong>${escapeHtml(offer.proposedByTeamName)}</strong>
+          <span>They want a temporary pact. Allied teams can cool tensions, but sabotage against that partner becomes a secret betrayal attempt.</span>
+        </div>
+        <div class="focus-row">
+          <span class="pill pill-neutral">One alliance max</span>
+          <span class="pill pill-neutral">Betrayal can stay hidden</span>
+          <span class="pill pill-closed">Failure goes public</span>
+        </div>
+        <div class="action-row">
+          <button type="button" data-alliance-response="accept" data-alliance-id="${escapeHtml(offer.id)}" ${allianceState.canRespond ? "" : "disabled"}>Accept Alliance</button>
+          <button class="secondary" type="button" data-alliance-response="reject" data-alliance-id="${escapeHtml(offer.id)}" ${allianceState.canRespond ? "" : "disabled"}>Reject</button>
+        </div>
+      </article>
+    `;
+  }
+
+  if (allianceState.activeAlliance) {
+    const alliance = allianceState.activeAlliance;
+    return `
+      <article class="decision-card alliance-card alliance-card-live">
+        <div class="section-head compact">
+          <p class="eyebrow">Diplomacy</p>
+          <h3>Alliance Active</h3>
+        </div>
+        ${betrayalCallout}
+        <div class="relationship-callout">
+          <strong>${escapeHtml(alliance.otherTeamName || "Alliance partner")}</strong>
+          <span>Your restaurants are publicly aligned. If your covert ops lead targets them anyway, it becomes a betrayal attempt with a bigger upside and a harsher penalty if exposed.</span>
+        </div>
+        <div class="focus-row">
+          <span class="pill pill-open">Ally: ${escapeHtml(alliance.otherTeamName || "Partner")}</span>
+          <span class="pill pill-neutral">Success stays hidden</span>
+          <span class="pill pill-closed">Failure goes public</span>
+        </div>
+        <div class="action-row">
+          <button class="secondary" type="button" data-alliance-break="${escapeHtml(alliance.id)}" ${allianceState.canBreak ? "" : "disabled"}>End Alliance</button>
+        </div>
+      </article>
+    `;
+  }
+
+  if (allianceState.pendingOutgoing) {
+    const offer = allianceState.pendingOutgoing;
+    return `
+      <article class="decision-card alliance-card alliance-card-pending">
+        <div class="section-head compact">
+          <p class="eyebrow">Diplomacy</p>
+          <h3>Offer Sent</h3>
+        </div>
+        ${betrayalCallout}
+        <p>${escapeHtml(`${offer.otherTeamName || "The other restaurant"} is reviewing your alliance offer. Until they answer, your team is locked out of other pacts.`)}</p>
+        <div class="focus-row">
+          <span class="pill pill-neutral">Awaiting ${escapeHtml(offer.otherTeamName || "response")}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  return `
+    <article class="decision-card alliance-card">
+      <div class="section-head compact">
+        <p class="eyebrow">Diplomacy</p>
+        <h3>Alliance Window</h3>
+      </div>
+      ${betrayalCallout}
+      <p>Form one public alliance at a time. A pact can buy breathing room, but it also gives your team the chance to stage a much riskier betrayal later.</p>
+      <label class="stack sabotage-select-block">
+        <span>Offer Alliance To</span>
+        <select data-alliance-target ${allianceState.canOffer ? "" : "disabled"}>
+          ${(allianceState.availablePartners || [])
+            .map(
+              (team) => `
+                <option value="${escapeHtml(team.id)}" ${team.id === state.ui.allianceDraft.targetTeamId ? "selected" : ""}>
+                  ${escapeHtml(team.name)}
+                </option>
+              `
+            )
+            .join("")}
+        </select>
+      </label>
+      <div class="action-row">
+        <button type="button" data-alliance-offer ${allianceState.canOffer && state.ui.allianceDraft.targetTeamId ? "" : "disabled"}>Send Alliance Offer</button>
+      </div>
+      <p class="note">The whole class sees the alliance if it forms. Only the betrayal stays secret, and only if the sabotage challenge succeeds.</p>
+    </article>
   `;
 }
 
@@ -2416,8 +2630,9 @@ function renderSabotagePanel(sabotage, user) {
         <div class="choice-lockup">
           <span class="choice-pill">${escapeHtml(sabotage.outgoing.sabotageLabel)}</span>
           <span class="choice-pill">${escapeHtml(sabotage.outgoing.targetTeamName)}</span>
+          ${sabotage.outgoing.isBetrayal ? `<span class="choice-pill choice-pill-betrayal">Betrayal</span>` : ""}
         </div>
-        <p>${escapeHtml(sabotage.outgoing.outcomeNote || sabotage.outgoing.sabotageSummary)}</p>
+        <p>${escapeHtml(sabotage.outgoing.displayOutcomeNote || sabotage.outgoing.outcomeNote || sabotage.outgoing.sabotageSummary)}</p>
         ${renderSabotageImpact(
           sabotage.outgoing,
           sabotage.outgoing.status === "success" ? "Damage dealt" : "Penalty your team took"
@@ -2449,12 +2664,12 @@ function renderSabotagePanel(sabotage, user) {
               : `${escapeHtml(sabotage.operatorName || "A teammate")} is the only player who can finish this covert action this round.`
           }</span>
         </div>
-        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}. Beat the covert puzzle and the hit lands. Miss it and your own restaurant gets caught.`)}</p>
+        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}.${sabotage.outgoing.isBetrayal ? " Because they are your ally, this counts as a betrayal attempt." : ""} Beat the covert puzzle and the hit lands. Miss it and your own restaurant gets caught.`)}</p>
         ${gameMarkup}
         <div class="action-row">
           <button class="danger-button" type="button" data-sabotage-submit ${sabotage.canResolve && state.ui.sabotageInput.length === expectedLength ? "" : "disabled"}>Resolve Sabotage</button>
         </div>
-        <p class="note">${escapeHtml(`${user.team?.name || "Your restaurant"} can only submit one full sabotage attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats.`)}</p>
+        <p class="note">${escapeHtml(`${user.team?.name || "Your restaurant"} can only submit one full sabotage attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats${sabotage.outgoing.isBetrayal ? " and exposes the backstab to everyone" : ""}.`)}</p>
       </article>
     `;
   }
@@ -2481,12 +2696,20 @@ function renderSabotagePanel(sabotage, user) {
           ${(sabotage.availableTargets || [])
             .map((team) => `
               <option value="${escapeHtml(team.id)}" ${team.id === state.ui.sabotageDraft.targetTeamId ? "selected" : ""}>
-                ${escapeHtml(team.name)}
+                ${escapeHtml(team.name)}${team.isAllied ? " (Allied)" : ""}
               </option>
             `)
             .join("")}
         </select>
       </label>
+      ${
+        (sabotage.availableTargets || []).some((team) => team.id === state.ui.sabotageDraft.targetTeamId && team.isAllied)
+          ? `<div class="relationship-callout">
+              <strong>Betrayal warning</strong>
+              <span>You are pointing this sabotage at an allied team. If it succeeds, the hit stays hidden. If it fails, the betrayal is announced to the whole class.</span>
+            </div>`
+          : ""
+      }
       <div class="sabotage-type-grid">
         ${(sabotage.sabotageTypes || [])
           .map((type) => `
