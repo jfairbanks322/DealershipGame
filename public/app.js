@@ -18,7 +18,8 @@ const state = {
     selectedAvatarId: null,
     sabotageDraft: {
       targetTeamId: "",
-      sabotageType: ""
+      sabotageType: "",
+      frameTeamId: ""
     },
     sabotageInput: [],
     sabotageRevealUntil: 0
@@ -94,65 +95,65 @@ const STAFF_DIRECTORY = {
 };
 
 const EVENT_ART_DIRECTORY = {
-  "influencer-hates-everything": {
-    image: "/assets/feast-haven/events/influencer-hates-everything.png",
-    alt: "A glamorous influencer live-streaming complaints from her Feast Haven table while guests and staff react in alarm"
+  "drive-thru-line-from-hell": {
+    image: "/assets/feast-haven/events/drive-thru-line-from-hell.png",
+    alt: "A drive-thru line stretching around a fast-food restaurant and into the street while angry drivers shout from their cars"
   },
-  "grandma-secret-menu-takeover": {
-    image: "/assets/feast-haven/events/grandma-secret-menu-takeover.png",
-    alt: "An angry grandmother taking over the Feast Haven kitchen with a sauce spoon while stunned staff watch"
+  "wrong-order-domino-effect": {
+    image: "/assets/feast-haven/events/wrong-order-domino-effect.png",
+    alt: "Fast-food workers frantically swapping labeled bags as a chain of angry customers realizes the wrong orders keep piling up"
   },
-  "surprise-health-inspection-chaos": {
-    image: "/assets/feast-haven/events/surprise-health-inspection-chaos.png",
-    alt: "A stern health inspector entering a chaotic Feast Haven kitchen with fire, dirty dishes, and panicked staff"
+  "mobile-order-flood": {
+    image: "/assets/feast-haven/events/mobile-order-flood.png",
+    alt: "An overwhelmed fast-food counter covered in mobile order bags and drinks while furious guests shout from the pickup area"
   },
-  "table-that-wont-leave": {
-    image: "/assets/feast-haven/events/table-that-wont-leave.png",
-    alt: "A loud group sprawled across a reserved Feast Haven table for hours while a stressed server tries to move them"
+  "register-goes-down": {
+    image: "/assets/feast-haven/events/register-goes-down.png",
+    alt: "A fast-food register showing a giant error while employees and customers stare at the frozen checkout line in frustration"
   },
-  "mystery-food-critic": {
-    image: "/assets/feast-haven/events/mystery-food-critic.png",
-    alt: "A suspicious disguised diner hiding behind a menu while Feast Haven staff and chef try to identify the mystery critic"
+  "staff-no-show": {
+    image: "/assets/feast-haven/events/staff-no-show.png",
+    alt: "A short-handed fast-food crew panicking behind the counter while a thought bubble shows two missing workers and a growing line"
   },
-  "allergy-maybe-situation": {
-    image: "/assets/feast-haven/events/allergy-maybe-situation.png",
-    alt: "A frantic guest changing allergy claims while a Feast Haven server and chef struggle with a confusing ingredient list"
+  "fresh-only-takeover": {
+    image: "/assets/feast-haven/events/fresh-only-takeover.png",
+    alt: "A crowd of customers pointing at the counter and demanding fresh burgers while the staff tries to keep order"
   },
-  "power-outage-dinner-service": {
-    image: "/assets/feast-haven/events/power-outage-dinner-service.png",
-    alt: "A dark Feast Haven dining room during a power outage with staff carrying lanterns and guests panicking"
+  "delivery-app-glitch": {
+    image: "/assets/feast-haven/events/delivery-app-glitch.png",
+    alt: "A fast-food prep station stacked with duplicate delivery bags as app riders and employees scramble through a glitch-fueled order pileup"
   },
-  "staff-group-chat-revolt": {
-    image: "/assets/feast-haven/events/staff-group-chat-revolt.png",
-    alt: "A furious manager staring at an exploding staff group chat while employees laugh around the back office"
+  "ice-cream-machine-conspiracy": {
+    image: "/assets/feast-haven/events/ice-cream-machine-conspiracy.png",
+    alt: "Customers filming a fast-food worker beside the ice cream machine while accusing the staff of faking a breakdown"
   },
-  "wrong-proposal": {
-    image: "/assets/feast-haven/events/wrong-proposal.png",
-    alt: "A wildly mistimed celebration exploding in the Feast Haven dining room as guests duck flying champagne and shattered glass"
+  "kids-meal-toy-black-market": {
+    image: "/assets/feast-haven/events/kids-meal-toy-black-market.png",
+    alt: "Teens haggling over kids meal toys with cash on the counter while a fast-food worker tries to shut down the toy marketplace"
   },
-  "free-meal-tiktok-hack": {
-    image: "/assets/feast-haven/events/free-meal-tiktok-hack.png",
-    alt: "A table of phone-wielding guests trying a viral free-meal trick while a stressed Feast Haven server confronts them"
+  "secret-menu-chaos": {
+    image: "/assets/feast-haven/events/secret-menu-chaos.png",
+    alt: "Phone-wielding customers demanding complicated viral secret menu hacks while a fast-food worker tries to explain the kitchen cannot keep up"
   },
-  "kitchen-equipment-meltdown": {
-    image: "/assets/feast-haven/events/kitchen-equipment-meltdown.png",
-    alt: "A Feast Haven kitchen melting down with fire, failing equipment, and towering tickets during dinner service"
+  "drive-thru-influencer-traffic-jam": {
+    image: "/assets/feast-haven/events/drive-thru-influencer-traffic-jam.png",
+    alt: "Influencers hanging out of cars with cameras in a drive-thru lane while traffic backs up behind them"
   },
-  "rival-restaurant-spy": {
-    image: "/assets/feast-haven/events/rival-restaurant-spy.png",
-    alt: "A suspicious undercover diner or spy standing inside the Feast Haven kitchen while staff panic around failing service"
+  "hundred-burger-challenge-crew": {
+    image: "/assets/feast-haven/events/hundred-burger-challenge-crew.png",
+    alt: "A cheering crowd filming a giant hundred-burger challenge stack at the fast-food counter while the staff looks stunned"
   },
-  "celebrity-walk-in": {
-    image: "/assets/feast-haven/events/celebrity-walk-in.png",
-    alt: "A flashy celebrity arriving unexpectedly at Feast Haven with a big group and throwing the dining room into chaos"
+  "mascot-meltdown": {
+    image: "/assets/feast-haven/events/mascot-meltdown.png",
+    alt: "A runaway burger mascot crashing through a fast-food restaurant and knocking food everywhere as guests panic"
   },
-  "kids-gone-wild-table": {
-    image: "/assets/feast-haven/events/kids-gone-wild-table.png",
-    alt: "Children sprinting through the Feast Haven dining room while exhausted adults ignore the chaos"
+  "free-food-hack-flash-mob": {
+    image: "/assets/feast-haven/events/free-food-hack-flash-mob.png",
+    alt: "A flash mob crowd storming a fast-food counter and chanting for free food while filming the staff"
   },
-  "everything-sold-out-disaster": {
-    image: "/assets/feast-haven/events/everything-sold-out-disaster.png",
-    alt: "A Feast Haven manager facing furious guests while a sold-out board shows multiple key items missing during peak hours"
+  "fry-shortage-panic": {
+    image: "/assets/feast-haven/events/fry-shortage-panic.png",
+    alt: "A swarm of furious yellow customers pounding on the counter and demanding fries from a fast-food worker during a shortage"
   }
 };
 
@@ -339,6 +340,7 @@ function syncSabotageState() {
   if (!sabotage) {
     state.ui.sabotageDraft.targetTeamId = "";
     state.ui.sabotageDraft.sabotageType = "";
+    state.ui.sabotageDraft.frameTeamId = "";
     state.ui.sabotageInput = [];
     state.ui.sabotageRevealUntil = 0;
     return;
@@ -346,7 +348,8 @@ function syncSabotageState() {
 
   const targetStillExists = sabotage.availableTargets?.some((team) => team.id === state.ui.sabotageDraft.targetTeamId);
   if (!targetStillExists) {
-    state.ui.sabotageDraft.targetTeamId = sabotage.availableTargets?.[0]?.id || "";
+    const preferredTarget = sabotage.availableTargets?.find((team) => !team.isAllied) || sabotage.availableTargets?.[0] || null;
+    state.ui.sabotageDraft.targetTeamId = preferredTarget?.id || "";
   }
 
   const typeStillExists = sabotage.sabotageTypes?.some((type) => type.id === state.ui.sabotageDraft.sabotageType);
@@ -354,7 +357,19 @@ function syncSabotageState() {
     state.ui.sabotageDraft.sabotageType = sabotage.sabotageTypes?.[0]?.id || "";
   }
 
+  const selectedTarget = sabotage.availableTargets?.find((team) => team.id === state.ui.sabotageDraft.targetTeamId) || null;
+  const validFrameTargets = (sabotage.availableTargets || []).filter(
+    (team) => team.id !== state.ui.sabotageDraft.targetTeamId
+  );
+  const frameStillExists = validFrameTargets.some((team) => team.id === state.ui.sabotageDraft.frameTeamId);
+  if (!selectedTarget?.isAllied) {
+    state.ui.sabotageDraft.frameTeamId = "";
+  } else if (!frameStillExists) {
+    state.ui.sabotageDraft.frameTeamId = "";
+  }
+
   if (sabotage.outgoing?.status !== "pending") {
+    state.ui.sabotageDraft.frameTeamId = "";
     state.ui.sabotageInput = [];
     state.ui.sabotageRevealUntil = 0;
   } else {
@@ -536,6 +551,14 @@ async function handleScenarioSubmit(event) {
 }
 
 async function handleTeacherControlsClick(event) {
+  const skipTurnButton = event.target.closest("button[data-skip-turn-team]");
+  if (skipTurnButton) {
+    await postJson("/api/admin/team-turn/skip", {
+      teamId: skipTurnButton.dataset.skipTurnTeam
+    });
+    return;
+  }
+
   const button = event.target.closest("button[data-action]");
   if (!button) {
     return;
@@ -634,7 +657,8 @@ async function handleStudentRoundClick(event) {
   if (startButton) {
     await postJson("/api/team-sabotage/start", {
       targetTeamId: state.ui.sabotageDraft.targetTeamId,
-      sabotageType: state.ui.sabotageDraft.sabotageType
+      sabotageType: state.ui.sabotageDraft.sabotageType,
+      frameTeamId: state.ui.sabotageDraft.frameTeamId
     });
     return;
   }
@@ -695,6 +719,8 @@ async function handleStudentRoundClick(event) {
 
   const allianceOfferButton = event.target.closest("button[data-alliance-offer]");
   if (allianceOfferButton) {
+    state.ui.sabotageDraft.targetTeamId = "";
+    state.ui.sabotageDraft.frameTeamId = "";
     await postJson("/api/team-alliances/offer", {
       targetTeamId: state.ui.allianceDraft.targetTeamId
     });
@@ -703,6 +729,8 @@ async function handleStudentRoundClick(event) {
 
   const allianceResponseButton = event.target.closest("button[data-alliance-response]");
   if (allianceResponseButton) {
+    state.ui.sabotageDraft.targetTeamId = "";
+    state.ui.sabotageDraft.frameTeamId = "";
     await postJson("/api/team-alliances/respond", {
       allianceId: allianceResponseButton.dataset.allianceId,
       decision: allianceResponseButton.dataset.allianceResponse
@@ -712,6 +740,8 @@ async function handleStudentRoundClick(event) {
 
   const allianceBreakButton = event.target.closest("button[data-alliance-break]");
   if (allianceBreakButton) {
+    state.ui.sabotageDraft.targetTeamId = "";
+    state.ui.sabotageDraft.frameTeamId = "";
     await postJson("/api/team-alliances/break", {
       allianceId: allianceBreakButton.dataset.allianceId
     });
@@ -739,11 +769,27 @@ function handleStudentRoundChange(event) {
   const targetSelect = event.target.closest("select[data-sabotage-target]");
   if (targetSelect) {
     state.ui.sabotageDraft.targetTeamId = String(targetSelect.value || "");
+    state.ui.sabotageDraft.frameTeamId = "";
+    render();
+    return;
+  }
+
+  const frameSelect = event.target.closest("select[data-sabotage-frame]");
+  if (frameSelect) {
+    state.ui.sabotageDraft.frameTeamId = String(frameSelect.value || "");
     render();
   }
 }
 
 async function handleStudentRosterClick(event) {
+  const skipTurnButton = event.target.closest("button[data-skip-turn-team]");
+  if (skipTurnButton) {
+    await postJson("/api/admin/team-turn/skip", {
+      teamId: skipTurnButton.dataset.skipTurnTeam
+    });
+    return;
+  }
+
   const button = event.target.closest("button[data-delete-user]");
   if (!button) {
     return;
@@ -955,7 +1001,7 @@ function renderMarketStatus() {
       <p class="note">
         ${game.isOpen
           ? currentRound
-            ? "All four teams are working the same live event, but each shared restaurant can branch differently based on team choices."
+            ? "All active teams are working the same live event, but each shared restaurant can branch differently based on team choices."
             : "Session is open. Launch a global event when you want every team to start the next chain."
           : "Open the class session before teams can start making management decisions."}
       </p>
@@ -1910,7 +1956,7 @@ function renderAdminTeamBoard(teams, currentRound) {
       <div class="section-head compact">
         <div>
           <p class="eyebrow">Restaurant Teams</p>
-          <h3>Four restaurants, four seats each</h3>
+          <h3>Five restaurants, four seats each</h3>
         </div>
       </div>
       <div class="team-ops-grid">
@@ -1973,6 +2019,9 @@ function renderAdminTeamCard(team, currentRound) {
                 Current turn: <strong>${escapeHtml(liveCase.currentDeciderName || "Waiting")}</strong>
               </div>
               ${renderTurnAssignmentRail(liveCase.stepAssignments, liveCase.stepIndex, liveCase.currentDeciderUserId, true)}
+              <div class="action-row">
+                <button class="secondary" type="button" data-skip-turn-team="${escapeHtml(team.id)}" ${liveCase.currentDeciderUserId ? "" : "disabled"}>Skip Current Turn</button>
+              </div>
             `
           : currentRound && team.memberCount
             ? `<p class="note">This team is waiting for its live case to load.</p>`
@@ -2009,6 +2058,9 @@ function renderAdminTeamCard(team, currentRound) {
       ${
         allianceState
           ? `
+              <div class="note alliance-team-note">
+                Corporate relations: <strong>${escapeHtml(allianceState.operatorName || "Open seat")}</strong>
+              </div>
               <div class="note alliance-team-note">
                 Diplomacy:
                 <strong>${
@@ -2391,6 +2443,17 @@ function renderAlliancePanel(allianceState, user) {
     return "";
   }
 
+  const operatorCallout = `
+    <div class="relationship-callout">
+      <strong>Corporate relations</strong>
+      <span>${
+        allianceState.isOperator
+          ? "This diplomacy window belongs to you."
+          : `${escapeHtml(allianceState.operatorName || "A teammate")} is handling alliances for your team this round.`
+      }</span>
+    </div>
+  `;
+
   const latestBetrayal = allianceState.latestBetrayal;
   const betrayalCallout = latestBetrayal
     ? `
@@ -2415,6 +2478,7 @@ function renderAlliancePanel(allianceState, user) {
           <h3>Alliance Offer Waiting</h3>
         </div>
         ${betrayalCallout}
+        ${operatorCallout}
         <div class="relationship-callout">
           <strong>${escapeHtml(offer.proposedByTeamName)}</strong>
           <span>They want a temporary pact. Allied teams can cool tensions, but sabotage against that partner becomes a secret betrayal attempt.</span>
@@ -2441,6 +2505,7 @@ function renderAlliancePanel(allianceState, user) {
           <h3>Alliance Active</h3>
         </div>
         ${betrayalCallout}
+        ${operatorCallout}
         <div class="relationship-callout">
           <strong>${escapeHtml(alliance.otherTeamName || "Alliance partner")}</strong>
           <span>Your restaurants are publicly aligned. If your covert ops lead targets them anyway, it becomes a betrayal attempt with a bigger upside and a harsher penalty if exposed.</span>
@@ -2466,6 +2531,7 @@ function renderAlliancePanel(allianceState, user) {
           <h3>Offer Sent</h3>
         </div>
         ${betrayalCallout}
+        ${operatorCallout}
         <p>${escapeHtml(`${offer.otherTeamName || "The other restaurant"} is reviewing your alliance offer. Until they answer, your team is locked out of other pacts.`)}</p>
         <div class="focus-row">
           <span class="pill pill-neutral">Awaiting ${escapeHtml(offer.otherTeamName || "response")}</span>
@@ -2481,6 +2547,7 @@ function renderAlliancePanel(allianceState, user) {
         <h3>Alliance Window</h3>
       </div>
       ${betrayalCallout}
+      ${operatorCallout}
       <p>Form one public alliance at a time. A pact can buy breathing room, but it also gives your team the chance to stage a much riskier betrayal later.</p>
       <label class="stack sabotage-select-block">
         <span>Offer Alliance To</span>
@@ -2499,7 +2566,7 @@ function renderAlliancePanel(allianceState, user) {
       <div class="action-row">
         <button type="button" data-alliance-offer ${allianceState.canOffer && state.ui.allianceDraft.targetTeamId ? "" : "disabled"}>Send Alliance Offer</button>
       </div>
-      <p class="note">The whole class sees the alliance if it forms. Only the betrayal stays secret, and only if the sabotage challenge succeeds.</p>
+      <p class="note">The whole class sees the alliance if it forms. Betrayals can stay hidden, and a successful frame job can even pin the hit on somebody else.</p>
     </article>
   `;
 }
@@ -2615,6 +2682,9 @@ function renderSabotagePanel(sabotage, user) {
     return "";
   }
 
+  const selectedTarget = (sabotage.availableTargets || []).find((team) => team.id === state.ui.sabotageDraft.targetTeamId) || null;
+  const frameTargets = (sabotage.availableTargets || []).filter((team) => team.id !== state.ui.sabotageDraft.targetTeamId);
+
   const incomingNotices = (sabotage.incoming || [])
     .map((attempt) => renderSabotageIncomingNotice(attempt))
     .join("");
@@ -2665,6 +2735,14 @@ function renderSabotagePanel(sabotage, user) {
           }</span>
         </div>
         <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}.${sabotage.outgoing.isBetrayal ? " Because they are your ally, this counts as a betrayal attempt." : ""} Beat the covert puzzle and the hit lands. Miss it and your own restaurant gets caught.`)}</p>
+        ${
+          sabotage.outgoing.isFramed
+            ? `<div class="relationship-callout">
+                <strong>Frame job live</strong>
+                <span>${escapeHtml(`This betrayal is trying to pin the hit on ${sabotage.outgoing.framedTeamName || "another restaurant"}. If the mini-game slips, everyone will see the real betrayal.`)}</span>
+              </div>`
+            : ""
+        }
         ${gameMarkup}
         <div class="action-row">
           <button class="danger-button" type="button" data-sabotage-submit ${sabotage.canResolve && state.ui.sabotageInput.length === expectedLength ? "" : "disabled"}>Resolve Sabotage</button>
@@ -2703,11 +2781,31 @@ function renderSabotagePanel(sabotage, user) {
         </select>
       </label>
       ${
-        (sabotage.availableTargets || []).some((team) => team.id === state.ui.sabotageDraft.targetTeamId && team.isAllied)
-          ? `<div class="relationship-callout">
-              <strong>Betrayal warning</strong>
-              <span>You are pointing this sabotage at an allied team. If it succeeds, the hit stays hidden. If it fails, the betrayal is announced to the whole class.</span>
-            </div>`
+        selectedTarget?.isAllied
+          ? `
+              <div class="relationship-callout">
+                <strong>Betrayal warning</strong>
+                <span>You are pointing this sabotage at an allied team. If it succeeds, the hit stays hidden. If it fails, the betrayal is announced to the whole class.</span>
+              </div>
+              <label class="stack sabotage-select-block">
+                <span>Optional Frame Target</span>
+                <select data-sabotage-frame ${sabotage.canStart ? "" : "disabled"}>
+                  <option value="">No frame job</option>
+                  ${frameTargets
+                    .map((team) => `
+                      <option value="${escapeHtml(team.id)}" ${team.id === state.ui.sabotageDraft.frameTeamId ? "selected" : ""}>
+                        ${escapeHtml(team.name)}
+                      </option>
+                    `)
+                    .join("")}
+                </select>
+              </label>
+              ${
+                state.ui.sabotageDraft.frameTeamId
+                  ? `<p class="note">Framing another team triggers the hardest sabotage mini-game. If you win, everyone blames ${escapeHtml(frameTargets.find((team) => team.id === state.ui.sabotageDraft.frameTeamId)?.name || "that restaurant")}. If you lose, the betrayal is exposed to the whole class.</p>`
+                  : ""
+              }
+            `
           : ""
       }
       <div class="sabotage-type-grid">
