@@ -63,6 +63,7 @@
 }
 
 .sabotage-type-grid,
+.sabotage-level-grid,
 .sabotage-symbol-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -78,6 +79,17 @@
 .sabotage-type-button.is-selected {
   border-color: rgba(255, 154, 174, 0.5);
   box-shadow: inset 0 0 0 1px rgba(255, 154, 174, 0.3);
+}
+
+.sabotage-level-button {
+  text-align: left;
+}
+
+.sabotage-level-button.is-selected {
+  border-color: rgba(255, 200, 57, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 200, 57, 0.3),
+    0 12px 24px rgba(111, 89, 182, 0.18);
 }
 
 .sabotage-choice-button.is-selected {

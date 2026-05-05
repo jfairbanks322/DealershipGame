@@ -37,6 +37,8 @@ const DEFAULT_STUDENT_STATE = {
 };
 const TEAM_STEP_COUNT = 5;
 const TEAM_MAX_SIZE = 4;
+const MAX_ACTIVE_ALLIANCES_PER_TEAM = 2;
+const MAX_PENDING_OUTGOING_ALLIANCES_PER_TEAM = 2;
 const TEAM_DEFINITIONS = [
   { id: "team-farm-door", name: "The Farm Door", accent: "gold" },
   { id: "team-gretas-place", name: "Greta's Place", accent: "red" },
@@ -70,6 +72,70 @@ const TEAM_LOOKUP = Object.fromEntries(TEAM_DEFINITIONS.map((team) => [team.id, 
 const SABOTAGE_SYMBOL_POOL = ["cloche", "bell", "glass", "fork", "knife", "flame"];
 const SABOTAGE_REVEAL_MS = 4500;
 const SABOTAGE_COUNT_CHOICES = ["1", "2", "3", "4", "5", "6"];
+const SABOTAGE_LEVELS = {
+  low: {
+    id: "low",
+    label: "Soft Tap",
+    summary: "Low risk, lower impact.",
+    challengeTier: "low",
+    successScale: 0.75,
+    failureScale: 0.65
+  },
+  medium: {
+    id: "medium",
+    label: "Standard Hit",
+    summary: "Balanced risk and reward.",
+    challengeTier: "medium",
+    successScale: 1,
+    failureScale: 1
+  },
+  high: {
+    id: "high",
+    label: "Full Sabotage",
+    summary: "Hardest mini-game, biggest swing.",
+    challengeTier: "high",
+    successScale: 1.35,
+    failureScale: 1.25
+  }
+};
+const ROUND_MODE_DEFINITIONS = [
+  {
+    id: "classic-clash",
+    label: "Classic Clash",
+    summary: "Balanced event rules. Good all-around play wins.",
+    sabotageSuccessScale: 1,
+    sabotageFailureScale: 1,
+    allianceSuccessBonus: { sales: 0, satisfaction: 1, reputation: 1, staff: {} },
+    jointSabotageBonusScale: 1
+  },
+  {
+    id: "alliance-rush",
+    label: "Alliance Rush",
+    summary: "Diplomacy matters more. Allied teams can cash in on clean teamwork.",
+    sabotageSuccessScale: 1,
+    sabotageFailureScale: 0.95,
+    allianceSuccessBonus: { sales: 2, satisfaction: 2, reputation: 3, staff: {} },
+    jointSabotageBonusScale: 1.2
+  },
+  {
+    id: "double-down-night",
+    label: "Double Down Night",
+    summary: "Everything swings harder. Big calls can move the whole board.",
+    sabotageSuccessScale: 1.2,
+    sabotageFailureScale: 1.15,
+    allianceSuccessBonus: { sales: 1, satisfaction: 0, reputation: 1, staff: {} },
+    jointSabotageBonusScale: 1.1
+  },
+  {
+    id: "public-spotlight",
+    label: "Public Spotlight",
+    summary: "Optics and betrayals cut deeper. Reputation is fragile tonight.",
+    sabotageSuccessScale: 0.95,
+    sabotageFailureScale: 1.2,
+    allianceSuccessBonus: { sales: 0, satisfaction: 2, reputation: 2, staff: {} },
+    jointSabotageBonusScale: 1
+  }
+];
 const SABOTAGE_TYPE_DEFINITIONS = {
   "reservation-spoof": {
     id: "reservation-spoof",
@@ -151,6 +217,19 @@ const SABOTAGE_TYPE_DEFINITIONS = {
   }
 };
 
+function getRoundModeByNumber(roundNumber) {
+  const safeRoundNumber = Math.max(1, Number(roundNumber || 1));
+  return ROUND_MODE_DEFINITIONS[(safeRoundNumber - 1) % ROUND_MODE_DEFINITIONS.length];
+}
+
+function getRoundModeForRow(roundRow) {
+  const stored = parseJsonValue(roundRow?.options_json, {});
+  if (stored?.matchModeId) {
+    return ROUND_MODE_DEFINITIONS.find((entry) => entry.id === stored.matchModeId) || getRoundModeByNumber(roundRow?.round_number);
+  }
+  return getRoundModeByNumber(roundRow?.round_number);
+}
+
 function shuffleList(values) {
   const copy = Array.isArray(values) ? values.slice() : [];
   for (let index = copy.length - 1; index > 0; index -= 1) {
@@ -158,6 +237,30 @@ function shuffleList(values) {
     [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
   }
   return copy;
+}
+
+function scaleStaffBundle(staffBundle = {}, factor = 1) {
+  return Object.fromEntries(
+    Object.entries(staffBundle || {}).map(([staffId, deltas]) => [
+      staffId,
+      {
+        morale: roundNumber(Number(deltas.morale || 0) * factor, 0),
+        trust: roundNumber(Number(deltas.trust || 0) * factor, 0)
+      }
+    ])
+  );
+}
+
+function scaleImpactBundle(bundle, factor = 1) {
+  if (!bundle) {
+    return null;
+  }
+  return {
+    sales: roundNumber(Number(bundle.sales || 0) * factor, 0),
+    satisfaction: roundNumber(Number(bundle.satisfaction || 0) * factor, 0),
+    reputation: roundNumber(Number(bundle.reputation || 0) * factor, 0),
+    staff: scaleStaffBundle(bundle.staff || {}, factor)
+  };
 }
 
 function randomSymbol(exclusions = []) {
@@ -172,9 +275,9 @@ function randomUniqueSymbols(count, exclusions = []) {
   return pool.slice(0, count);
 }
 
-function buildMemorySweepChallenge() {
+function buildMemorySweepChallenge(length = 5, revealMs = SABOTAGE_REVEAL_MS) {
   const displaySequence = Array.from(
-    { length: 5 },
+    { length },
     () => SABOTAGE_SYMBOL_POOL[crypto.randomInt(0, SABOTAGE_SYMBOL_POOL.length)]
   );
   return {
@@ -184,13 +287,13 @@ function buildMemorySweepChallenge() {
     symbolPool: SABOTAGE_SYMBOL_POOL,
     displaySequence,
     answerSequence: displaySequence,
-    revealMs: SABOTAGE_REVEAL_MS
+    revealMs
   };
 }
 
-function buildReverseRelayChallenge() {
+function buildReverseRelayChallenge(length = 5, revealMs = SABOTAGE_REVEAL_MS) {
   const displaySequence = Array.from(
-    { length: 5 },
+    { length },
     () => SABOTAGE_SYMBOL_POOL[crypto.randomInt(0, SABOTAGE_SYMBOL_POOL.length)]
   );
   return {
@@ -200,17 +303,18 @@ function buildReverseRelayChallenge() {
     symbolPool: SABOTAGE_SYMBOL_POOL,
     displaySequence,
     answerSequence: displaySequence.slice().reverse(),
-    revealMs: SABOTAGE_REVEAL_MS
+    revealMs
   };
 }
 
-function buildCountLockChallenge() {
+function buildCountLockChallenge(gridSize = 12) {
   const targetSymbol = randomSymbol();
-  const targetCount = crypto.randomInt(2, 6);
+  const maxCount = Math.min(6, Math.max(4, gridSize - 4));
+  const targetCount = crypto.randomInt(2, maxCount + 1);
   const fillerPool = SABOTAGE_SYMBOL_POOL.filter((symbol) => symbol !== targetSymbol);
   const displayGrid = shuffleList([
     ...Array.from({ length: targetCount }, () => targetSymbol),
-    ...Array.from({ length: 12 - targetCount }, () => fillerPool[crypto.randomInt(0, fillerPool.length)])
+    ...Array.from({ length: gridSize - targetCount }, () => fillerPool[crypto.randomInt(0, fillerPool.length)])
   ]);
   const options = shuffleList(
     Array.from(
@@ -236,19 +340,16 @@ function buildCountLockChallenge() {
   };
 }
 
-function buildIntruderChallenge() {
+function buildIntruderChallenge(pairCount = 2) {
   const oddSymbol = randomSymbol();
   const repeatedSymbol = randomSymbol([oddSymbol]);
-  const fillerSymbols = randomUniqueSymbols(2, [oddSymbol, repeatedSymbol]);
+  const fillerSymbols = randomUniqueSymbols(pairCount, [oddSymbol, repeatedSymbol]);
   const displayGrid = shuffleList([
     oddSymbol,
     repeatedSymbol,
     repeatedSymbol,
     repeatedSymbol,
-    fillerSymbols[0],
-    fillerSymbols[0],
-    fillerSymbols[1],
-    fillerSymbols[1]
+    ...fillerSymbols.flatMap((symbol) => [symbol, symbol])
   ]);
   const options = shuffleList([oddSymbol, repeatedSymbol, ...fillerSymbols]);
 
@@ -264,9 +365,9 @@ function buildIntruderChallenge() {
   };
 }
 
-function buildPatternPulseChallenge() {
-  const pattern = randomUniqueSymbols(3);
-  const displaySequence = Array.from({ length: 5 }, (_, index) => pattern[index % pattern.length]);
+function buildPatternPulseChallenge(patternLength = 3, sequenceLength = 5) {
+  const pattern = randomUniqueSymbols(patternLength);
+  const displaySequence = Array.from({ length: sequenceLength }, (_, index) => pattern[index % pattern.length]);
   const nextSymbol = pattern[displaySequence.length % pattern.length];
   const options = shuffleList([nextSymbol, ...randomUniqueSymbols(3, [nextSymbol])]);
 
@@ -305,6 +406,35 @@ const SABOTAGE_CHALLENGE_BUILDERS = [
   buildIntruderChallenge,
   buildPatternPulseChallenge
 ];
+
+function buildSabotageChallenge(levelId = "medium", forceHard = false) {
+  const level = SABOTAGE_LEVELS[levelId] || SABOTAGE_LEVELS.medium;
+  if (forceHard || level.challengeTier === "high") {
+    const highBuilders = [
+      () => buildReverseRelayChallenge(7, 3000),
+      () => buildMemorySweepChallenge(7, 2800),
+      buildFramedBetrayalChallenge,
+      () => buildPatternPulseChallenge(4, 8)
+    ];
+    return highBuilders[crypto.randomInt(0, highBuilders.length)]();
+  }
+  if (level.challengeTier === "low") {
+    const lowBuilders = [
+      () => buildCountLockChallenge(10),
+      () => buildIntruderChallenge(2),
+      () => buildPatternPulseChallenge(3, 5)
+    ];
+    return lowBuilders[crypto.randomInt(0, lowBuilders.length)]();
+  }
+  const mediumBuilders = [
+    () => buildMemorySweepChallenge(5, SABOTAGE_REVEAL_MS),
+    () => buildReverseRelayChallenge(5, SABOTAGE_REVEAL_MS),
+    () => buildCountLockChallenge(12),
+    () => buildIntruderChallenge(2),
+    () => buildPatternPulseChallenge(3, 6)
+  ];
+  return mediumBuilders[crypto.randomInt(0, mediumBuilders.length)]();
+}
 const PREDICTION_MARKET_START_CASH = 40;
 const PREDICTION_MARKET_SEED_LIQUIDITY = 120;
 const PREDICTION_MARKET_TIMEZONE = process.env.PREDICTION_MARKET_TIMEZONE || "America/Detroit";
@@ -6184,6 +6314,8 @@ async function handleApi(req, res, pathname) {
         session.userId,
         String(body.targetTeamId || "").trim(),
         String(body.sabotageType || "").trim(),
+        String(body.levelId || "").trim(),
+        String(body.supportTeamId || "").trim(),
         String(body.frameTeamId || "").trim()
       ));
       sendJson(res, 200, buildBootstrapPayload(session));
@@ -6963,6 +7095,18 @@ function ensureTeamSabotageColumns() {
   if (!columns.includes("framed_team_id")) {
     db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN framed_team_id TEXT`);
   }
+  if (!columns.includes("sabotage_level_id")) {
+    db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN sabotage_level_id TEXT NOT NULL DEFAULT 'medium'`);
+  }
+  if (!columns.includes("support_team_id")) {
+    db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN support_team_id TEXT`);
+  }
+  if (!columns.includes("support_user_id")) {
+    db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN support_user_id TEXT`);
+  }
+  if (!columns.includes("outcome_bundle_json")) {
+    db.exec(`ALTER TABLE team_sabotage_attempts ADD COLUMN outcome_bundle_json TEXT`);
+  }
 }
 
 function ensureLateMigrationIndexes() {
@@ -7072,19 +7216,68 @@ function getAllianceLockStatuses() {
   return ["pending", "active"];
 }
 
-function getTeamAllianceLock(teamId, excludeAllianceId = null) {
-  if (!teamId) {
-    return null;
+function listTeamAlliancesByStatuses(teamId, statuses = []) {
+  if (!teamId || !statuses.length) {
+    return [];
   }
-  const statuses = getAllianceLockStatuses();
-  const rows = db.prepare(
+  return db.prepare(
     `SELECT *
      FROM team_alliances
      WHERE (team_a_id = ? OR team_b_id = ?)
        AND status IN (${statuses.map(() => "?").join(", ")})
-     ORDER BY datetime(created_at) DESC, rowid DESC`
+     ORDER BY datetime(COALESCE(responded_at, created_at)) DESC, rowid DESC`
   ).all(teamId, teamId, ...statuses);
+}
+
+function listActiveAlliancesForTeam(teamId) {
+  return listTeamAlliancesByStatuses(teamId, ["active"]);
+}
+
+function listPendingIncomingAlliancesForTeam(teamId) {
+  if (!teamId) {
+    return [];
+  }
+  return db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE proposed_to_team_id = ? AND status = 'pending'
+     ORDER BY datetime(created_at) DESC, rowid DESC`
+  ).all(teamId);
+}
+
+function listPendingOutgoingAlliancesForTeam(teamId) {
+  if (!teamId) {
+    return [];
+  }
+  return db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE proposed_by_team_id = ? AND status = 'pending'
+     ORDER BY datetime(created_at) DESC, rowid DESC`
+  ).all(teamId);
+}
+
+function countTeamAlliances(teamId, statuses = []) {
+  return listTeamAlliancesByStatuses(teamId, statuses).length;
+}
+
+function hasPendingAllianceBetweenTeams(teamAId, teamBId, excludeAllianceId = null) {
+  if (!teamAId || !teamBId) {
+    return null;
+  }
+  const rows = db.prepare(
+    `SELECT *
+     FROM team_alliances
+     WHERE status = 'pending'
+       AND ((team_a_id = ? AND team_b_id = ?) OR (team_a_id = ? AND team_b_id = ?))
+     ORDER BY datetime(created_at) DESC, rowid DESC`
+  ).all(teamAId, teamBId, teamBId, teamAId);
   return rows.find((row) => row.id !== excludeAllianceId) || null;
+}
+
+function canTeamOfferAlliance(teamId) {
+  return countTeamAlliances(teamId, ["active"]) < MAX_ACTIVE_ALLIANCES_PER_TEAM
+    && countTeamAlliances(teamId, ["pending"]) < MAX_PENDING_OUTGOING_ALLIANCES_PER_TEAM;
 }
 
 function getAllianceById(allianceId) {
@@ -7151,27 +7344,9 @@ function serializeAllianceState(teamId, viewerUserId = null) {
     return null;
   }
   const diplomacyOperator = getTeamDiplomacyOperator(teamId);
-  const activeAlliance = db.prepare(
-    `SELECT *
-     FROM team_alliances
-     WHERE (team_a_id = ? OR team_b_id = ?)
-       AND status = 'active'
-     ORDER BY datetime(responded_at) DESC, rowid DESC
-     LIMIT 1`
-  ).get(teamId, teamId);
-  const pendingIncoming = db.prepare(
-    `SELECT *
-     FROM team_alliances
-     WHERE proposed_to_team_id = ? AND status = 'pending'
-     ORDER BY datetime(created_at) DESC, rowid DESC`
-  ).all(teamId);
-  const pendingOutgoing = db.prepare(
-    `SELECT *
-     FROM team_alliances
-     WHERE proposed_by_team_id = ? AND status = 'pending'
-     ORDER BY datetime(created_at) DESC, rowid DESC
-     LIMIT 1`
-  ).get(teamId);
+  const activeAlliances = listActiveAlliancesForTeam(teamId);
+  const pendingIncoming = listPendingIncomingAlliancesForTeam(teamId);
+  const pendingOutgoing = listPendingOutgoingAlliancesForTeam(teamId);
   const latestBetrayal = db.prepare(
     `SELECT *
      FROM team_alliances
@@ -7180,30 +7355,35 @@ function serializeAllianceState(teamId, viewerUserId = null) {
      ORDER BY datetime(ended_at) DESC, rowid DESC
      LIMIT 1`
   ).get(teamId, teamId);
-
-  const lock = getTeamAllianceLock(teamId);
   const availablePartners = TEAM_DEFINITIONS
     .filter((team) => team.id !== teamId)
     .filter((team) => listTeamMembers(team.id).length)
     .filter((team) => !getTeamLossState(team.id))
-    .filter((team) => !getTeamAllianceLock(team.id))
+    .filter((team) => countTeamAlliances(team.id, ["active"]) < MAX_ACTIVE_ALLIANCES_PER_TEAM)
+    .filter((team) => !getActiveAllianceBetweenTeams(teamId, team.id))
+    .filter((team) => !hasPendingAllianceBetweenTeams(teamId, team.id))
     .map((team) => ({
       id: team.id,
       name: team.name,
       accent: team.accent
     }));
 
+  const canOfferMore = canTeamOfferAlliance(teamId);
+
   return {
     operatorUserId: diplomacyOperator?.id || null,
     operatorName: diplomacyOperator?.display_name || "Open seat",
     isOperator: Boolean(viewerUserId && diplomacyOperator?.id && viewerUserId === diplomacyOperator.id),
-    activeAlliance: serializeAllianceRow(activeAlliance, teamId),
+    activeAlliances: activeAlliances.map((row) => serializeAllianceRow(row, teamId)),
     pendingIncoming: pendingIncoming.map((row) => serializeAllianceRow(row, teamId)),
-    pendingOutgoing: serializeAllianceRow(pendingOutgoing, teamId),
+    pendingOutgoing: pendingOutgoing.map((row) => serializeAllianceRow(row, teamId)),
     latestBetrayal: serializeAllianceRow(latestBetrayal, teamId),
-    canOffer: Boolean(viewerUserId && diplomacyOperator?.id && viewerUserId === diplomacyOperator.id && !lock && availablePartners.length),
+    canOffer: Boolean(viewerUserId && diplomacyOperator?.id && viewerUserId === diplomacyOperator.id && canOfferMore && availablePartners.length),
     canRespond: Boolean(viewerUserId && diplomacyOperator?.id && viewerUserId === diplomacyOperator.id && pendingIncoming.length),
-    canBreak: Boolean(viewerUserId && diplomacyOperator?.id && viewerUserId === diplomacyOperator.id && activeAlliance),
+    canBreak: Boolean(viewerUserId && diplomacyOperator?.id && viewerUserId === diplomacyOperator.id && activeAlliances.length),
+    activeAllianceCount: activeAlliances.length,
+    pendingOutgoingCount: pendingOutgoing.length,
+    maxActiveAlliances: MAX_ACTIVE_ALLIANCES_PER_TEAM,
     availablePartners
   };
 }
@@ -7230,11 +7410,17 @@ function offerTeamAlliance(userId, targetTeamId) {
   if (getTeamLossState(teamId) || getTeamLossState(targetTeamId)) {
     throw new Error("Eliminated restaurants cannot form alliances.");
   }
-  if (getTeamAllianceLock(teamId)) {
-    throw new Error("Your team already has an alliance or alliance offer in progress.");
+  if (!canTeamOfferAlliance(teamId)) {
+    throw new Error("Your team already has the maximum number of alliances or offers in motion.");
   }
-  if (getTeamAllianceLock(targetTeamId)) {
-    throw new Error("That team already has an alliance or alliance offer in progress.");
+  if (countTeamAlliances(targetTeamId, ["active"]) >= MAX_ACTIVE_ALLIANCES_PER_TEAM) {
+    throw new Error("That team already has the maximum number of active alliances.");
+  }
+  if (getActiveAllianceBetweenTeams(teamId, targetTeamId)) {
+    throw new Error("Those teams are already allied.");
+  }
+  if (hasPendingAllianceBetweenTeams(teamId, targetTeamId)) {
+    throw new Error("An alliance offer is already pending between those teams.");
   }
 
   db.prepare(
@@ -7272,8 +7458,11 @@ function respondTeamAlliance(userId, allianceId, decision) {
   }
 
   if (decision === "accept") {
-    if (getTeamAllianceLock(alliance.team_a_id, alliance.id) || getTeamAllianceLock(alliance.team_b_id, alliance.id)) {
-      throw new Error("One of those teams is no longer free to lock in this alliance.");
+    if (countTeamAlliances(alliance.team_a_id, ["active"]) >= MAX_ACTIVE_ALLIANCES_PER_TEAM) {
+      throw new Error(`${getTeamMeta(alliance.team_a_id)?.name || "One team"} already hit the alliance cap.`);
+    }
+    if (countTeamAlliances(alliance.team_b_id, ["active"]) >= MAX_ACTIVE_ALLIANCES_PER_TEAM) {
+      throw new Error(`${getTeamMeta(alliance.team_b_id)?.name || "One team"} already hit the alliance cap.`);
     }
     db.prepare(
       `UPDATE team_alliances
@@ -7311,11 +7500,6 @@ function breakTeamAlliance(userId, allianceId) {
      SET status = 'broken', ended_at = ?
      WHERE id = ?`
   ).run(new Date().toISOString(), alliance.id);
-}
-
-function buildSabotageChallenge() {
-  const builder = SABOTAGE_CHALLENGE_BUILDERS[crypto.randomInt(0, SABOTAGE_CHALLENGE_BUILDERS.length)];
-  return builder();
 }
 
 function getOrderedTeamMembers(teamId) {
@@ -7383,14 +7567,16 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
   };
   const challenge = parseJsonValue(row.challenge_json, {});
   const submittedSequence = parseJsonValue(row.submitted_sequence_json, []);
+  const storedOutcomeBundle = parseJsonValue(row.outcome_bundle_json, null);
   const includeChallenge = row.status === "pending" && viewerTeamId === row.attacker_team_id;
   const isBetrayal = Boolean(Number(row.is_betrayal || 0));
   const isFramed = Boolean(row.framed_team_id);
-  const resolvedImpact = row.status === "success"
-    ? meta.success
-    : row.status === "failed"
-      ? meta.failure
-      : null;
+  const resolvedImpact = storedOutcomeBundle
+    || (row.status === "success"
+      ? meta.success
+      : row.status === "failed"
+        ? meta.failure
+        : null);
   const impactedTeamId = row.status === "success"
     ? row.target_team_id
     : row.status === "failed"
@@ -7400,6 +7586,8 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
   const shouldFrameHold = isFramed && row.status === "success" && viewerTeamId !== row.attacker_team_id;
   const maskAttacker = !shouldFrameHold && isBetrayal && row.status === "success" && viewerTeamId && viewerTeamId === row.target_team_id;
   const visibleAttackerTeamId = shouldFrameHold ? row.framed_team_id : row.attacker_team_id;
+  const sabotageLevel = SABOTAGE_LEVELS[row.sabotage_level_id] || SABOTAGE_LEVELS.medium;
+  const supportTeamName = row.support_team_id ? getTeamMeta(row.support_team_id)?.name || "Alliance partner" : null;
   const attackerTeamName = maskAttacker
     ? "Unknown ally"
     : getTeamMeta(visibleAttackerTeamId)?.name || "Attacking Team";
@@ -7423,11 +7611,18 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
     sabotageType: row.sabotage_type,
     sabotageLabel: meta.label,
     sabotageSummary: meta.summary,
+    sabotageLevelId: sabotageLevel.id,
+    sabotageLevelLabel: sabotageLevel.label,
+    sabotageLevelSummary: sabotageLevel.summary,
     isBetrayal,
     isFramed,
     allianceId: row.alliance_id || null,
     framedTeamId: row.framed_team_id || null,
     framedTeamName: row.framed_team_id ? getTeamMeta(row.framed_team_id)?.name || "Framed Team" : null,
+    supportTeamId: row.support_team_id || null,
+    supportTeamName,
+    supportUserId: row.support_user_id || null,
+    supportUserName: row.support_user_id ? getUserById(row.support_user_id)?.display_name || "Teammate" : null,
     status: row.status,
     outcomeNote: row.outcome_note || "",
     displayOutcomeNote,
@@ -7467,6 +7662,7 @@ function serializeTeamSabotageState(roundId, teamId, viewerUserId = null) {
   }
 
   const round = getRoundById(roundId);
+  const roundMode = getRoundModeForRow(round);
   const operator = getTeamSabotageOperator(teamId, round);
   const outgoing = getTeamSabotageAttempt(roundId, teamId);
   const incoming = db.prepare(
@@ -7485,6 +7681,15 @@ function serializeTeamSabotageState(roundId, teamId, viewerUserId = null) {
       accent: team.accent,
       isAllied: Boolean(getActiveAllianceBetweenTeams(teamId, team.id))
     }));
+  const supportAllies = listActiveAlliancesForTeam(teamId)
+    .map((row) => {
+      const otherTeamId = getAllianceOtherTeamId(row, teamId);
+      const otherTeam = getTeamMeta(otherTeamId);
+      return otherTeamId && otherTeam && listTeamMembers(otherTeamId).length && !getTeamLossState(otherTeamId)
+        ? { id: otherTeamId, name: otherTeam.name, accent: otherTeam.accent, allianceId: row.id }
+        : null;
+    })
+    .filter(Boolean);
 
   return {
     operatorUserId: operator?.id || null,
@@ -7495,12 +7700,23 @@ function serializeTeamSabotageState(roundId, teamId, viewerUserId = null) {
     outgoing: serializeSabotageAttempt(outgoing, teamId),
     incoming: incoming.map((row) => serializeSabotageAttempt(row, teamId)),
     availableTargets,
+    supportAllies,
     availableFrameTargets: availableTargets.filter((team) => team.id !== teamId),
     sabotageTypes: Object.values(SABOTAGE_TYPE_DEFINITIONS).map((entry) => ({
       id: entry.id,
       label: entry.label,
       summary: entry.summary
-    }))
+    })),
+    sabotageLevels: Object.values(SABOTAGE_LEVELS).map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      summary: entry.summary
+    })),
+    roundMode: {
+      id: roundMode.id,
+      label: roundMode.label,
+      summary: roundMode.summary
+    }
   };
 }
 
@@ -7523,7 +7739,7 @@ function getLatestSabotageBroadcast(roundId) {
   const serialized = serializeSabotageAttempt(latestCaughtAttempt, null);
   return {
     ...serialized,
-    type: "caught",
+    type: serialized.isBetrayal || serialized.isFramed ? "betrayal-exposed" : "caught",
     headline: serialized.isFramed
       ? `${getTeamMeta(latestCaughtAttempt.attacker_team_id)?.name || "A restaurant"} got caught betraying ${serialized.targetTeamName} and trying to frame ${serialized.framedTeamName}.`
       : serialized.isBetrayal
@@ -8616,7 +8832,7 @@ function scaleTeamDeltaBundle(bundle, factor) {
   };
 }
 
-function startTeamSabotage(userId, targetTeamId, sabotageType, framedTeamId = "") {
+function startTeamSabotage(userId, targetTeamId, sabotageType, levelId = "medium", supportTeamId = "", framedTeamId = "") {
   const game = getGameState();
   if (!game.isOpen || !game.currentRoundId) {
     throw new Error("A live global event has to be running before teams can launch sabotage.");
@@ -8640,6 +8856,10 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, framedTeamId = ""
   if (!SABOTAGE_TYPE_DEFINITIONS[sabotageType]) {
     throw new Error("Choose a valid sabotage plan.");
   }
+  const sabotageLevel = SABOTAGE_LEVELS[levelId] || null;
+  if (!sabotageLevel) {
+    throw new Error("Choose a valid sabotage level.");
+  }
   if (!TEAM_LOOKUP[targetTeamId] || !listTeamMembers(targetTeamId).length) {
     throw new Error("That target team is not active right now.");
   }
@@ -8653,7 +8873,22 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, framedTeamId = ""
     throw new Error("Your team already spent its sabotage move for this round.");
   }
   const alliance = getActiveAllianceBetweenTeams(attackerTeamId, targetTeamId);
+  const cleanSupportTeamId = String(supportTeamId || "").trim();
   const cleanFramedTeamId = String(framedTeamId || "").trim();
+  let supportOperator = null;
+  if (cleanSupportTeamId) {
+    if (cleanSupportTeamId === attackerTeamId || cleanSupportTeamId === targetTeamId) {
+      throw new Error("Pick a different active ally to support the sabotage.");
+    }
+    const supportAlliance = getActiveAllianceBetweenTeams(attackerTeamId, cleanSupportTeamId);
+    if (!supportAlliance) {
+      throw new Error("Joint sabotage only works with an active ally.");
+    }
+    if (!TEAM_LOOKUP[cleanSupportTeamId] || !listTeamMembers(cleanSupportTeamId).length || getTeamLossState(cleanSupportTeamId)) {
+      throw new Error("That supporting team is not available right now.");
+    }
+    supportOperator = getTeamSabotageOperator(cleanSupportTeamId, round);
+  }
   if (cleanFramedTeamId) {
     if (!alliance) {
       throw new Error("You can only frame another restaurant when sabotaging an active ally.");
@@ -8665,12 +8900,12 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, framedTeamId = ""
       throw new Error("That framed team is not available right now.");
     }
   }
-  const challenge = cleanFramedTeamId ? buildFramedBetrayalChallenge() : buildSabotageChallenge();
+  const challenge = buildSabotageChallenge(sabotageLevel.id, Boolean(cleanFramedTeamId));
 
   db.prepare(
     `INSERT INTO team_sabotage_attempts
-     (id, round_id, attacker_team_id, target_team_id, created_by_user_id, sabotage_type, alliance_id, is_betrayal, framed_team_id, status, challenge_json, submitted_sequence_json, outcome_note, created_at, resolved_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NULL, '', ?, NULL)`
+     (id, round_id, attacker_team_id, target_team_id, created_by_user_id, sabotage_type, alliance_id, is_betrayal, framed_team_id, sabotage_level_id, support_team_id, support_user_id, status, challenge_json, submitted_sequence_json, outcome_note, outcome_bundle_json, created_at, resolved_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NULL, '', NULL, ?, NULL)`
   ).run(
     crypto.randomUUID(),
     game.currentRoundId,
@@ -8681,6 +8916,9 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, framedTeamId = ""
     alliance?.id || null,
     alliance ? 1 : 0,
     cleanFramedTeamId || null,
+    sabotageLevel.id,
+    cleanSupportTeamId || null,
+    supportOperator?.id || null,
     JSON.stringify(challenge),
     new Date().toISOString()
   );
@@ -8718,27 +8956,45 @@ function resolveTeamSabotage(userId, submittedSequence) {
   }
 
   const meta = SABOTAGE_TYPE_DEFINITIONS[attempt.sabotage_type];
+  const sabotageLevel = SABOTAGE_LEVELS[attempt.sabotage_level_id] || SABOTAGE_LEVELS.medium;
+  const roundMode = getRoundModeForRow(round);
   const success = expectedSequence.every((symbol, index) => symbol === cleanSubmitted[index]);
   const isBetrayal = Boolean(Number(attempt.is_betrayal || 0));
   const isFramed = Boolean(attempt.framed_team_id);
   const baseBundle = success ? meta.success : meta.failure;
-  const bundle = isBetrayal
-    ? scaleTeamDeltaBundle(baseBundle, success ? 1.4 : 1.25)
-    : baseBundle;
+  let scaleFactor = success
+    ? sabotageLevel.successScale * Number(roundMode.sabotageSuccessScale || 1)
+    : sabotageLevel.failureScale * Number(roundMode.sabotageFailureScale || 1);
+  if (isBetrayal) {
+    scaleFactor *= success ? 1.4 : 1.25;
+  }
+  if (success && attempt.support_team_id) {
+    scaleFactor *= Number(roundMode.jointSabotageBonusScale || 1);
+  }
+  const bundle = scaleTeamDeltaBundle(baseBundle, scaleFactor);
   const impactedTeamId = success ? attempt.target_team_id : attackerTeamId;
   const outcomeNote = success
     ? isFramed
       ? `The betrayal landed cleanly and the frame held. ${getTeamMeta(attempt.target_team_id)?.name || "Your ally"} is blaming ${getTeamMeta(attempt.framed_team_id)?.name || "another restaurant"} for the sabotage.`
+      : attempt.support_team_id
+      ? `${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} and ${getTeamMeta(attempt.support_team_id)?.name || "an allied restaurant"} pulled off a ${sabotageLevel.label} hit on ${getTeamMeta(attempt.target_team_id)?.name || "the rival restaurant"}.`
       : isBetrayal
       ? `The betrayal stayed hidden. ${getTeamMeta(attempt.target_team_id)?.name || "Your allied rival"} took an even harder hit because they never saw it coming.`
-      : `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival restaurant"} took the hit.`
+      : `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival restaurant"} took the hit from a ${sabotageLevel.label.toLowerCase()} move.`
     : isFramed
       ? `Your alliance betrayal collapsed in public. ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} was exposed trying to hit ${getTeamMeta(attempt.target_team_id)?.name || "an ally"} and frame ${getTeamMeta(attempt.framed_team_id)?.name || "another restaurant"}.`
+      : attempt.support_team_id
+      ? `${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} and ${getTeamMeta(attempt.support_team_id)?.name || "an allied restaurant"} whiffed a joint sabotage and the penalty snapped back on you.`
       : isBetrayal
       ? `Your alliance betrayal blew up in public. ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty and everyone knows who you targeted.`
-      : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty.`;
+      : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty from a ${sabotageLevel.label.toLowerCase()} attempt.`;
 
   applyTeamDeltaBundle(impactedTeamId, bundle);
+  if (success && attempt.support_team_id) {
+    const allianceBonus = scaleImpactBundle(roundMode.allianceSuccessBonus, 1);
+    applyTeamDeltaBundle(attackerTeamId, allianceBonus);
+    applyTeamDeltaBundle(attempt.support_team_id, allianceBonus);
+  }
   if (isBetrayal && !success && attempt.alliance_id) {
     db.prepare(
       `UPDATE team_alliances
@@ -8749,12 +9005,13 @@ function resolveTeamSabotage(userId, submittedSequence) {
 
   db.prepare(
     `UPDATE team_sabotage_attempts
-     SET status = ?, submitted_sequence_json = ?, outcome_note = ?, resolved_at = ?
+     SET status = ?, submitted_sequence_json = ?, outcome_note = ?, outcome_bundle_json = ?, resolved_at = ?
      WHERE id = ?`
   ).run(
     success ? "success" : "failed",
     JSON.stringify(cleanSubmitted),
     outcomeNote,
+    JSON.stringify(bundle),
     new Date().toISOString(),
     attempt.id
   );
@@ -10171,6 +10428,8 @@ function buildAdminPayload() {
       aggregateScore: teamDetail?.aggregateScore ?? null,
       scoreTier: teamDetail?.scoreTier ?? null,
       sales: teamDetail?.sales ?? DEFAULT_STUDENT_STATE.sales,
+      satisfaction: teamDetail?.satisfaction ?? DEFAULT_STUDENT_STATE.satisfaction,
+      reputation: teamDetail?.reputation ?? DEFAULT_STUDENT_STATE.reputation,
       avgMorale: teamDetail?.avgMorale ?? null,
       avgTrust: teamDetail?.avgTrust ?? null,
       allianceState: teamDetail?.allianceState || null,
@@ -10485,6 +10744,7 @@ function getRoundTimingStats(roundId, roundCreatedAt) {
 }
 
 function serializeRound(row, session) {
+  const matchMode = getRoundModeForRow(row);
   const isAdmin = Boolean(session?.isAdmin);
   const responseCount = db.prepare(`SELECT COUNT(*) AS count FROM responses WHERE round_id = ? AND team_id IS NOT NULL`).get(row.id).count;
   const totalTeams = getTeamIdsInUse().length;
@@ -10504,6 +10764,11 @@ function serializeRound(row, session) {
     headline: row.headline,
     body: row.body,
     pressure: row.pressure,
+    matchMode: {
+      id: matchMode.id,
+      label: matchMode.label,
+      summary: matchMode.summary
+    },
     staffFocus: parseJsonValue(row.staff_focus_json, []),
     status: row.status,
     createdAt: row.created_at,
@@ -10781,6 +11046,7 @@ function publishRound(presetId, customHeadline, customBody) {
   const roundId = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   const nextRoundNumber = game.roundNumber + 1;
+  const matchMode = getRoundModeByNumber(nextRoundNumber);
   pruneExpiredLingeringEffects(nextRoundNumber);
 
   db.prepare(
@@ -10796,7 +11062,7 @@ function publishRound(presetId, customHeadline, customBody) {
     customBody || preset.body,
     preset.pressure,
     JSON.stringify([]),
-    JSON.stringify({}),
+    JSON.stringify({ matchModeId: matchMode.id }),
     createdAt
   );
 
