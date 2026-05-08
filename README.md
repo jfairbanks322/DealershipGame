@@ -1,14 +1,14 @@
-# Feast Haven Manager
+# County Fair Frenzy
 
-Feast Haven Manager is a classroom business simulation where students run a restaurant under pressure. The teacher launches one shared event for the class, and each student works through a 5-step decision chain that changes revenue, guest confidence, staff morale, trust, and the long-term condition of the restaurant.
+County Fair Frenzy is a classroom business simulation where students run competing county fair booths under pressure. The teacher launches one shared event for the class, and each team works through a 5-step decision chain that changes revenue, fairgoer confidence, crew morale, trust, and the long-term condition of the booth.
 
 ## What The Live App Includes
 
 - teacher-controlled class session open/close flow
 - student accounts with saved progress
-- 8 restaurant staff members with individual morale and trust
-- 10 authored Feast Haven event chains
-- persistent restaurant state between events:
+- 8 county fair crew members with individual morale and trust
+- 12 authored County Fair Frenzy event chains
+- persistent booth state between events:
   - guest confidence
   - kitchen stability
   - staff burnout

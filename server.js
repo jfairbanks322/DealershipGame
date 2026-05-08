@@ -36,42 +36,201 @@ const DEFAULT_STUDENT_STATE = {
   reputation: 68
 };
 const TEAM_STEP_COUNT = 5;
-const TEAM_MAX_SIZE = 4;
+const TEAM_MAX_SIZE = 3;
 const MAX_ACTIVE_ALLIANCES_PER_TEAM = 2;
 const MAX_PENDING_OUTGOING_ALLIANCES_PER_TEAM = 2;
 const TEAM_DEFINITIONS = [
-  { id: "team-farm-door", name: "The Farm Door", accent: "gold" },
-  { id: "team-gretas-place", name: "Greta's Place", accent: "red" },
-  { id: "team-four-brunettes", name: "Four Brunettes", accent: "black" },
-  { id: "team-delights", name: "Delights", accent: "amber" },
-  { id: "team-copper-kettle", name: "The Copper Kettle", accent: "gold" }
+  { id: "team-farm-door", name: "Blue Ribbon BBQ", accent: "gold" },
+  { id: "team-gretas-place", name: "Tilt-A-Whirl Tacos", accent: "purple" },
+  { id: "team-four-brunettes", name: "Funnel Cake Syndicate", accent: "silver" },
+  { id: "team-delights", name: "Prize Pig Lemonade", accent: "amber" },
+  { id: "team-copper-kettle", name: "Ferris Wheel Fries", accent: "gold" },
+  { id: "team-corn-dog-crown", name: "Corn Dog Crown", accent: "purple" }
 ];
 const TEAM_ROLE_DEFINITIONS = [
   {
-    id: "service-captain",
-    label: "Service Captain",
-    summary: "Owns guest pacing, table feel, and floor-level hospitality judgment."
+    id: "midway-operator",
+    label: "Midway Operator",
+    summary: "Owns crowd flow, booth timing, safety pressure, and keeping the fair line moving."
   },
   {
-    id: "kitchen-lead",
-    label: "Kitchen Lead",
-    summary: "Reads execution risk, kitchen pressure, and whether the back line can actually land the plan."
-  },
-  {
-    id: "people-lead",
-    label: "People Lead",
-    summary: "Tracks morale, trust, resentment, and the emotional aftershocks of every call."
+    id: "money-supplies",
+    label: "Money & Supplies",
+    summary: "Reads profit risk, inventory pressure, staffing coverage, and whether the plan can actually be paid for."
   },
   {
     id: "corporate-relations",
     label: "Corporate Relations",
-    summary: "Handles diplomacy, alliance pressure, public cover stories, and cross-team political fallout."
+    summary: "Handles alliances, sabotage politics, public cover stories, and cross-team fairground fallout."
   }
 ];
 const TEAM_LOOKUP = Object.fromEntries(TEAM_DEFINITIONS.map((team) => [team.id, team]));
 const SABOTAGE_SYMBOL_POOL = ["cloche", "bell", "glass", "fork", "knife", "flame"];
 const SABOTAGE_REVEAL_MS = 4500;
 const SABOTAGE_COUNT_CHOICES = ["1", "2", "3", "4", "5", "6"];
+const TEAM_MINI_GAME_DEFINITIONS = [
+  {
+    id: "stock-count-sprint",
+    label: "Stock Count Sprint",
+    category: "Supply",
+    prompt: "A surprise rush is coming. You have 42 corn dogs, sell 9 every 10 minutes, and the next delivery arrives in 40 minutes. What is the smartest call?",
+    options: [
+      {
+        id: "ration-and-reorder",
+        label: "Limit combo orders, radio the supplier for a partial rush drop, and explain the limit before the line hits.",
+        result: "The team protects inventory without making the shortage feel like a secret.",
+        effects: { sales: 5, satisfaction: 2, reputation: 3, staff: { priya: { morale: 2, trust: 2 }, nina: { morale: 1, trust: 1 } } }
+      },
+      {
+        id: "sell-fast",
+        label: "Sell as fast as possible while demand is hot and deal with the shortage when it arrives.",
+        result: "The early revenue looks great, but the booth trains the crowd to expect something it cannot keep serving.",
+        effects: { sales: 7, satisfaction: -3, reputation: -2, staff: { tasha: { morale: -2, trust: -2 } } }
+      },
+      {
+        id: "raise-price",
+        label: "Raise prices immediately to slow demand and protect the remaining stock.",
+        result: "The math improves, but guests feel the price move before they understand the supply problem.",
+        effects: { sales: 3, satisfaction: -1, reputation: 0, staff: { marcus: { morale: 1, trust: 1 } } }
+      },
+      {
+        id: "hide-shortage",
+        label: "Say nothing, keep taking orders, and hope the delivery arrives before anyone notices.",
+        result: "The shortage becomes a public surprise, which is somehow always the loudest kind.",
+        effects: { sales: -4, satisfaction: -7, reputation: -6, staff: { nina: { morale: -3, trust: -4 }, tasha: { morale: -2, trust: -3 } } }
+      }
+    ]
+  },
+  {
+    id: "price-point-duel",
+    label: "Price Point Duel",
+    category: "Pricing",
+    prompt: "A rival booth drops its funnel cake price by $2. Your line slows, but your ingredient cost is already tight. What do you do?",
+    options: [
+      {
+        id: "value-bundle",
+        label: "Hold price, add a small high-margin topping bundle, and post a clear quality/value comparison.",
+        result: "The booth avoids a race to the bottom and gives guests a reason to stay.",
+        effects: { sales: 4, satisfaction: 2, reputation: 4, staff: { marcus: { morale: 2, trust: 2 }, elena: { morale: 1, trust: 1 } } }
+      },
+      {
+        id: "match-price",
+        label: "Match the rival price for one hour to keep traffic from drifting away.",
+        result: "The line recovers, but the margin is thinner than a receipt in a rainstorm.",
+        effects: { sales: 5, satisfaction: 1, reputation: 0, staff: { jake: { morale: 1, trust: 1 } } }
+      },
+      {
+        id: "premium-spin",
+        label: "Raise your price and market it as a premium fair experience.",
+        result: "A few guests buy the story, but many hear 'premium' as 'pay more for powdered sugar.'",
+        effects: { sales: 2, satisfaction: -2, reputation: 1, staff: { elena: { morale: -1, trust: 0 } } }
+      },
+      {
+        id: "trash-rival",
+        label: "Tell guests the rival booth must be cutting corners if they can sell that cheaply.",
+        result: "The comeback creates drama, but it makes your booth look insecure and unprofessional.",
+        effects: { sales: -2, satisfaction: -4, reputation: -7, staff: { elena: { morale: -2, trust: -4 }, marcus: { morale: -1, trust: -2 } } }
+      }
+    ]
+  },
+  {
+    id: "staffing-triage",
+    label: "Staffing Triage",
+    category: "Staffing",
+    prompt: "You are down one worker. Food has a 12-minute line, prizes need restocking, and ticket complaints are piling up. Where do you send the floater first?",
+    options: [
+      {
+        id: "front-triage-then-food",
+        label: "Send the floater to ticket complaints for five minutes, then move them to food once expectations are reset.",
+        result: "The team absorbs the emotional pressure first, then puts labor where the bottleneck is most expensive.",
+        effects: { sales: 4, satisfaction: 3, reputation: 3, staff: { devon: { morale: 2, trust: 2 }, elena: { morale: 1, trust: 2 } } }
+      },
+      {
+        id: "food-now",
+        label: "Send the floater straight to food because that line is visibly costing sales.",
+        result: "The food line improves, but the front desk keeps collecting frustrated guests.",
+        effects: { sales: 5, satisfaction: 0, reputation: 0, staff: { tasha: { morale: 2, trust: 1 }, elena: { morale: -1, trust: -1 } } }
+      },
+      {
+        id: "prizes-now",
+        label: "Send the floater to prizes because empty shelves make the booth look sloppy.",
+        result: "The prize wall looks better, but the larger service pressure keeps building.",
+        effects: { sales: 1, satisfaction: 1, reputation: 2, staff: { priya: { morale: 2, trust: 1 } } }
+      },
+      {
+        id: "split-everywhere",
+        label: "Have the floater bounce between all three stations every few minutes.",
+        result: "Everyone sees the floater, but nobody gets enough help to change the outcome.",
+        effects: { sales: -3, satisfaction: -5, reputation: -4, staff: { devon: { morale: -4, trust: -4 }, tasha: { morale: -1, trust: -1 } } }
+      }
+    ]
+  },
+  {
+    id: "customer-triage",
+    label: "Customer Triage",
+    category: "Customers",
+    prompt: "Three guest problems hit at once: a refund demand, a lost child report, and a VIP sponsor waiting. What gets handled first?",
+    options: [
+      {
+        id: "safety-first",
+        label: "Handle the lost child as the safety priority, assign the refund to guest services, and give the sponsor a clear wait time.",
+        result: "The booth sends the right priority signal without ignoring the money relationship.",
+        effects: { sales: 2, satisfaction: 4, reputation: 5, staff: { elena: { morale: 2, trust: 3 }, nina: { morale: 1, trust: 1 } } }
+      },
+      {
+        id: "sponsor-first",
+        label: "Handle the sponsor first because their funding affects the whole fair.",
+        result: "The sponsor appreciates the attention, but staff and guests notice what got pushed behind money.",
+        effects: { sales: 4, satisfaction: -2, reputation: -1, staff: { elena: { morale: -2, trust: -2 } } }
+      },
+      {
+        id: "refund-first",
+        label: "Resolve the refund first to stop the loudest complaint from spreading.",
+        result: "The visible conflict calms down, but the team still has to recover from delaying the scarier problem.",
+        effects: { sales: 1, satisfaction: 1, reputation: 0, staff: { nina: { morale: 1, trust: 0 } } }
+      },
+      {
+        id: "whoever-yells",
+        label: "Deal with whoever is yelling the loudest and ask everyone else to wait.",
+        result: "The booth accidentally teaches the crowd that volume is the official priority system.",
+        effects: { sales: -2, satisfaction: -6, reputation: -6, staff: { elena: { morale: -3, trust: -4 }, devon: { morale: -2, trust: -2 } } }
+      }
+    ]
+  },
+  {
+    id: "vendor-bid-blitz",
+    label: "Vendor Bid Blitz",
+    category: "Vendor Negotiation",
+    prompt: "A backup vendor offers a cheaper same-day delivery, but requires cash upfront and has no fair history. What is the strongest negotiation move?",
+    options: [
+      {
+        id: "small-paid-test",
+        label: "Negotiate a smaller paid test delivery with quality checks before committing the full order.",
+        result: "The booth preserves optionality and makes the vendor earn the larger contract.",
+        effects: { sales: 4, satisfaction: 2, reputation: 4, staff: { marcus: { morale: 2, trust: 3 }, tasha: { morale: 1, trust: 1 } } }
+      },
+      {
+        id: "full-discount",
+        label: "Take the full discount order now before the vendor changes their mind.",
+        result: "The price is attractive, but the booth accepts all the delivery and quality risk at once.",
+        effects: { sales: 5, satisfaction: -1, reputation: -1, staff: { marcus: { morale: -1, trust: -1 } } }
+      },
+      {
+        id: "reject-vendor",
+        label: "Reject the vendor and stay with known suppliers even if it costs more.",
+        result: "The team avoids a risky partner, but gives up a chance to relieve the budget pressure.",
+        effects: { sales: -1, satisfaction: 2, reputation: 2, staff: { tasha: { morale: 1, trust: 2 } } }
+      },
+      {
+        id: "cash-handshake",
+        label: "Pay upfront with a handshake deal and skip paperwork to move faster.",
+        result: "The deal moves fast because it has no brakes, seatbelt, or useful paper trail.",
+        effects: { sales: -4, satisfaction: -3, reputation: -7, staff: { marcus: { morale: -4, trust: -5 }, priya: { morale: -2, trust: -2 } } }
+      }
+    ]
+  }
+];
+const TEAM_MINI_GAME_LOOKUP = Object.fromEntries(TEAM_MINI_GAME_DEFINITIONS.map((game) => [game.id, game]));
 const SABOTAGE_LEVELS = {
   low: {
     id: "low",
@@ -544,38 +703,38 @@ const SCORE_TIERS = [
   { level: 3, id: "shift-stable", label: "Shift Stable", minScore: 42, tone: "muted" },
   { level: 4, id: "rush-ready", label: "Rush Ready", minScore: 60, tone: "open" },
   { level: 5, id: "house-favorite", label: "House Favorite", minScore: 78, tone: "gold" },
-  { level: 6, id: "feast-haven-elite", label: "Feast Haven Elite", minScore: 96, tone: "success" }
+  { level: 6, id: "county-fair-legend", label: "County Fair Legend", minScore: 96, tone: "success" }
 ];
 const RESTAURANT_STATE_DEFS = {
   guest_confidence: {
-    label: "Guest Confidence",
+    label: "Fairgoer Confidence",
     defaultValue: 70,
     goodHigh: true,
-    summary: "How much grace guests give Feast Haven when service gets bumpy."
+    summary: "How much grace fairgoers give your booth when the midway gets messy."
   },
   kitchen_stability: {
-    label: "Kitchen Stability",
+    label: "Booth Stability",
     defaultValue: 68,
     goodHigh: true,
-    summary: "How reliable the line, prep, and back-of-house handoffs feel."
+    summary: "How reliable your booth, prep, line flow, and fairground handoffs feel."
   },
   staff_burnout: {
-    label: "Staff Burnout",
+    label: "Crew Burnout",
     defaultValue: 34,
     goodHigh: false,
-    summary: "How overloaded and emotionally cooked the team feels."
+    summary: "How overloaded and emotionally deep-fried the crew feels."
   },
   supply_control: {
     label: "Supply Control",
     defaultValue: 66,
     goodHigh: true,
-    summary: "How confident the restaurant is in stock, ordering, and specials support."
+    summary: "How confident the booth is in stock, prizes, power, food, and fair-day backup plans."
   },
   brand_heat: {
-    label: "Brand Heat",
+    label: "Midway Buzz",
     defaultValue: 52,
     goodHigh: true,
-    summary: "How much attention, buzz, and scrutiny the restaurant is carrying."
+    summary: "How much attention, hype, and scrutiny your booth is carrying across the fair."
   }
 };
 const RESTAURANT_STATE_ORDER = Object.keys(RESTAURANT_STATE_DEFS);
@@ -684,7 +843,7 @@ const PRESET_CONSEQUENCE_PROFILES = {
       {
         effectKey: "standards-reassured",
         title: "Guests feel the room still has standards",
-        summary: "A calm but firm response restored some trust in how Feast Haven runs the floor.",
+        summary: "A calm but firm response restored some trust in how County Fair Frenzy runs the midway.",
         tone: "positive",
         intensity: 5
       }
@@ -716,7 +875,7 @@ const PRESET_CONSEQUENCE_PROFILES = {
       {
         effectKey: "specials-back-under-control",
         title: "Specials planning is back under control",
-        summary: "The restaurant is carrying a little more inventory discipline into the next supply problem.",
+        summary: "The booth is carrying a little more inventory discipline into the next supply problem.",
         tone: "positive",
         intensity: 5
       }
@@ -875,7 +1034,7 @@ const PRESET_CONSEQUENCE_PROFILES = {
     positiveEffects: [
       {
         effectKey: "identity-clarified",
-        title: "The team sounds more sure of what Feast Haven is",
+        title: "The team sounds more sure of what County Fair Frenzy is",
         summary: "Competition is energizing the room instead of hollowing it out.",
         tone: "positive",
         intensity: 5
@@ -941,10 +1100,10 @@ function loadEnvFile() {
 const STAFF_MEMBERS = [
   {
     id: "jake",
-    name: "Adrian",
-    title: "Waiter",
-    summary: "Charismatic veteran waiter who thrives on reading the room and rescuing shaky tables before they turn sour.",
-    tension: "Gets prickly when scripts, rigid rules, or hesitant managers slow him down in front of guests.",
+    name: "Boone",
+    title: "Midway Barker",
+    summary: "Big-energy booth captain who can turn a bored line into a cheering crowd if leadership gives him a clear angle.",
+    tension: "Gets prickly when cautious plans kill momentum or make the booth feel invisible on a crowded fairground.",
     defaultMorale: 72,
     defaultTrust: 66,
     preferences: {
@@ -960,10 +1119,10 @@ const STAFF_MEMBERS = [
   },
   {
     id: "nina",
-    name: "Celia",
-    title: "Waitress",
-    summary: "Polished waitress who keeps sections flowing smoothly and notices guest needs before they are spoken out loud.",
-    tension: "Loses patience when teammates ignore timing, forget modifiers, or leave her cleaning up messy handoffs.",
+    name: "Lila",
+    title: "Ticket Booth Lead",
+    summary: "Sharp front-window operator who notices line mood, cash drift, and guest confusion before anyone else catches up.",
+    tension: "Loses patience when teammates make sloppy promises and leave her explaining the mess to angry fairgoers.",
     defaultMorale: 75,
     defaultTrust: 72,
     preferences: {
@@ -979,10 +1138,10 @@ const STAFF_MEMBERS = [
   },
   {
     id: "marcus",
-    name: "Omar",
-    title: "Busser",
-    summary: "Fast, observant busser who quietly keeps turns moving, water filled, and the room from looking stressed.",
-    tension: "Hates being treated like invisible backup while everyone else creates extra mess for him to absorb.",
+    name: "Gus",
+    title: "Games Attendant",
+    summary: "Detail-heavy games attendant who tracks prizes, odds, cash boxes, and whether the booth looks trustworthy.",
+    tension: "Hates being treated like background help while other people create inventory and fairness problems for him.",
     defaultMorale: 69,
     defaultTrust: 68,
     preferences: {
@@ -1000,10 +1159,10 @@ const STAFF_MEMBERS = [
   },
   {
     id: "tasha",
-    name: "Chef Renata",
-    title: "Head Chef",
-    summary: "Demanding head chef who protects quality, pacing, and kitchen credibility with almost military focus.",
-    tension: "Pushes back hard when the floor overpromises, rushes tickets, or treats the kitchen like a magic trick.",
+    name: "Mabel",
+    title: "Food Stand Lead",
+    summary: "Demanding food-stand lead who protects quality, health rules, and the sacred dignity of hot oil.",
+    tension: "Pushes back hard when the midway overpromises, rushes batches, or treats fryer capacity like a rumor.",
     defaultMorale: 73,
     defaultTrust: 70,
     preferences: {
@@ -1018,10 +1177,10 @@ const STAFF_MEMBERS = [
   },
   {
     id: "elena",
-    name: "Marisol",
-    title: "Hostess",
-    summary: "Warm, sharp hostess who controls the front door, manages the list, and feels the mood of the room instantly.",
-    tension: "Gets frustrated when servers freelance the seating chart or when guest expectations are set without her.",
+    name: "Ruby",
+    title: "Guest Services Host",
+    summary: "Warm, sharp guest-services lead who controls complaints, lost kids, weird requests, and the fair's emotional weather.",
+    tension: "Gets frustrated when teams freelance policies or set guest expectations without telling the front desk.",
     defaultMorale: 74,
     defaultTrust: 71,
     preferences: {
@@ -1037,10 +1196,10 @@ const STAFF_MEMBERS = [
   },
   {
     id: "luis",
-    name: "Theo",
-    title: "Line Cook",
-    summary: "Quick, confident line cook who works best when tickets are clean and expectations are realistic.",
-    tension: "Hates when front-of-house chaos gets dumped on the line like it is someone else's problem.",
+    name: "Nico",
+    title: "Ride Queue Lead",
+    summary: "Quick, confident queue lead who works best when signs, timing, and safety calls are clean.",
+    tension: "Hates when crowd chaos gets dumped on the line like it is someone else's problem.",
     defaultMorale: 68,
     defaultTrust: 65,
     preferences: {
@@ -1054,10 +1213,10 @@ const STAFF_MEMBERS = [
   },
   {
     id: "priya",
-    name: "Imani",
-    title: "Line Cook",
-    summary: "Steady, technical line cook who values prep, consistency, and managers who think three tickets ahead.",
-    tension: "Gets irritated when preventable chaos shows up on the line as a surprise emergency.",
+    name: "June",
+    title: "Prize Barn Lead",
+    summary: "Steady, technical prize lead who values count sheets, restock timing, and managers who think three steps ahead.",
+    tension: "Gets irritated when preventable prize chaos shows up as a surprise emergency.",
     defaultMorale: 71,
     defaultTrust: 69,
     preferences: {
@@ -1071,9 +1230,9 @@ const STAFF_MEMBERS = [
   },
   {
     id: "devon",
-    name: "Parker",
-    title: "Host + Wait",
-    summary: "Flexible swing worker who can host, wait, and plug gaps anywhere, making them the restaurant's pressure-release valve.",
+    name: "Scout",
+    title: "Fairground Floater",
+    summary: "Flexible floater who can jump from food stand to prize booth to queue control, making them the fair's pressure-release valve.",
     tension: "Gets frustrated when leadership asks for flexibility without clarity, support, or enough backup to succeed.",
     defaultMorale: 76,
     defaultTrust: 72,
@@ -1121,7 +1280,7 @@ const STAFF_RELATIONSHIPS = [
   { from: "nina", to: "devon", type: "best_friends", note: "They talk like a unit and read the room in almost the same way." },
   { from: "devon", to: "nina", type: "best_friends", note: "Parker is protective of Celia and usually backs her instincts first." },
   { from: "marcus", to: "priya", type: "respects_greatly", note: "He trusts Imani because she almost never creates chaos for other people." },
-  { from: "priya", to: "marcus", type: "trusts_greatly", note: "She sees Omar as the calm utility player who keeps the restaurant honest." },
+  { from: "priya", to: "marcus", type: "trusts_greatly", note: "She sees Gus as the calm utility player who keeps the booth honest." },
   { from: "marcus", to: "luis", type: "skeptical_of", note: "He thinks Theo is gifted, but gets tired of the attitude that comes with it." },
   { from: "luis", to: "marcus", type: "respects_greatly", note: "Theo actually listens when Omar gives him grounded advice." },
   { from: "luis", to: "priya", type: "line_rivals", note: "He hates how often Chef Renata seems to trust Imani over him." },
@@ -6077,7 +6236,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Restaurant manager sim running at http://${HOST}:${PORT}`);
+  console.log(`County Fair Frenzy running at http://${HOST}:${PORT}`);
   console.log(`Teacher login: ${DEFAULT_TEACHER_USERNAME} / ${DEFAULT_TEACHER_PASSWORD}`);
   console.log(`Data directory: ${DATA_DIR}`);
 });
@@ -6198,7 +6357,7 @@ async function handleApi(req, res, pathname) {
 
     const teamAssignment = getAvailableTeamAssignment();
     if (!teamAssignment) {
-      sendJson(res, 400, { error: "All six restaurant teams are full right now. Ask your teacher to clear a seat before adding more players." });
+      sendJson(res, 400, { error: "All county fair teams are full right now. Ask your teacher to clear a seat before adding more players." });
       return;
     }
 
@@ -6482,6 +6641,49 @@ async function handleApi(req, res, pathname) {
 
     runInTransaction(() => closeCurrentRound());
     sendJson(res, 200, buildBootstrapPayload(session));
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/mini-game/launch") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+    try {
+      runInTransaction(() => launchMiniGameRound(String(body.gameId || "")));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/mini-game/close") {
+    if (!session?.isAdmin) {
+      sendJson(res, 401, { error: "Teacher access required." });
+      return;
+    }
+
+    runInTransaction(() => closeMiniGameRound());
+    sendJson(res, 200, buildBootstrapPayload(session));
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/team-mini-game/submit") {
+    if (!session?.userId) {
+      sendJson(res, 401, { error: "Student login required." });
+      return;
+    }
+
+    const body = await readJsonBody(req);
+    try {
+      runInTransaction(() => submitMiniGameResponse(session.userId, String(body.optionId || "")));
+      sendJson(res, 200, buildBootstrapPayload(session));
+    } catch (error) {
+      sendJson(res, 400, { error: error.message });
+    }
     return;
   }
 
@@ -6833,6 +7035,32 @@ function initializeDatabase() {
       closed_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS team_mini_game_rounds (
+      id TEXT PRIMARY KEY,
+      game_id TEXT NOT NULL,
+      round_number INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      closed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS team_mini_game_responses (
+      id TEXT PRIMARY KEY,
+      mini_round_id TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      option_id TEXT NOT NULL,
+      option_label TEXT NOT NULL,
+      result_text TEXT NOT NULL,
+      sales_delta REAL NOT NULL,
+      satisfaction_delta INTEGER NOT NULL,
+      reputation_delta INTEGER NOT NULL,
+      submitted_at TEXT NOT NULL,
+      UNIQUE (mini_round_id, team_id),
+      FOREIGN KEY (mini_round_id) REFERENCES team_mini_game_rounds (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS prediction_markets (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
@@ -6999,6 +7227,8 @@ function initializeDatabase() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_responses_round ON responses (round_id);
+    CREATE INDEX IF NOT EXISTS idx_team_mini_game_rounds_status ON team_mini_game_rounds (status, created_at);
+    CREATE INDEX IF NOT EXISTS idx_team_mini_game_responses_round ON team_mini_game_responses (mini_round_id, team_id);
     CREATE INDEX IF NOT EXISTS idx_responses_user ON responses (user_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_round ON case_files (round_id);
     CREATE INDEX IF NOT EXISTS idx_case_files_user ON case_files (user_id);
@@ -7135,6 +7365,8 @@ function seedDatabase() {
 
 function clearAllTables() {
   db.exec(`
+    DELETE FROM team_mini_game_responses;
+    DELETE FROM team_mini_game_rounds;
     DELETE FROM prediction_market_assignment_buyouts;
     DELETE FROM prediction_market_work;
     DELETE FROM prediction_market_trades;
@@ -7173,6 +7405,7 @@ function buildBootstrapPayload(session) {
       salesGoal: getSalesGoal()
     },
     currentRound: getCurrentRound(session),
+    miniRound: serializeMiniGameRound(getActiveMiniGameRound(), session),
     rounds: getRecentRounds(8, session),
     leaderboard: leaderboards.overall.entries,
     leaderboards,
@@ -7305,7 +7538,7 @@ function getAllianceVisibility(row, viewerTeamId = null) {
   const otherTeamId = viewerTeamId ? getAllianceOtherTeamId(row, viewerTeamId) : null;
   return {
     otherTeamId,
-    otherTeamName: otherTeamId ? getTeamMeta(otherTeamId)?.name || "Restaurant Team" : null
+    otherTeamName: otherTeamId ? getTeamMeta(otherTeamId)?.name || "County Fair Team" : null
   };
 }
 
@@ -7317,16 +7550,16 @@ function serializeAllianceRow(row, viewerTeamId = null) {
   return {
     id: row.id,
     teamAId: row.team_a_id,
-    teamAName: getTeamMeta(row.team_a_id)?.name || "Restaurant Team",
+    teamAName: getTeamMeta(row.team_a_id)?.name || "County Fair Team",
     teamBId: row.team_b_id,
-    teamBName: getTeamMeta(row.team_b_id)?.name || "Restaurant Team",
+    teamBName: getTeamMeta(row.team_b_id)?.name || "County Fair Team",
     proposedByTeamId: row.proposed_by_team_id,
-    proposedByTeamName: getTeamMeta(row.proposed_by_team_id)?.name || "Restaurant Team",
+    proposedByTeamName: getTeamMeta(row.proposed_by_team_id)?.name || "County Fair Team",
     proposedToTeamId: row.proposed_to_team_id,
-    proposedToTeamName: getTeamMeta(row.proposed_to_team_id)?.name || "Restaurant Team",
+    proposedToTeamName: getTeamMeta(row.proposed_to_team_id)?.name || "County Fair Team",
     status: row.status,
     betrayalTeamId: row.betrayal_team_id || null,
-    betrayalTeamName: row.betrayal_team_id ? getTeamMeta(row.betrayal_team_id)?.name || "Restaurant Team" : null,
+    betrayalTeamName: row.betrayal_team_id ? getTeamMeta(row.betrayal_team_id)?.name || "County Fair Team" : null,
     betrayalRoundId: row.betrayal_round_id || null,
     betrayalNote: row.betrayal_note || "",
     createdAt: row.created_at,
@@ -7395,7 +7628,7 @@ function offerTeamAlliance(userId, targetTeamId) {
   }
   const teamId = getTeamIdForUser(userId);
   if (!teamId) {
-    throw new Error("Your account is not assigned to a restaurant team.");
+    throw new Error("Your account is not assigned to a county fair team.");
   }
   const operator = getTeamDiplomacyOperator(teamId);
   if (!operator || operator.id !== userId) {
@@ -7408,7 +7641,7 @@ function offerTeamAlliance(userId, targetTeamId) {
     throw new Error("That team is not active right now.");
   }
   if (getTeamLossState(teamId) || getTeamLossState(targetTeamId)) {
-    throw new Error("Eliminated restaurants cannot form alliances.");
+    throw new Error("Eliminated booths cannot form alliances.");
   }
   if (!canTeamOfferAlliance(teamId)) {
     throw new Error("Your team already has the maximum number of alliances or offers in motion.");
@@ -7440,7 +7673,7 @@ function offerTeamAlliance(userId, targetTeamId) {
 function respondTeamAlliance(userId, allianceId, decision) {
   const teamId = getTeamIdForUser(userId);
   if (!teamId) {
-    throw new Error("Your account is not assigned to a restaurant team.");
+    throw new Error("Your account is not assigned to a county fair team.");
   }
   const operator = getTeamDiplomacyOperator(teamId);
   if (!operator || operator.id !== userId) {
@@ -7482,7 +7715,7 @@ function respondTeamAlliance(userId, allianceId, decision) {
 function breakTeamAlliance(userId, allianceId) {
   const teamId = getTeamIdForUser(userId);
   if (!teamId) {
-    throw new Error("Your account is not assigned to a restaurant team.");
+    throw new Error("Your account is not assigned to a county fair team.");
   }
   const operator = getTeamDiplomacyOperator(teamId);
   if (!operator || operator.id !== userId) {
@@ -7563,7 +7796,7 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
   }
   const meta = SABOTAGE_TYPE_DEFINITIONS[row.sabotage_type] || {
     label: row.sabotage_type,
-    summary: "Covert restaurant sabotage."
+    summary: "Covert county fair sabotage."
   };
   const challenge = parseJsonValue(row.challenge_json, {});
   const submittedSequence = parseJsonValue(row.submitted_sequence_json, []);
@@ -7582,7 +7815,7 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
     : row.status === "failed"
       ? row.attacker_team_id
       : null;
-  const impactedTeamName = impactedTeamId ? getTeamMeta(impactedTeamId)?.name || "Restaurant Team" : null;
+  const impactedTeamName = impactedTeamId ? getTeamMeta(impactedTeamId)?.name || "County Fair Team" : null;
   const shouldFrameHold = isFramed && row.status === "success" && viewerTeamId !== row.attacker_team_id;
   const maskAttacker = !shouldFrameHold && isBetrayal && row.status === "success" && viewerTeamId && viewerTeamId === row.target_team_id;
   const visibleAttackerTeamId = shouldFrameHold ? row.framed_team_id : row.attacker_team_id;
@@ -7593,8 +7826,8 @@ function serializeSabotageAttempt(row, viewerTeamId = null) {
     : getTeamMeta(visibleAttackerTeamId)?.name || "Attacking Team";
   const displayOutcomeNote = shouldFrameHold
     ? viewerTeamId === row.attacker_team_id
-      ? `The sabotage landed and your frame on ${getTeamMeta(row.framed_team_id)?.name || "another restaurant"} held.`
-      : `The sabotage landed and the evidence points to ${getTeamMeta(row.framed_team_id)?.name || "another restaurant"}.`
+      ? `The sabotage landed and your frame on ${getTeamMeta(row.framed_team_id)?.name || "another booth"} held.`
+      : `The sabotage landed and the evidence points to ${getTeamMeta(row.framed_team_id)?.name || "another booth"}.`
     : maskAttacker
     ? `The sabotage landed cleanly, but whoever sold your team out stayed hidden.`
     : row.outcome_note || "";
@@ -7741,7 +7974,7 @@ function getLatestSabotageBroadcast(roundId) {
     ...serialized,
     type: serialized.isBetrayal || serialized.isFramed ? "betrayal-exposed" : "caught",
     headline: serialized.isFramed
-      ? `${getTeamMeta(latestCaughtAttempt.attacker_team_id)?.name || "A restaurant"} got caught betraying ${serialized.targetTeamName} and trying to frame ${serialized.framedTeamName}.`
+      ? `${getTeamMeta(latestCaughtAttempt.attacker_team_id)?.name || "A booth"} got caught betraying ${serialized.targetTeamName} and trying to frame ${serialized.framedTeamName}.`
       : serialized.isBetrayal
       ? `${serialized.attackerTeamName} got caught betraying ally ${serialized.targetTeamName}.`
       : `${serialized.attackerTeamName} got caught trying to sabotage ${serialized.targetTeamName}.`,
@@ -8811,6 +9044,204 @@ function applyTeamDeltaBundle(teamId, bundle) {
   });
 }
 
+function getActiveMiniGameRound() {
+  return db.prepare(
+    `SELECT *
+     FROM team_mini_game_rounds
+     WHERE status = 'active'
+     ORDER BY datetime(created_at) DESC, rowid DESC
+     LIMIT 1`
+  ).get();
+}
+
+function listRecentMiniGameRounds(limit = 5) {
+  return db.prepare(
+    `SELECT *
+     FROM team_mini_game_rounds
+     ORDER BY datetime(created_at) DESC, rowid DESC
+     LIMIT ?`
+  ).all(limit);
+}
+
+function getMiniGameResponse(miniRoundId, teamId) {
+  if (!miniRoundId || !teamId) {
+    return null;
+  }
+  return db.prepare(
+    `SELECT *
+     FROM team_mini_game_responses
+     WHERE mini_round_id = ? AND team_id = ?`
+  ).get(miniRoundId, teamId);
+}
+
+function getMiniGameCaptain(teamId, miniRound) {
+  const members = listTeamMembers(teamId);
+  if (!members.length) {
+    return null;
+  }
+  const index = (Math.max(1, Number(miniRound?.round_number || 1)) - 1) % members.length;
+  return members[index] || members[0] || null;
+}
+
+function serializeMiniGameRound(row, session = null) {
+  if (!row) {
+    return null;
+  }
+  const game = TEAM_MINI_GAME_LOOKUP[row.game_id];
+  if (!game) {
+    return null;
+  }
+  const viewerTeamId = session?.userId ? getTeamIdForUser(session.userId) : null;
+  const viewerResponse = viewerTeamId ? getMiniGameResponse(row.id, viewerTeamId) : null;
+  const captain = viewerTeamId ? getMiniGameCaptain(viewerTeamId, row) : null;
+  const responseRows = db.prepare(
+    `SELECT r.*, u.display_name
+     FROM team_mini_game_responses r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.mini_round_id = ?
+     ORDER BY datetime(r.submitted_at) ASC, r.rowid ASC`
+  ).all(row.id);
+  const totalTeams = getTeamIdsInUse().length;
+
+  return {
+    id: row.id,
+    gameId: game.id,
+    label: game.label,
+    category: game.category,
+    prompt: game.prompt,
+    status: row.status,
+    roundNumber: Number(row.round_number || 0),
+    createdAt: row.created_at,
+    closedAt: row.closed_at || null,
+    completedCount: responseRows.length,
+    totalTeams,
+    canRespond: Boolean(
+      session?.userId &&
+      viewerTeamId &&
+      row.status === "active" &&
+      captain?.id === session.userId &&
+      !viewerResponse &&
+      !getTeamLossState(viewerTeamId)
+    ),
+    currentCaptainUserId: captain?.id || null,
+    currentCaptainName: captain?.display_name || null,
+    userResponse: viewerResponse
+      ? {
+          optionId: viewerResponse.option_id,
+          optionLabel: viewerResponse.option_label,
+          resultText: viewerResponse.result_text,
+          salesDelta: viewerResponse.sales_delta,
+          satisfactionDelta: viewerResponse.satisfaction_delta,
+          reputationDelta: viewerResponse.reputation_delta,
+          submittedAt: viewerResponse.submitted_at
+        }
+      : null,
+    options: game.options.map((option) => ({
+      id: option.id,
+      label: option.label
+    })),
+    responses: session?.isAdmin
+      ? responseRows.map((response) => ({
+          id: response.id,
+          teamId: response.team_id,
+          teamName: getTeamMeta(response.team_id)?.name || "Team",
+          userId: response.user_id,
+          studentName: response.display_name,
+          optionLabel: response.option_label,
+          salesDelta: response.sales_delta,
+          satisfactionDelta: response.satisfaction_delta,
+          reputationDelta: response.reputation_delta,
+          submittedAt: response.submitted_at
+        }))
+      : undefined
+  };
+}
+
+function getMiniGameLibrary() {
+  return TEAM_MINI_GAME_DEFINITIONS.map((game) => ({
+    id: game.id,
+    label: game.label,
+    category: game.category,
+    prompt: game.prompt
+  }));
+}
+
+function launchMiniGameRound(gameId) {
+  const game = TEAM_MINI_GAME_LOOKUP[gameId];
+  if (!game) {
+    throw new Error("That mini-game could not be found.");
+  }
+  if (!getGameState().isOpen) {
+    throw new Error("Open the class session before launching a team sprint.");
+  }
+
+  db.prepare(
+    `UPDATE team_mini_game_rounds
+     SET status = 'closed', closed_at = COALESCE(closed_at, ?)
+     WHERE status = 'active'`
+  ).run(new Date().toISOString());
+
+  const nextNumber = (db.prepare(`SELECT COALESCE(MAX(round_number), 0) + 1 AS next_number FROM team_mini_game_rounds`).get().next_number) || 1;
+  db.prepare(
+    `INSERT INTO team_mini_game_rounds (id, game_id, round_number, status, created_at, closed_at)
+     VALUES (?, ?, ?, 'active', ?, NULL)`
+  ).run(crypto.randomUUID(), game.id, nextNumber, new Date().toISOString());
+}
+
+function closeMiniGameRound() {
+  db.prepare(
+    `UPDATE team_mini_game_rounds
+     SET status = 'closed', closed_at = COALESCE(closed_at, ?)
+     WHERE status = 'active'`
+  ).run(new Date().toISOString());
+}
+
+function submitMiniGameResponse(userId, optionId) {
+  const teamId = getTeamIdForUser(userId);
+  if (!teamId) {
+    throw new Error("You need to be on a team before playing a sprint round.");
+  }
+  if (getTeamLossState(teamId)) {
+    throw new Error("Your booth is eliminated until standings reset.");
+  }
+  const miniRound = getActiveMiniGameRound();
+  if (!miniRound) {
+    throw new Error("There is no active team sprint right now.");
+  }
+  const captain = getMiniGameCaptain(teamId, miniRound);
+  if (!captain || captain.id !== userId) {
+    throw new Error(`It is ${captain?.display_name || "your teammate"}'s turn to submit this team sprint.`);
+  }
+  if (getMiniGameResponse(miniRound.id, teamId)) {
+    throw new Error("Your team already submitted this sprint.");
+  }
+  const game = TEAM_MINI_GAME_LOOKUP[miniRound.game_id];
+  const option = game?.options.find((entry) => entry.id === optionId);
+  if (!option) {
+    throw new Error("That sprint answer is not available.");
+  }
+
+  applyTeamDeltaBundle(teamId, option.effects);
+  db.prepare(
+    `INSERT INTO team_mini_game_responses
+     (id, mini_round_id, team_id, user_id, option_id, option_label, result_text,
+      sales_delta, satisfaction_delta, reputation_delta, submitted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    crypto.randomUUID(),
+    miniRound.id,
+    teamId,
+    userId,
+    option.id,
+    option.label,
+    option.result,
+    Number(option.effects.sales || 0),
+    Number(option.effects.satisfaction || 0),
+    Number(option.effects.reputation || 0),
+    new Date().toISOString()
+  );
+}
+
 function scaleTeamDeltaBundle(bundle, factor) {
   if (!bundle) {
     return null;
@@ -8844,14 +9275,14 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, levelId = "medium
 
   const attackerTeamId = getTeamIdForUser(userId);
   if (!attackerTeamId) {
-    throw new Error("Your account is not assigned to a restaurant team.");
+    throw new Error("Your account is not assigned to a county fair team.");
   }
   const operator = getTeamSabotageOperator(attackerTeamId, round);
   if (!operator || operator.id !== userId) {
     throw new Error(`${operator?.display_name || "The assigned teammate"} is the covert ops lead for this round.`);
   }
   if (attackerTeamId === targetTeamId) {
-    throw new Error("You cannot sabotage your own restaurant.");
+    throw new Error("You cannot sabotage your own booth.");
   }
   if (!SABOTAGE_TYPE_DEFINITIONS[sabotageType]) {
     throw new Error("Choose a valid sabotage plan.");
@@ -8864,10 +9295,10 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, levelId = "medium
     throw new Error("That target team is not active right now.");
   }
   if (getTeamLossState(attackerTeamId)) {
-    throw new Error("Eliminated restaurants cannot run sabotage.");
+    throw new Error("Eliminated booths cannot run sabotage.");
   }
   if (getTeamLossState(targetTeamId)) {
-    throw new Error("That restaurant is already out of the game.");
+    throw new Error("That booth is already out of the game.");
   }
   if (getTeamSabotageAttempt(game.currentRoundId, attackerTeamId)) {
     throw new Error("Your team already spent its sabotage move for this round.");
@@ -8891,10 +9322,10 @@ function startTeamSabotage(userId, targetTeamId, sabotageType, levelId = "medium
   }
   if (cleanFramedTeamId) {
     if (!alliance) {
-      throw new Error("You can only frame another restaurant when sabotaging an active ally.");
+      throw new Error("You can only frame another booth when sabotaging an active ally.");
     }
     if (cleanFramedTeamId === attackerTeamId || cleanFramedTeamId === targetTeamId) {
-      throw new Error("Frame a different active restaurant team.");
+      throw new Error("Frame a different active county fair team.");
     }
     if (!TEAM_LOOKUP[cleanFramedTeamId] || !listTeamMembers(cleanFramedTeamId).length || getTeamLossState(cleanFramedTeamId)) {
       throw new Error("That framed team is not available right now.");
@@ -8932,7 +9363,7 @@ function resolveTeamSabotage(userId, submittedSequence) {
 
   const attackerTeamId = getTeamIdForUser(userId);
   if (!attackerTeamId) {
-    throw new Error("Your account is not assigned to a restaurant team.");
+    throw new Error("Your account is not assigned to a county fair team.");
   }
   const round = getRoundById(game.currentRoundId);
   const operator = getTeamSabotageOperator(attackerTeamId, round);
@@ -8975,19 +9406,19 @@ function resolveTeamSabotage(userId, submittedSequence) {
   const impactedTeamId = success ? attempt.target_team_id : attackerTeamId;
   const outcomeNote = success
     ? isFramed
-      ? `The betrayal landed cleanly and the frame held. ${getTeamMeta(attempt.target_team_id)?.name || "Your ally"} is blaming ${getTeamMeta(attempt.framed_team_id)?.name || "another restaurant"} for the sabotage.`
+      ? `The betrayal landed cleanly and the frame held. ${getTeamMeta(attempt.target_team_id)?.name || "Your ally"} is blaming ${getTeamMeta(attempt.framed_team_id)?.name || "another booth"} for the sabotage.`
       : attempt.support_team_id
-      ? `${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} and ${getTeamMeta(attempt.support_team_id)?.name || "an allied restaurant"} pulled off a ${sabotageLevel.label} hit on ${getTeamMeta(attempt.target_team_id)?.name || "the rival restaurant"}.`
+      ? `${getTeamMeta(attackerTeamId)?.name || "Your booth"} and ${getTeamMeta(attempt.support_team_id)?.name || "an allied booth"} pulled off a ${sabotageLevel.label} hit on ${getTeamMeta(attempt.target_team_id)?.name || "the rival booth"}.`
       : isBetrayal
       ? `The betrayal stayed hidden. ${getTeamMeta(attempt.target_team_id)?.name || "Your allied rival"} took an even harder hit because they never saw it coming.`
-      : `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival restaurant"} took the hit from a ${sabotageLevel.label.toLowerCase()} move.`
+      : `${meta.successNote} ${getTeamMeta(attempt.target_team_id)?.name || "The rival booth"} took the hit from a ${sabotageLevel.label.toLowerCase()} move.`
     : isFramed
-      ? `Your alliance betrayal collapsed in public. ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} was exposed trying to hit ${getTeamMeta(attempt.target_team_id)?.name || "an ally"} and frame ${getTeamMeta(attempt.framed_team_id)?.name || "another restaurant"}.`
+      ? `Your alliance betrayal collapsed in public. ${getTeamMeta(attackerTeamId)?.name || "Your booth"} was exposed trying to hit ${getTeamMeta(attempt.target_team_id)?.name || "an ally"} and frame ${getTeamMeta(attempt.framed_team_id)?.name || "another booth"}.`
       : attempt.support_team_id
-      ? `${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} and ${getTeamMeta(attempt.support_team_id)?.name || "an allied restaurant"} whiffed a joint sabotage and the penalty snapped back on you.`
+      ? `${getTeamMeta(attackerTeamId)?.name || "Your booth"} and ${getTeamMeta(attempt.support_team_id)?.name || "an allied booth"} whiffed a joint sabotage and the penalty snapped back on you.`
       : isBetrayal
-      ? `Your alliance betrayal blew up in public. ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty and everyone knows who you targeted.`
-      : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your restaurant"} took the penalty from a ${sabotageLevel.label.toLowerCase()} attempt.`;
+      ? `Your alliance betrayal blew up in public. ${getTeamMeta(attackerTeamId)?.name || "Your booth"} took the penalty and everyone knows who you targeted.`
+      : `${meta.failureNote} ${getTeamMeta(attackerTeamId)?.name || "Your booth"} took the penalty from a ${sabotageLevel.label.toLowerCase()} attempt.`;
 
   applyTeamDeltaBundle(impactedTeamId, bundle);
   if (success && attempt.support_team_id) {
@@ -10466,7 +10897,10 @@ function buildAdminPayload() {
     leaderboards,
     analytics: timingAnalytics,
     predictionMarkets: listPredictionMarkets().map(serializePredictionMarket),
-    predictionAssignment: buildPredictionAssignmentBoard({ isAdmin: true })
+    predictionAssignment: buildPredictionAssignmentBoard({ isAdmin: true }),
+    miniGameLibrary: getMiniGameLibrary(),
+    activeMiniRound: serializeMiniGameRound(getActiveMiniGameRound(), { isAdmin: true }),
+    recentMiniRounds: listRecentMiniGameRounds(5).map((row) => serializeMiniGameRound(row, { isAdmin: true })).filter(Boolean)
   };
 }
 
@@ -11001,6 +11435,7 @@ function updateSessionState(isOpen) {
   }
 
   closeCurrentRound();
+  closeMiniGameRound();
   db.prepare(
     `UPDATE game_state
      SET is_open = 0, last_closed_at = ?
@@ -12742,6 +13177,8 @@ function resetSimulation(scope) {
   db.prepare(`DELETE FROM response_staff_effects`).run();
   db.prepare(`DELETE FROM responses`).run();
   db.prepare(`DELETE FROM rounds`).run();
+  db.prepare(`DELETE FROM team_mini_game_responses`).run();
+  db.prepare(`DELETE FROM team_mini_game_rounds`).run();
   db.prepare(`DELETE FROM team_alliances`).run();
   db.prepare(`DELETE FROM team_sabotage_attempts`).run();
   db.prepare(`DELETE FROM prediction_market_work`).run();

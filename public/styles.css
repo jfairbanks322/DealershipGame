@@ -182,14 +182,14 @@ body::before {
   opacity: 0.1;
   background-image:
     linear-gradient(180deg, rgba(12, 8, 23, 0.56), rgba(8, 8, 18, 0.9)),
-    url("/assets/feast-haven/scenes/dining-room-main.png");
+    url("/assets/feast-haven/events/capacity-line-bottleneck.png");
 }
 
 body::after {
   opacity: 0.06;
   background-image:
     radial-gradient(circle at center, transparent 18%, rgba(10, 9, 22, 0.84) 92%),
-    url("/assets/feast-haven/scenes/dining-room-alt.png");
+    url("/assets/feast-haven/events/forecasting-demand-surge.png");
 }
 
 h1,
@@ -299,7 +299,7 @@ select {
   inset: 0;
   background:
     linear-gradient(90deg, rgba(14, 10, 28, 0.92) 0%, rgba(14, 10, 28, 0.74) 42%, rgba(14, 10, 28, 0.52) 100%),
-    url("/assets/feast-haven/scenes/dining-room-alt.png") center/cover no-repeat;
+    url("/assets/feast-haven/events/capacity-line-bottleneck.png") center/cover no-repeat;
   opacity: 0.42;
   z-index: 0;
 }
@@ -1455,6 +1455,69 @@ button:disabled {
   gap: 12px;
 }
 
+.teacher-live-leaderboard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(243, 206, 96, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(243, 206, 96, 0.15), transparent 34%),
+    linear-gradient(145deg, rgba(62, 30, 111, 0.42), rgba(15, 11, 29, 0.92));
+}
+
+.teacher-leaderboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.teacher-leaderboard-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 223, 236, 0.1);
+  background: rgba(217, 223, 236, 0.04);
+}
+
+.teacher-leaderboard-list {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-leaderboard-mini-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(11, 8, 20, 0.42);
+}
+
+.teacher-leaderboard-mini-row .rank-pill {
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 0.82rem;
+}
+
+.teacher-leaderboard-mini-main {
+  min-width: 0;
+}
+
+.teacher-leaderboard-mini-score {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.teacher-leaderboard-mini-score span {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
+
 .empty-state {
   border: 1px dashed rgba(243, 206, 96, 0.2);
   border-radius: 18px;
@@ -1753,6 +1816,66 @@ button:disabled {
   gap: 14px;
 }
 
+.mini-game-card {
+  border-color: rgba(243, 206, 96, 0.34);
+  background:
+    radial-gradient(circle at top left, rgba(243, 206, 96, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(93, 51, 168, 0.26), rgba(17, 12, 31, 0.96));
+}
+
+.mini-game-option-grid,
+.mini-game-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.sprint-option-card {
+  min-height: 116px;
+}
+
+.mini-game-result,
+.mini-game-active-summary,
+.mini-game-recent {
+  display: grid;
+  gap: 12px;
+}
+
+.mini-game-launch-card {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  padding: 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(243, 206, 96, 0.22);
+  background:
+    linear-gradient(145deg, rgba(243, 206, 96, 0.12), rgba(127, 74, 216, 0.18)),
+    rgba(217, 223, 236, 0.04);
+}
+
+.mini-game-launch-card strong {
+  font-family: "Iowan Old Style", "Palatino Linotype", serif;
+  font-size: 1.05rem;
+}
+
+.mini-game-launch-card span:last-child {
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.mini-game-response-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-game-response-row {
+  background: rgba(217, 223, 236, 0.04);
+}
+
+.compact-empty {
+  padding: 14px;
+}
+
 .snapshot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1922,6 +2045,10 @@ button:disabled {
 @media (max-width: 1100px) {
   .staff-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .teacher-leaderboard-grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -39,123 +39,111 @@ const SABOTAGE_SYMBOL_META = {
 
 const STAFF_DIRECTORY = {
   jake: {
-    name: "Adrian",
-    title: "Waiter",
-    avatar: "/assets/staff/adrian.png",
+    name: "Boone",
+    title: "Midway Barker",
+    avatar: "/assets/avatars/feast-haven/avatar-018.png",
     accent: "waiter",
-    badge: "Floor Lead"
+    badge: "Crowd Hype"
   },
   nina: {
-    name: "Celia",
-    title: "Waitress",
-    avatar: "/assets/staff/celia.png",
+    name: "Lila",
+    title: "Ticket Booth Lead",
+    avatar: "/assets/avatars/feast-haven/avatar-001.png",
     accent: "waitress",
-    badge: "Section Ace"
+    badge: "Front Gate"
   },
   marcus: {
-    name: "Omar",
-    title: "Busser",
-    avatar: "/assets/staff/omar.png",
+    name: "Gus",
+    title: "Games Attendant",
+    avatar: "/assets/avatars/feast-haven/avatar-006.png",
     accent: "busser",
-    badge: "Reset Crew"
+    badge: "Prize Math"
   },
   tasha: {
-    name: "Chef Renata",
-    title: "Head Chef",
-    avatar: "/assets/staff/chef-renata.png",
+    name: "Mabel",
+    title: "Food Stand Lead",
+    avatar: "/assets/avatars/feast-haven/avatar-007.png",
     accent: "chef",
-    badge: "Expo"
+    badge: "Hot Oil"
   },
   elena: {
-    name: "Marisol",
-    title: "Hostess",
-    avatar: "/assets/staff/marisol.png",
+    name: "Ruby",
+    title: "Guest Services Host",
+    avatar: "/assets/avatars/feast-haven/avatar-005.png",
     accent: "hostess",
-    badge: "Front Door"
+    badge: "Lost & Found"
   },
   luis: {
-    name: "Theo",
-    title: "Line Cook",
-    avatar: "/assets/staff/theo.png",
+    name: "Nico",
+    title: "Ride Queue Lead",
+    avatar: "/assets/avatars/feast-haven/avatar-030.png",
     accent: "line",
-    badge: "Grill"
+    badge: "Safety Line"
   },
   priya: {
-    name: "Imani",
-    title: "Line Cook",
-    avatar: "/assets/staff/imani.png",
+    name: "June",
+    title: "Prize Barn Lead",
+    avatar: "/assets/avatars/feast-haven/avatar-003.png",
     accent: "line",
-    badge: "Saute"
+    badge: "Inventory"
   },
   devon: {
-    name: "Parker",
-    title: "Host + Wait",
-    avatar: "/assets/staff/parker.png",
+    name: "Scout",
+    title: "Fairground Floater",
+    avatar: "/assets/avatars/feast-haven/avatar-004.png",
     accent: "hybrid",
-    badge: "Flex"
+    badge: "Anywhere"
   }
 };
 
 const EVENT_ART_DIRECTORY = {
-  "drive-thru-line-from-hell": {
-    image: "/assets/feast-haven/events/drive-thru-line-from-hell.png",
-    alt: "A drive-thru line stretching around a fast-food restaurant and into the street while angry drivers shout from their cars"
+  "supplier-cost-spike": {
+    image: "/assets/feast-haven/events/supplier-cost-spike.png",
+    alt: "County Fair staff reacting to a supplier price spike"
   },
-  "wrong-order-domino-effect": {
-    image: "/assets/feast-haven/events/wrong-order-domino-effect.png",
-    alt: "Fast-food workers frantically swapping labeled bags as a chain of angry customers realizes the wrong orders keep piling up"
+  "premium-price-backlash": {
+    image: "/assets/feast-haven/events/premium-price-backlash.png",
+    alt: "County Fair guests upset about premium bundle prices"
   },
-  "mobile-order-flood": {
-    image: "/assets/feast-haven/events/mobile-order-flood.png",
-    alt: "An overwhelmed fast-food counter covered in mobile order bags and drinks while furious guests shout from the pickup area"
+  "labor-shortfall-rush": {
+    image: "/assets/feast-haven/events/labor-shortfall-rush.png",
+    alt: "County Fair worker juggling several jobs during a rush"
   },
-  "register-goes-down": {
-    image: "/assets/feast-haven/events/register-goes-down.png",
-    alt: "A fast-food register showing a giant error while employees and customers stare at the frozen checkout line in frustration"
+  "inventory-shrink-mystery": {
+    image: "/assets/feast-haven/events/inventory-shrink-mystery.png",
+    alt: "County Fair prize inventory disappearing from the shelves"
   },
-  "staff-no-show": {
-    image: "/assets/feast-haven/events/staff-no-show.png",
-    alt: "A short-handed fast-food crew panicking behind the counter while a thought bubble shows two missing workers and a growing line"
+  "customer-refund-wave": {
+    image: "/assets/feast-haven/events/customer-refund-wave.png",
+    alt: "County Fair customers demanding refunds at the booth"
   },
-  "fresh-only-takeover": {
-    image: "/assets/feast-haven/events/fresh-only-takeover.png",
-    alt: "A crowd of customers pointing at the counter and demanding fresh burgers while the staff tries to keep order"
+  "forecasting-demand-surge": {
+    image: "/assets/feast-haven/events/forecasting-demand-surge.png",
+    alt: "County Fair staff surprised by a sudden demand surge"
   },
-  "delivery-app-glitch": {
-    image: "/assets/feast-haven/events/delivery-app-glitch.png",
-    alt: "A fast-food prep station stacked with duplicate delivery bags as app riders and employees scramble through a glitch-fueled order pileup"
+  "vendor-quality-failure": {
+    image: "/assets/feast-haven/events/vendor-quality-failure.png",
+    alt: "County Fair team inspecting poor quality vendor supplies"
   },
-  "ice-cream-machine-conspiracy": {
-    image: "/assets/feast-haven/events/ice-cream-machine-conspiracy.png",
-    alt: "Customers filming a fast-food worker beside the ice cream machine while accusing the staff of faking a breakdown"
+  "capacity-line-bottleneck": {
+    image: "/assets/feast-haven/events/capacity-line-bottleneck.png",
+    alt: "County Fair booth managing a huge customer line"
   },
-  "kids-meal-toy-black-market": {
-    image: "/assets/feast-haven/events/kids-meal-toy-black-market.png",
-    alt: "Teens haggling over kids meal toys with cash on the counter while a fast-food worker tries to shut down the toy marketplace"
+  "cashless-payment-crash": {
+    image: "/assets/feast-haven/events/cashless-payment-crash.png",
+    alt: "County Fair payment systems failing during a rush"
   },
-  "secret-menu-chaos": {
-    image: "/assets/feast-haven/events/secret-menu-chaos.png",
-    alt: "Phone-wielding customers demanding complicated viral secret menu hacks while a fast-food worker tries to explain the kitchen cannot keep up"
+  "sponsor-discount-demand": {
+    image: "/assets/feast-haven/events/sponsor-discount-demand.png",
+    alt: "County Fair sponsor pressuring staff for discount deals"
   },
-  "drive-thru-influencer-traffic-jam": {
-    image: "/assets/feast-haven/events/drive-thru-influencer-traffic-jam.png",
-    alt: "Influencers hanging out of cars with cameras in a drive-thru lane while traffic backs up behind them"
+  "weather-demand-pivot": {
+    image: "/assets/feast-haven/events/weather-demand-pivot.png",
+    alt: "County Fair booth adapting to sudden cold and stormy weather"
   },
-  "hundred-burger-challenge-crew": {
-    image: "/assets/feast-haven/events/hundred-burger-challenge-crew.png",
-    alt: "A cheering crowd filming a giant hundred-burger challenge stack at the fast-food counter while the staff looks stunned"
-  },
-  "mascot-meltdown": {
-    image: "/assets/feast-haven/events/mascot-meltdown.png",
-    alt: "A runaway burger mascot crashing through a fast-food restaurant and knocking food everywhere as guests panic"
-  },
-  "free-food-hack-flash-mob": {
-    image: "/assets/feast-haven/events/free-food-hack-flash-mob.png",
-    alt: "A flash mob crowd storming a fast-food counter and chanting for free food while filming the staff"
-  },
-  "fry-shortage-panic": {
-    image: "/assets/feast-haven/events/fry-shortage-panic.png",
-    alt: "A swarm of furious yellow customers pounding on the counter and demanding fries from a fast-food worker during a shortage"
+  "shared-equipment-conflict": {
+    image: "/assets/feast-haven/events/shared-equipment-conflict.png",
+    alt: "County Fair teams arguing over shared freezer space"
   }
 };
 
@@ -574,6 +562,14 @@ async function handleTeacherControlsClick(event) {
     return;
   }
 
+  const miniGameButton = event.target.closest("button[data-mini-game-id]");
+  if (miniGameButton) {
+    await postJson("/api/admin/mini-game/launch", {
+      gameId: miniGameButton.dataset.miniGameId
+    });
+    return;
+  }
+
   const button = event.target.closest("button[data-action]");
   if (!button) {
     return;
@@ -592,6 +588,11 @@ async function handleTeacherControlsClick(event) {
 
   if (action === "close-round") {
     await postJson("/api/admin/round/close", {});
+    return;
+  }
+
+  if (action === "close-mini-game") {
+    await postJson("/api/admin/mini-game/close", {});
     return;
   }
 
@@ -668,6 +669,14 @@ async function handlePredictionMarketListClick(event) {
 }
 
 async function handleStudentRoundClick(event) {
+  const miniOptionButton = event.target.closest("button[data-mini-option]");
+  if (miniOptionButton) {
+    await postJson("/api/team-mini-game/submit", {
+      optionId: miniOptionButton.dataset.miniOption
+    });
+    return;
+  }
+
   const startButton = event.target.closest("button[data-sabotage-start]");
   if (startButton) {
     await postJson("/api/team-sabotage/start", {
@@ -990,7 +999,7 @@ function renderRegisterAvatarPicker() {
   refs.studentAvatarInput.value = state.ui.selectedAvatarId || "";
   refs.studentAvatarPicker.innerHTML = options.length
     ? options.map((option) => renderAvatarOption(option, option.id === state.ui.selectedAvatarId)).join("")
-    : `<div class="empty-state">Manager portraits will appear here once the Feast Haven library is available.</div>`;
+    : `<div class="empty-state">Manager portraits will appear here once the County Fair Frenzy library is available.</div>`;
 }
 
 function renderAvatarOption(option, isSelected) {
@@ -1039,7 +1048,7 @@ function renderMarketStatus() {
       <p class="note">
         ${game.isOpen
           ? currentRound
-            ? "All active teams are working the same live event, but each shared restaurant can branch differently based on team choices."
+        ? "All active teams are working the same live event, but each county fair booth can branch differently based on team choices."
             : "Session is open. Launch a global event when you want every team to start the next chain."
           : "Open the class session before teams can start making management decisions."}
       </p>
@@ -1062,14 +1071,14 @@ function renderSessionBar() {
         : "Session is open and waiting for the next global event."
       : "Session is closed. Open it when class begins."
     : user.isEliminated
-      ? `${user.lossState?.name || "A staff member"} quit. ${user.team?.name || "Your restaurant"} is out until standings reset.`
+      ? `${user.lossState?.name || "A staff member"} quit. ${user.team?.name || "Your booth"} is out until standings reset.`
       : game.isOpen
         ? currentRound
           ? currentRound.studentCase?.status === "resolved"
             ? "Your team resolved the current event chain. Watch the leaderboard and wait for the next global event."
             : currentRound.studentCase?.canAct
               ? "It is your turn right now. Your decision will lock in the next branch for the whole team."
-              : `A global restaurant event is live. ${currentRound.studentCase?.currentDeciderName || "A teammate"} is currently on the clock.`
+              : `A global fair event is live. ${currentRound.studentCase?.currentDeciderName || "A teammate"} is currently on the clock.`
           : "Your teacher has the session open. Wait for the next global event."
         : "Your teacher has not opened the class session yet.";
 
@@ -1097,7 +1106,7 @@ function renderStudentView() {
   }
 
   refs.studentView.classList.remove("hidden");
-  refs.studentNameHeading.textContent = `${user.team?.name || "Team Restaurant"} · ${user.displayName}`;
+  refs.studentNameHeading.textContent = `${user.team?.name || "Team Booth"} · ${user.displayName}`;
   const leaderboardEntry = state.data.leaderboard.find((entry) => entry.id === user.teamId) || null;
 
   refs.studentSummary.innerHTML = `
@@ -1105,7 +1114,7 @@ function renderStudentView() {
       <img class="player-avatar player-avatar-hero" src="${escapeHtml(user.avatarPath || "")}" alt="${escapeHtml(user.displayName)} avatar" />
       <div>
         <strong>${escapeHtml(user.displayName)}</strong>
-        <div class="subtext">@${escapeHtml(user.username)} · Seat ${escapeHtml(String(user.teamSeat || "-"))} · ${escapeHtml(user.team?.name || "Team Restaurant")}</div>
+        <div class="subtext">@${escapeHtml(user.username)} · Seat ${escapeHtml(String(user.teamSeat || "-"))} · ${escapeHtml(user.team?.name || "Team Booth")}</div>
       </div>
     </div>
     ${renderPlayerRoleLoadout(user.roleLoadout)}
@@ -1133,17 +1142,78 @@ function renderStudentView() {
     ${
       user.warnings.length
         ? `<div class="warning-list">${user.warnings.map((warning) => `<div class="warning-chip">${escapeHtml(warning)}</div>`).join("")}</div>`
-        : `<p class="note">Balanced management keeps restaurant revenue moving without creating hidden team penalties.</p>`
+        : `<p class="note">Balanced management keeps booth revenue moving without creating hidden team penalties.</p>`
     }
     ${renderRestaurantStateSection(user.restaurantState)}
     ${renderLingeringEffectsPanel(user.lingeringEffects)}
   `;
 
-  refs.studentRoundPanel.innerHTML = renderStudentRoundPanel();
+  refs.studentRoundPanel.innerHTML = `${renderMiniGamePanel(state.data.miniRound, user)}${renderStudentRoundPanel()}`;
   refs.staffGrid.innerHTML = user.staff.map(renderStaffCard).join("");
   refs.historyPanel.innerHTML = user.decisionHistory.length
     ? `<div class="feed-list">${user.decisionHistory.map(renderHistoryRow).join("")}</div>`
     : `<div class="empty-state">Your management decisions will start appearing here after the first completed global event.</div>`;
+}
+
+function renderMiniGamePanel(miniRound, user) {
+  if (!miniRound) {
+    return "";
+  }
+
+  const response = miniRound.userResponse;
+  const isClosed = miniRound.status !== "active";
+  const captainName = miniRound.currentCaptainName || "a teammate";
+  const statusText = response
+    ? "Your team submitted this sprint."
+    : miniRound.canRespond
+      ? "You are the sprint captain. Make the call for your team."
+      : `${captainName} is the sprint captain for your team. Help them think it through.`;
+
+  return `
+    <article class="decision-card mini-game-card">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Teacher-Triggered Team Mini-Game · ${escapeHtml(miniRound.category)}</p>
+          <h3>${escapeHtml(miniRound.label)}</h3>
+        </div>
+        <span class="pill ${response ? "pill-open" : isClosed ? "pill-muted" : "pill-neutral"}">${response ? "Submitted" : isClosed ? "Closed" : "Live"}</span>
+      </div>
+      <p>${escapeHtml(miniRound.prompt)}</p>
+      <div class="relationship-callout">
+        <strong>Fairground Sprint</strong>
+        <span>${escapeHtml(statusText)}</span>
+      </div>
+      <div class="focus-row">
+        <span class="pill pill-neutral">Sprint ${miniRound.roundNumber}</span>
+        <span class="pill pill-neutral">${miniRound.completedCount}/${miniRound.totalTeams || 0} teams done</span>
+        <span class="pill pill-neutral">Captain: ${escapeHtml(captainName)}</span>
+      </div>
+      ${
+        response
+          ? `
+            <div class="mini-game-result">
+              <strong>${escapeHtml(response.optionLabel)}</strong>
+              <p>${escapeHtml(response.resultText)}</p>
+              <div class="impact-grid">
+                <span class="impact-chip ${response.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(response.salesDelta)}</span>
+                <span class="impact-chip ${response.satisfactionDelta >= 0 ? "positive" : "negative"}">Satisfaction ${formatSigned(response.satisfactionDelta)}</span>
+                <span class="impact-chip ${response.reputationDelta >= 0 ? "positive" : "negative"}">Reputation ${formatSigned(response.reputationDelta)}</span>
+              </div>
+            </div>
+          `
+          : `
+            <div class="mini-game-option-grid">
+              ${miniRound.options.map((option) => `
+                <button class="option-button sprint-option-card" data-mini-option="${escapeHtml(option.id)}" ${miniRound.canRespond && !isClosed ? "" : "disabled"}>
+                  <span class="option-label">${escapeHtml(option.label)}</span>
+                  <span class="option-meta">${miniRound.canRespond && !isClosed ? "Submit this sprint answer" : `Waiting on ${escapeHtml(captainName)}`}</span>
+                </button>
+              `).join("")}
+            </div>
+          `
+      }
+    </article>
+  `;
 }
 
 function renderStudentRoundPanel() {
@@ -1153,34 +1223,34 @@ function renderStudentRoundPanel() {
     return `
       <article class="decision-card loss-card">
         <div class="section-head compact">
-        <p class="eyebrow">Restaurant Eliminated</p>
+        <p class="eyebrow">Booth Eliminated</p>
         <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
       </div>
-      <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your restaurant is out of the game.")}</p>
-      <p class="note">The class session is closed, and this restaurant will stay out until the teacher resets standings.</p>
+      <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your booth is out of the game.")}</p>
+      <p class="note">The class session is closed, and this booth will stay out until the teacher resets standings.</p>
       </article>
     `;
   }
 
   if (!game.isOpen) {
-    return `<div class="empty-state">The class session is closed right now. Once your teacher opens it, live restaurant situations will appear here.</div>`;
+    return `<div class="empty-state">The class session is closed right now. Once your teacher opens it, live county fair situations will appear here.</div>`;
   }
 
   if (user.isEliminated && !currentRound) {
     return `
       <article class="decision-card loss-card">
         <div class="section-head compact">
-        <p class="eyebrow">Restaurant Eliminated</p>
+        <p class="eyebrow">Booth Eliminated</p>
         <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
       </div>
-      <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your restaurant is out of the game.")}</p>
-      <p class="note">No new global event is active, and this restaurant will not receive the next one unless standings are reset.</p>
+      <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your booth is out of the game.")}</p>
+      <p class="note">No new global event is active, and this booth will not receive the next one unless standings are reset.</p>
       </article>
     `;
   }
 
   if (!currentRound) {
-    return `<div class="empty-state">Session is open, but there is no active global event yet. Stay ready for the next restaurant crisis.</div>`;
+    return `<div class="empty-state">Session is open, but there is no active global event yet. Stay ready for the next county fair crisis.</div>`;
   }
 
   const studentCase = currentRound.studentCase;
@@ -1199,10 +1269,10 @@ function renderStudentRoundPanel() {
         ${sabotagePanel}
         <article class="decision-card case-step-card loss-card">
           <div class="section-head compact">
-          <p class="eyebrow">Restaurant Eliminated</p>
+          <p class="eyebrow">Booth Eliminated</p>
           <h3>${escapeHtml(user.lossState?.name || "An employee")} quit</h3>
         </div>
-        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your restaurant is out of the game.")}</p>
+        <p>${escapeHtml(user.lossState?.message || "A staff member walked out, and your booth is out of the game.")}</p>
         <div class="impact-summary">
           <strong>Final standing snapshot</strong>
             <div class="impact-grid">
@@ -1212,7 +1282,7 @@ function renderStudentRoundPanel() {
               <div class="impact-chip ${user.avgTrust >= 50 ? "positive" : "negative"}">Trust ${formatPercent(user.avgTrust)}</div>
             </div>
           </div>
-          <p class="note">You can still review the case timeline and leaderboard, but this restaurant will not receive new event chains until the standings are reset.</p>
+          <p class="note">You can still review the case timeline and leaderboard, but this booth will not receive new event chains until the standings are reset.</p>
         </article>
         ${caseTimeline}
       </div>
@@ -1387,7 +1457,7 @@ function renderCaseEventOverview(currentRound, studentCase) {
         }
         ${
           studentCase
-            ? `<span class="pill ${studentCase.status === "lost" ? "pill-closed" : studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "lost" ? "Restaurant lost" : studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
+            ? `<span class="pill ${studentCase.status === "lost" ? "pill-closed" : studentCase.status === "resolved" ? "pill-open" : "pill-muted"}">${studentCase.status === "lost" ? "Booth lost" : studentCase.status === "resolved" ? "Case resolved" : `Following ${escapeHtml(studentCase.currentPromptTitle)}`}</span>`
             : ""
         }
       </div>
@@ -1407,7 +1477,7 @@ function renderRestaurantStateSection(states) {
     <section class="student-state-section">
       <div class="section-head compact">
         <div>
-          <p class="eyebrow">Restaurant State</p>
+          <p class="eyebrow">Booth State</p>
           <h3>What earlier choices changed</h3>
         </div>
       </div>
@@ -1442,7 +1512,7 @@ function renderLingeringEffectsPanel(effects) {
       <div class="section-head compact">
         <div>
           <p class="eyebrow">Lingering Effects</p>
-          <h3>What is still following this restaurant</h3>
+          <h3>What is still following this booth</h3>
         </div>
       </div>
       ${
@@ -1460,7 +1530,7 @@ function renderLingeringEffectCard(effect) {
       <div class="feed-main">
         <div>
           <strong>${escapeHtml(effect.title)}</strong>
-          <div class="subtext">${effect.targetStaffName ? escapeHtml(effect.targetStaffName) : "Restaurant-wide"}</div>
+          <div class="subtext">${effect.targetStaffName ? escapeHtml(effect.targetStaffName) : "Booth-wide"}</div>
         </div>
         <span class="pill pill-neutral">${effect.roundsRemaining === 1 ? "1 round left" : `${effect.roundsRemaining} rounds left`}</span>
       </div>
@@ -1530,7 +1600,7 @@ function renderTeacherView() {
 
   refs.teacherSummary.innerHTML = `
     <div class="teacher-scene-banner">
-      <img src="/assets/feast-haven/scenes/teacher-control-banner.png" alt="Feast Haven teacher control center artwork" />
+      <img src="/assets/feast-haven/scenes/teacher-control-banner.png" alt="County Fair Frenzy teacher control center artwork" />
     </div>
     <div class="summary-grid admin-summary-grid">
       <article class="hero-stat">
@@ -1549,6 +1619,7 @@ function renderTeacherView() {
         <div class="mini-stat"><span>Session State</span><strong>${game.isOpen ? "Open" : "Closed"}</strong></div>
       </div>
     </div>
+    ${renderTeacherDashboardLeaderboard(state.data.leaderboards || {})}
     ${renderTeacherTimingHighlights(admin.analytics || {})}
     ${renderAwardsBoard(admin.awards || [])}
   `;
@@ -1582,6 +1653,7 @@ function renderTeacherView() {
         <button class="subtle danger-button" data-action="reset-full">Reset Everything</button>
       </div>
     </div>
+    ${renderTeacherMiniGameControls(admin, game)}
   `;
 
   renderPresetOptions();
@@ -1654,6 +1726,74 @@ function renderTeacherTimingHighlights(analytics) {
   `;
 }
 
+function renderTeacherDashboardLeaderboard(leaderboards) {
+  const boards = [
+    leaderboards.overall,
+    leaderboards.revenue,
+    leaderboards.culture
+  ].filter((board) => board?.entries?.length);
+
+  if (!boards.length) {
+    return `
+      <section class="teacher-live-leaderboard">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow">Live Leaderboard</p>
+            <h3>Standings will appear here</h3>
+          </div>
+          <a class="button-link subtle" href="#leaderboard">Jump To Full Board</a>
+        </div>
+        <div class="empty-state compact-empty">Once students join and complete events, the top teams will appear right on the teacher dashboard.</div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="teacher-live-leaderboard">
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Live Leaderboard</p>
+          <h3>Top Teams At A Glance</h3>
+        </div>
+        <a class="button-link subtle" href="#leaderboard">Jump To Full Board</a>
+      </div>
+      <div class="teacher-leaderboard-grid">
+        ${boards.map((board) => `
+          <article class="teacher-leaderboard-card">
+            <div class="feed-main">
+              <div>
+                <strong>${escapeHtml(board.title)}</strong>
+                <div class="subtext">${escapeHtml(board.subtitle)}</div>
+              </div>
+              <span class="pill pill-neutral">${board.entries.length} ranked</span>
+            </div>
+            <div class="teacher-leaderboard-list">
+              ${board.entries.slice(0, 4).map((entry) => renderTeacherLeaderboardMiniRow(board, entry)).join("")}
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderTeacherLeaderboardMiniRow(board, entry) {
+  const primaryValue = board.id === "revenue" ? formatRevenue(entry.sales) : formatScore(entry.boardScore);
+  const primaryLabel = board.id === "revenue" ? "Revenue" : board.id === "culture" ? "Culture" : "Score";
+  return `
+    <div class="teacher-leaderboard-mini-row">
+      <span class="rank-pill">#${entry.rank}</span>
+      <div class="teacher-leaderboard-mini-main">
+        ${renderPlayerIdentity(entry.displayName, `${escapeHtml((entry.memberNames || []).join(", ") || "Waiting for players")}`, entry.avatarPath)}
+      </div>
+      <div class="teacher-leaderboard-mini-score">
+        <strong>${primaryValue}</strong>
+        <span>${primaryLabel}</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderTeacherTimingCard(card) {
   return `
     <article class="teacher-analytics-card">
@@ -1661,6 +1801,95 @@ function renderTeacherTimingCard(card) {
       <strong>${card.title || card.fallbackTitle}</strong>
       <span class="impact-chip ${card.tone}">${card.chip}</span>
       <p class="teacher-analytics-detail">${card.detail || card.fallbackDetail}</p>
+    </article>
+  `;
+}
+
+function renderTeacherMiniGameControls(admin, game) {
+  const active = admin.activeMiniRound;
+  const library = admin.miniGameLibrary || [];
+  const recent = (admin.recentMiniRounds || []).filter((round) => round.id !== active?.id).slice(0, 3);
+
+  return `
+    <div class="teacher-control-card mini-game-teacher-card">
+      <div class="control-row">
+        <div>
+          <p class="eyebrow">Teacher-Triggered Mini-Games</p>
+          <h3>Fairground Sprint Rounds</h3>
+          <p class="note">Launch a quick team-wide challenge whenever class energy needs a twist. One rotating captain per team submits, but the whole table should advise.</p>
+        </div>
+        <span class="pill ${active ? "pill-open" : "pill-muted"}">${active ? "Sprint Live" : "No Sprint"}</span>
+      </div>
+      ${
+        active
+          ? `
+            <div class="mini-game-active-summary">
+              <div>
+                <strong>${escapeHtml(active.label)}</strong>
+                <p class="note">${escapeHtml(active.prompt)}</p>
+              </div>
+              <div class="impact-grid">
+                <span class="impact-chip neutral">Sprint ${active.roundNumber}</span>
+                <span class="impact-chip ${active.completedCount >= active.totalTeams && active.totalTeams ? "positive" : "neutral"}">${active.completedCount}/${active.totalTeams || 0} teams done</span>
+              </div>
+              ${
+                active.responses?.length
+                  ? `<div class="mini-game-response-list">${active.responses.map(renderMiniGameTeacherResponse).join("")}</div>`
+                  : `<div class="empty-state compact-empty">No teams have submitted this sprint yet.</div>`
+              }
+              <div class="action-row">
+                <button class="subtle" data-action="close-mini-game">Close Sprint</button>
+              </div>
+            </div>
+          `
+          : `<p class="note">Pick one sprint below. Starting a new sprint automatically closes any previous active sprint.</p>`
+      }
+      <div class="mini-game-library-grid">
+        ${library.map((miniGame) => `
+          <button class="mini-game-launch-card" type="button" data-mini-game-id="${escapeHtml(miniGame.id)}" ${game.isOpen ? "" : "disabled"}>
+            <span class="eyebrow">${escapeHtml(miniGame.category)}</span>
+            <strong>${escapeHtml(miniGame.label)}</strong>
+            <span>${escapeHtml(miniGame.prompt)}</span>
+          </button>
+        `).join("")}
+      </div>
+      ${
+        recent.length
+          ? `<div class="mini-game-recent">
+              <strong>Recent sprints</strong>
+              <div class="feed-list">${recent.map((round) => `
+                <article class="feed-row compact-feed-row">
+                  <div class="feed-main">
+                    <div>
+                      <strong>${escapeHtml(round.label)}</strong>
+                      <div class="subtext">Sprint ${round.roundNumber} · ${round.completedCount}/${round.totalTeams || 0} teams · ${formatDate(round.createdAt)}</div>
+                    </div>
+                    <span class="pill pill-muted">Closed</span>
+                  </div>
+                </article>
+              `).join("")}</div>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderMiniGameTeacherResponse(response) {
+  return `
+    <article class="feed-row compact-feed-row mini-game-response-row">
+      <div class="feed-main">
+        <div>
+          <strong>${escapeHtml(response.teamName)}</strong>
+          <div class="subtext">${escapeHtml(response.studentName)} chose ${escapeHtml(response.optionLabel)}</div>
+        </div>
+        <span class="pill pill-neutral">${formatDate(response.submittedAt)}</span>
+      </div>
+      <div class="impact-grid">
+        <span class="impact-chip ${response.salesDelta >= 0 ? "positive" : "negative"}">Revenue ${formatSignedRevenue(response.salesDelta)}</span>
+        <span class="impact-chip ${response.satisfactionDelta >= 0 ? "positive" : "negative"}">Satisfaction ${formatSigned(response.satisfactionDelta)}</span>
+        <span class="impact-chip ${response.reputationDelta >= 0 ? "positive" : "negative"}">Reputation ${formatSigned(response.reputationDelta)}</span>
+      </div>
     </article>
   `;
 }
@@ -1718,7 +1947,7 @@ function renderLeaderboard() {
   const boards = Object.values(leaderboards).filter((board) => board?.entries?.length);
   refs.leaderboard.innerHTML = boards.length
     ? `<div class="leaderboard-board-grid">${boards.map(renderLeaderboardBoard).join("")}</div>`
-    : `<div class="empty-state">No students have joined yet. Once they do, live restaurant standings will appear here.</div>`;
+    : `<div class="empty-state">No students have joined yet. Once they do, live county fair standings will appear here.</div>`;
 }
 
 function renderRoundFeed() {
@@ -1748,7 +1977,7 @@ function renderStaffCard(staff) {
         <span class="pill pill-muted">${escapeHtml(staff.hasQuit ? "No longer available" : staff.trustEffectLabel)}</span>
       </div>
       ${renderRelationshipStack(staff.relationships)}
-      <p class="note">${escapeHtml(staff.hasQuit ? `${staff.name} has quit the restaurant.` : staff.tension)}</p>
+      <p class="note">${escapeHtml(staff.hasQuit ? `${staff.name} has quit the booth.` : staff.tension)}</p>
       <div class="meter-block">
         <div class="meter-label"><span>Morale</span><strong>${formatPercent(staff.morale)}</strong></div>
         <div class="meter"><div class="meter-fill ${staff.morale < 40 ? "low" : ""}" style="width: ${staff.morale}%"></div></div>
@@ -1851,7 +2080,7 @@ function renderStudentRosterRow(student) {
           : ""
       }
       ${renderPlayerRoleLoadout(student.roleLoadout, true)}
-      ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This restaurant has been eliminated.")}</p>` : ""}
+      ${student.isEliminated ? `<p class="note">${escapeHtml(student.lossState?.message || "This booth has been eliminated.")}</p>` : ""}
       <div class="roster-actions">
         <form data-team-form class="inline-form">
           <input type="hidden" name="userId" value="${student.id}" />
@@ -1993,8 +2222,8 @@ function renderAdminTeamBoard(teams, currentRound) {
     <section class="team-ops-section">
       <div class="section-head compact">
         <div>
-          <p class="eyebrow">Restaurant Teams</p>
-          <h3>Five restaurants, four seats each</h3>
+          <p class="eyebrow">County Fair Teams</p>
+          <h3>Six booths, three seats each</h3>
         </div>
       </div>
       <div class="team-ops-grid">
@@ -2021,7 +2250,7 @@ function renderAdminTeamCard(team, currentRound) {
       <div class="team-ops-header">
         <div>
           <span class="eyebrow">${escapeHtml(team.name)}</span>
-          <h4>${team.memberCount}/4 seats filled</h4>
+          <h4>${team.memberCount}/3 seats filled</h4>
         </div>
         <span class="pill ${statusTone}">${escapeHtml(team.progressLabel || "Waiting")}</span>
       </div>
@@ -2063,7 +2292,7 @@ function renderAdminTeamCard(team, currentRound) {
             `
           : currentRound && team.memberCount
             ? `<p class="note">This team is waiting for its live case to load.</p>`
-            : `<p class="note">${team.memberCount ? "Roles and any extra step pressure rotate each event, so short-handed teams share the burden over time." : "Seats stay open until players join this restaurant."}</p>`
+            : `<p class="note">${team.memberCount ? "Roles and any extra step pressure rotate each event, so short-handed teams share the burden over time." : "Seats stay open until players join this booth."}</p>`
       }
       ${
         sabotageState
@@ -2290,8 +2519,8 @@ function renderLeaderboardBoard(board) {
 
 function renderEventArtwork(presetId, headline, className = "event-artwork") {
   const meta = EVENT_ART_DIRECTORY[presetId] || {
-    image: "/assets/feast-haven/scenes/dining-room-main.png",
-    alt: "Feast Haven dining room artwork"
+    image: "/assets/feast-haven/events/capacity-line-bottleneck.png",
+    alt: "County Fair Frenzy event artwork"
   };
 
   return `
@@ -2476,7 +2705,7 @@ function renderSabotageIncomingNotice(attempt) {
   return `
     <div class="sabotage-alert sabotage-alert-danger">
       <strong>Incoming sabotage from ${escapeHtml(attempt.attackerTeamName)}</strong>
-      <span>${escapeHtml(attempt.displayOutcomeNote || attempt.outcomeNote || `${attempt.sabotageLabel} landed against your restaurant.`)}</span>
+      <span>${escapeHtml(attempt.displayOutcomeNote || attempt.outcomeNote || `${attempt.sabotageLabel} landed against your booth.`)}</span>
       ${renderSabotageImpact(attempt, "Your team took")}
     </div>
   `;
@@ -2620,7 +2849,7 @@ function renderAlliancePanel(allianceState, user) {
         <div class="stack">
           ${pendingOutgoing.map((offer) => `
             <div class="relationship-callout">
-              <strong>${escapeHtml(offer.otherTeamName || "The other restaurant")}</strong>
+              <strong>${escapeHtml(offer.otherTeamName || "The other booth")}</strong>
               <span>Waiting on a reply. If they accept, this opens up joint sabotage and shared diplomacy bonuses.</span>
             </div>
           `).join("")}
@@ -2821,7 +3050,7 @@ function renderSabotagePanel(sabotage, user) {
           sabotage.outgoing,
           sabotage.outgoing.status === "success" ? "Damage dealt" : "Penalty your team took"
         )}
-        <p class="note">Each restaurant only gets one sabotage attempt per live event.</p>
+        <p class="note">Each booth only gets one sabotage attempt per live event.</p>
       </article>
     `;
   }
@@ -2848,7 +3077,7 @@ function renderSabotagePanel(sabotage, user) {
               : `${escapeHtml(sabotage.operatorName || "A teammate")} is the only player who can finish this covert action this round.`
           }</span>
         </div>
-        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}.${sabotage.outgoing.isBetrayal ? " Because they are your ally, this counts as a betrayal attempt." : ""} Beat the covert puzzle and the hit lands. Miss it and your own restaurant gets caught.`)}</p>
+        <p>${escapeHtml(`${sabotage.outgoing.createdByName} targeted ${sabotage.outgoing.targetTeamName} with ${sabotage.outgoing.sabotageLabel}.${sabotage.outgoing.isBetrayal ? " Because they are your ally, this counts as a betrayal attempt." : ""} Beat the covert puzzle and the hit lands. Miss it and your own booth gets caught.`)}</p>
         ${
           sabotage.outgoing.supportTeamName
             ? `<div class="relationship-callout">
@@ -2861,7 +3090,7 @@ function renderSabotagePanel(sabotage, user) {
           sabotage.outgoing.isFramed
             ? `<div class="relationship-callout">
                 <strong>Frame job live</strong>
-                <span>${escapeHtml(`This betrayal is trying to pin the hit on ${sabotage.outgoing.framedTeamName || "another restaurant"}. If the mini-game slips, everyone will see the real betrayal.`)}</span>
+                <span>${escapeHtml(`This betrayal is trying to pin the hit on ${sabotage.outgoing.framedTeamName || "another booth"}. If the mini-game slips, everyone will see the real betrayal.`)}</span>
               </div>`
             : ""
         }
@@ -2869,7 +3098,7 @@ function renderSabotagePanel(sabotage, user) {
         <div class="action-row">
           <button class="danger-button" type="button" data-sabotage-submit ${sabotage.canResolve && state.ui.sabotageInput.length === expectedLength ? "" : "disabled"}>Resolve Sabotage</button>
         </div>
-        <p class="note">${escapeHtml(`${user.team?.name || "Your restaurant"} can only submit one full sabotage attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats${sabotage.outgoing.isBetrayal ? " and exposes the backstab to everyone" : ""}.`)}</p>
+        <p class="note">${escapeHtml(`${user.team?.name || "Your booth"} can only submit one full sabotage attempt. Winning hits ${sabotage.outgoing.targetTeamName}; losing burns your own stats${sabotage.outgoing.isBetrayal ? " and exposes the backstab to everyone" : ""}.`)}</p>
       </article>
     `;
   }
@@ -2895,7 +3124,7 @@ function renderSabotagePanel(sabotage, user) {
       </div>
       <p>Every team gets one covert move per live event. Pick a rival, choose the disruption, choose the risk level, and beat the mini-game to make it stick.</p>
       <label class="stack sabotage-select-block">
-        <span>Target Restaurant</span>
+        <span>Target Booth</span>
         <select data-sabotage-target ${sabotage.canStart ? "" : "disabled"}>
           ${(sabotage.availableTargets || [])
             .map((team) => `
@@ -2948,7 +3177,7 @@ function renderSabotagePanel(sabotage, user) {
               </label>
               ${
                 state.ui.sabotageDraft.frameTeamId
-                  ? `<p class="note">Framing another team triggers the hardest sabotage mini-game. If you win, everyone blames ${escapeHtml(frameTargets.find((team) => team.id === state.ui.sabotageDraft.frameTeamId)?.name || "that restaurant")}. If you lose, the betrayal is exposed to the whole class.</p>`
+                  ? `<p class="note">Framing another team triggers the hardest sabotage mini-game. If you win, everyone blames ${escapeHtml(frameTargets.find((team) => team.id === state.ui.sabotageDraft.frameTeamId)?.name || "that booth")}. If you lose, the betrayal is exposed to the whole class.</p>`
                   : ""
               }
             `
@@ -3033,7 +3262,7 @@ function renderTeacherSnapshot(snapshot) {
                       <div class="feed-main">
                         <div>
                           <strong>${escapeHtml(node.title)}</strong>
-                          <div class="subtext">${node.count} active restaurant case${node.count === 1 ? "" : "s"} at this branch</div>
+                          <div class="subtext">${node.count} active booth case${node.count === 1 ? "" : "s"} at this branch</div>
                         </div>
                       </div>
                     </article>
@@ -3059,7 +3288,7 @@ function getStaffMeta(staffId) {
       return {
         name: match.name,
         title: match.title,
-        avatar: STAFF_DIRECTORY[staffId]?.avatar || "/assets/staff/jake.png",
+        avatar: STAFF_DIRECTORY[staffId]?.avatar || "/assets/avatars/feast-haven/avatar-001.png",
         accent: STAFF_DIRECTORY[staffId]?.accent || "waiter",
         badge: STAFF_DIRECTORY[staffId]?.badge || "Team"
       };
@@ -3069,7 +3298,7 @@ function getStaffMeta(staffId) {
   return STAFF_DIRECTORY[staffId] || {
     name: staffId,
     title: "",
-    avatar: "/assets/staff/jake.png",
+    avatar: "/assets/avatars/feast-haven/avatar-001.png",
     accent: "waiter",
     badge: "Team"
   };
