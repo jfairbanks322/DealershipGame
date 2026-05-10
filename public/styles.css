@@ -1439,14 +1439,63 @@ button:disabled {
 }
 
 .leaderboard-row {
+  overflow: hidden;
   background:
     linear-gradient(145deg, rgba(34, 19, 54, 0.96), rgba(15, 11, 29, 0.94)),
     rgba(217, 223, 236, 0.04);
 }
 
+.leaderboard-row .feed-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-content: start;
+  align-items: center;
+}
+
+.leaderboard-row .player-identity {
+  width: 100%;
+  min-width: 0;
+}
+
+.leaderboard-row .player-identity > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.leaderboard-row .player-identity strong,
+.leaderboard-row .player-identity .subtext {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-row .player-identity strong {
+  font-size: clamp(1rem, 1.55vw, 1.3rem);
+  line-height: 1.08;
+}
+
+.leaderboard-row .player-identity .subtext {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.leaderboard-row .feed-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.leaderboard-row .feed-metrics div {
+  min-width: 0;
+}
+
+.leaderboard-row .feed-metrics strong,
+.leaderboard-row .feed-metrics span {
+  overflow-wrap: anywhere;
+}
+
 .leaderboard-board-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 14px;
 }
 
