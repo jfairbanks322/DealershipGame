@@ -2495,25 +2495,36 @@ function renderLeaderboardBoard(board) {
         </div>
       </div>
       <div class="feed-list">
-        ${board.entries.slice(0, 5).map((entry) => `
-          <article class="feed-row leaderboard-row">
-            <div class="feed-main">
-              <span class="rank-pill">#${entry.rank}</span>
-              ${renderPlayerIdentity(entry.displayName, `${escapeHtml((entry.memberNames || []).join(", ") || "Waiting for players")}`, entry.avatarPath)}
-            </div>
-            <div class="feed-metrics">
-              <div><strong>${board.id === "revenue" ? formatRevenue(entry.sales) : formatScore(entry.boardScore)}</strong><span>${board.id === "revenue" ? "Revenue" : board.id === "culture" ? "Culture" : "Score"}</span></div>
-              <div class="metric-badge-cell">${renderScoreTierBadge(entry.scoreTier, true)}</div>
-              <div><strong>${formatRevenue(entry.sales)}</strong><span>Revenue</span></div>
-              <div><strong>${formatPercent(entry.teamHealth)}</strong><span>Team health</span></div>
-            </div>
-            <div class="focus-row">
-              <span class="pill ${entry.isEliminated ? "pill-closed" : "pill-open"}">${entry.isEliminated ? `Lost: ${escapeHtml(entry.lossState?.name || "Staff quit")}` : "Active"}</span>
-            </div>
-          </article>
-        `).join("")}
+        ${board.entries.slice(0, 5).map((entry) => renderLeaderboardEntry(entry, board)).join("")}
       </div>
     </section>
+  `;
+}
+
+function renderLeaderboardEntry(entry, board) {
+  const primaryValue = board.id === "revenue" ? formatRevenue(entry.sales) : formatScore(entry.boardScore);
+  const primaryLabel = board.id === "revenue" ? "Revenue" : board.id === "culture" ? "Culture" : "Score";
+  const roster = escapeHtml((entry.memberNames || []).join(", ") || "Waiting for players");
+
+  return `
+    <article class="leaderboard-card-row">
+      <div class="leaderboard-card-rank">#${entry.rank}</div>
+      <img class="player-avatar leaderboard-card-avatar" src="${escapeHtml(entry.avatarPath || "")}" alt="${escapeHtml(entry.displayName)} team avatar" />
+      <div class="leaderboard-card-copy">
+        <strong>${escapeHtml(entry.displayName)}</strong>
+        <span>${roster}</span>
+      </div>
+      <div class="leaderboard-card-score">
+        <strong>${primaryValue}</strong>
+        <span>${primaryLabel}</span>
+      </div>
+      <div class="leaderboard-card-meta">
+        <span>${formatRevenue(entry.sales)} revenue</span>
+        <span>${formatPercent(entry.teamHealth)} team health</span>
+      </div>
+      <div class="leaderboard-card-tier">${renderScoreTierBadge(entry.scoreTier, true)}</div>
+      <span class="pill ${entry.isEliminated ? "pill-closed" : "pill-open"}">${entry.isEliminated ? `Lost: ${escapeHtml(entry.lossState?.name || "Staff quit")}` : "Active"}</span>
+    </article>
   `;
 }
 

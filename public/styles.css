@@ -1504,6 +1504,94 @@ button:disabled {
   gap: 12px;
 }
 
+.leaderboard-card-row {
+  display: grid;
+  grid-template-columns: auto 46px minmax(0, 1fr);
+  gap: 10px 12px;
+  align-items: center;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(243, 206, 96, 0.14);
+  background:
+    linear-gradient(145deg, rgba(34, 19, 54, 0.96), rgba(15, 11, 29, 0.94)),
+    rgba(217, 223, 236, 0.04);
+}
+
+.leaderboard-card-rank {
+  display: inline-grid;
+  place-items: center;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(243, 206, 96, 0.14);
+  color: var(--gold-strong);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.leaderboard-card-avatar {
+  flex: 0 0 auto;
+}
+
+.leaderboard-card-copy {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.leaderboard-card-copy strong,
+.leaderboard-card-copy span,
+.leaderboard-card-score strong,
+.leaderboard-card-score span,
+.leaderboard-card-meta span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-card-copy strong {
+  font-size: clamp(1.05rem, 1.4vw, 1.28rem);
+  line-height: 1.06;
+}
+
+.leaderboard-card-copy span,
+.leaderboard-card-meta span {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.25;
+}
+
+.leaderboard-card-score {
+  grid-column: 1 / span 2;
+  min-width: 0;
+}
+
+.leaderboard-card-score strong {
+  color: var(--gold-strong);
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1;
+}
+
+.leaderboard-card-score span {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.leaderboard-card-meta {
+  min-width: 0;
+}
+
+.leaderboard-card-tier {
+  grid-column: 1 / -1;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.leaderboard-card-row > .pill {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
 .teacher-live-leaderboard {
   display: grid;
   gap: 14px;
