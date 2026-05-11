@@ -1506,7 +1506,7 @@ button:disabled {
 
 .leaderboard-card-row {
   display: grid;
-  grid-template-columns: auto 46px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 10px 12px;
   align-items: center;
   overflow: hidden;
@@ -1529,10 +1529,6 @@ button:disabled {
   color: var(--gold-strong);
   font-weight: 900;
   white-space: nowrap;
-}
-
-.leaderboard-card-avatar {
-  flex: 0 0 auto;
 }
 
 .leaderboard-card-copy {
@@ -1562,7 +1558,7 @@ button:disabled {
 }
 
 .leaderboard-card-score {
-  grid-column: 1 / span 2;
+  grid-column: 1 / span 1;
   min-width: 0;
 }
 

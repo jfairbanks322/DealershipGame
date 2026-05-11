@@ -2509,7 +2509,6 @@ function renderLeaderboardEntry(entry, board) {
   return `
     <article class="leaderboard-card-row">
       <div class="leaderboard-card-rank">#${entry.rank}</div>
-      <img class="player-avatar leaderboard-card-avatar" src="${escapeHtml(entry.avatarPath || "")}" alt="${escapeHtml(entry.displayName)} team avatar" />
       <div class="leaderboard-card-copy">
         <strong>${escapeHtml(entry.displayName)}</strong>
         <span>${roster}</span>
