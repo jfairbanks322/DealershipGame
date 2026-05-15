@@ -6193,6 +6193,7 @@ const UNUSED_LEGACY_EVENT_TEMPLATES = [
 ];
 
 const sessions = new Map();
+const kitchenSyncResultMailboxes = new Map();
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -6271,6 +6272,12 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 async function handleApi(req, res, pathname) {
+  const kitchenSyncResultGameId = getKitchenSyncResultGameId(pathname);
+  if (kitchenSyncResultGameId) {
+    await handleKitchenSyncResultMailbox(req, res, kitchenSyncResultGameId);
+    return;
+  }
+
   const session = getSession(req);
 
   if (req.method === "GET" && pathname === "/api/bootstrap") {
@@ -13310,6 +13317,36 @@ function readJsonBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+function getKitchenSyncResultGameId(pathname) {
+  const match = pathname.match(/^\/api\/results\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+async function handleKitchenSyncResultMailbox(req, res, gameId) {
+  if (req.method === "GET") {
+    const payload = kitchenSyncResultMailboxes.get(gameId);
+    if (!payload) {
+      sendJson(res, 404, { error: "Results not ready." });
+      return;
+    }
+    sendJson(res, 200, payload);
+    return;
+  }
+
+  if (req.method === "POST") {
+    try {
+      const payload = await readJsonBody(req);
+      kitchenSyncResultMailboxes.set(gameId, payload);
+      sendJson(res, 200, { ok: true });
+    } catch (error) {
+      sendJson(res, 400, { error: error.message || "Invalid JSON body." });
+    }
+    return;
+  }
+
+  sendJson(res, 405, { error: "Method not allowed." });
 }
 
 function sendStatic(res, pathname) {

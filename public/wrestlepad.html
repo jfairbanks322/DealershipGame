@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WrestlePad</title>
+    <title>Grapple Grid</title>
     <link rel="stylesheet" href="/wrestlepad.css" />
   </head>
   <body>
@@ -11,7 +11,7 @@
       <header class="pad-topbar">
         <div class="brand-block">
           <p class="brand-kicker">StatPad-style wrestling prototype</p>
-          <h1>WrestlePad</h1>
+          <h1>Grapple Grid</h1>
         </div>
         <div class="topbar-actions">
           <button id="daily-start-btn" type="button">Today</button>
@@ -20,8 +20,17 @@
         </div>
       </header>
 
+      <section class="archive-bar" aria-label="Daily archive controls">
+        <p class="control-label archive-label">April Test Archive</p>
+        <div class="archive-controls">
+          <button id="archive-prev-btn" class="secondary" type="button">Prev Day</button>
+          <select id="archive-date-select" aria-label="Choose an April daily challenge"></select>
+          <button id="archive-next-btn" class="secondary" type="button">Next Day</button>
+        </div>
+      </section>
+
       <section class="board-shell">
-        <canvas id="board-canvas" width="1100" height="900" aria-label="WrestlePad clue board"></canvas>
+        <canvas id="board-canvas" width="1100" height="900" aria-label="Grapple Grid clue board"></canvas>
       </section>
 
       <section class="control-strip">
@@ -36,6 +45,7 @@
         <div class="control-actions">
           <button id="share-btn" class="secondary" type="button" disabled>Share</button>
           <button id="reveal-btn" class="secondary" type="button" disabled>Reveal</button>
+          <button id="try-again-btn" class="secondary" type="button" disabled>Try Again</button>
         </div>
         <p id="daily-score-summary" class="daily-score-summary"></p>
         <p id="help-line" class="help-line">Manual entry only. Click a green row button or press `Enter` on a selected row to open the popup. Press `F` for fullscreen.</p>
@@ -68,7 +78,7 @@
     <aside id="used-popup" class="used-popup hidden" aria-live="polite" aria-atomic="true">
       <div class="used-popup-media">
         <img id="used-popup-image" class="used-popup-image hidden" alt="" />
-        <div id="used-popup-fallback" class="used-popup-fallback">WP</div>
+        <div id="used-popup-fallback" class="used-popup-fallback" aria-hidden="true"></div>
       </div>
       <div class="used-popup-copy">
         <p class="control-label">Added Wrestler</p>

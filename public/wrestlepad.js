@@ -809,14 +809,20 @@ const CANVAS = document.getElementById("board-canvas");
 const CTX = CANVAS.getContext("2d");
 const MIN_SUGGESTION_CHARS = 4;
 const USED_POPUP_MS = 3200;
+const APRIL_ARCHIVE_MONTH = "2026-04";
 const PORTRAIT_IMAGE_CACHE = new Map();
 const LOADED_PORTRAITS_SNAPSHOT = window.WRESTLEPAD_PORTRAITS || { meta: null, paths: {} };
+const APRIL_ARCHIVE_KEYS = Array.from({ length: 30 }, (_, index) => `${APRIL_ARCHIVE_MONTH}-${String(index + 1).padStart(2, "0")}`);
 
 const refs = {
   dailyStart: document.getElementById("daily-start-btn"),
   practiceStart: document.getElementById("practice-start-btn"),
+  archivePrev: document.getElementById("archive-prev-btn"),
+  archiveDateSelect: document.getElementById("archive-date-select"),
+  archiveNext: document.getElementById("archive-next-btn"),
   share: document.getElementById("share-btn"),
   reveal: document.getElementById("reveal-btn"),
+  tryAgain: document.getElementById("try-again-btn"),
   search: document.getElementById("wrestler-search"),
   submit: document.getElementById("submit-guess-btn"),
   clear: document.getElementById("clear-search-btn"),
@@ -842,6 +848,8 @@ const refs = {
 const state = {
   challengeType: "daily",
   challengeKey: null,
+  activeDailyKey: null,
+  activeSeedText: null,
   board: null,
   rows: [],
   selectedRowIndex: 0,
@@ -877,12 +885,20 @@ const layout = {
 
 refs.dailyStart.addEventListener("click", () => startChallenge("daily"));
 refs.practiceStart.addEventListener("click", () => startChallenge("practice"));
+refs.archivePrev.addEventListener("click", () => jumpArchiveDaily(-1));
+refs.archiveNext.addEventListener("click", () => jumpArchiveDaily(1));
+refs.archiveDateSelect.addEventListener("change", () => {
+  if (refs.archiveDateSelect.value) {
+    startChallenge("daily", { dailyKey: refs.archiveDateSelect.value });
+  }
+});
 refs.share.addEventListener("click", copyShareResult);
 refs.reveal.addEventListener("click", () => {
   state.revealAnswers = !state.revealAnswers;
   refs.reveal.textContent = state.revealAnswers ? "Hide" : "Reveal";
   render();
 });
+refs.tryAgain.addEventListener("click", restartCurrentChallenge);
 refs.submit.addEventListener("click", submitCurrentGuess);
 refs.clear.addEventListener("click", () => {
   refs.search.value = "";
@@ -925,15 +941,25 @@ window.advanceTime = async (ms) => {
   render();
 };
 
+populateArchiveOptions();
 startChallenge("daily");
 
-function startChallenge(type) {
-  const dailyKey = getDailyKey();
-  const seedText = type === "daily" ? `daily:${dailyKey}` : `practice:${state.practiceCounter++}:${Date.now()}`;
+function startChallenge(type, options = {}) {
+  const dailyKey = type === "daily" ? (options.dailyKey || getDailyKey()) : null;
+  let challengeKey = type === "daily" ? dailyKey : options.challengeKey || `practice-${state.practiceCounter + 1}`;
+  const seedText = options.seedText || (type === "daily" ? `daily:${dailyKey}` : `practice:${challengeKey}`);
   const challenge = buildChallenge(seedText, dailyKey);
+  const archiveLabel = getArchiveLabel(dailyKey);
+
+  if (type === "practice" && !options.challengeKey && !options.seedText) {
+    state.practiceCounter += 1;
+    challengeKey = `practice-${state.practiceCounter}`;
+  }
 
   state.challengeType = type;
-  state.challengeKey = type === "daily" ? dailyKey : `practice-${state.practiceCounter}`;
+  state.activeSeedText = seedText;
+  state.activeDailyKey = dailyKey;
+  state.challengeKey = challengeKey;
   state.board = challenge.board;
   state.rows = challenge.rows;
   state.selectedRowIndex = getNextOpenRowIndex();
@@ -947,7 +973,7 @@ function startChallenge(type) {
   state.banner = {
     tone: "info",
     text: type === "daily"
-      ? `Today: ${challenge.board.category} · ${challenge.board.dailyMetric.label}`
+      ? `${dailyKey === getDailyKey() ? "Today" : archiveLabel || "Daily archive"}: ${challenge.board.category} · ${challenge.board.dailyMetric.label}`
       : `Practice: ${challenge.board.category} · ${challenge.board.dailyMetric.label}`,
     ms: 2600
   };
@@ -955,11 +981,117 @@ function startChallenge(type) {
   refs.search.value = "";
   refs.share.disabled = true;
   refs.reveal.disabled = true;
+  refs.tryAgain.disabled = true;
   refs.reveal.textContent = "Reveal";
   setModalState(false);
+  syncArchiveControls();
   syncSnapshotCopy();
   syncControls();
   render();
+}
+
+function populateArchiveOptions() {
+  if (!refs.archiveDateSelect) {
+    return;
+  }
+
+  const visibleArchiveKeys = getVisibleArchiveKeys();
+  refs.archiveDateSelect.innerHTML = [
+    '<option value="">Choose April day</option>',
+    ...visibleArchiveKeys.map((key) => `<option value="${key}">${escapeHtml(getArchiveLabel(key) || key)}</option>`)
+  ].join("");
+}
+
+function syncArchiveControls() {
+  if (!refs.archiveDateSelect || !refs.archivePrev || !refs.archiveNext) {
+    return;
+  }
+
+  const visibleArchiveKeys = getVisibleArchiveKeys();
+  const archiveIndex = visibleArchiveKeys.indexOf(state.activeDailyKey);
+  refs.archiveDateSelect.value = archiveIndex >= 0 ? state.activeDailyKey : "";
+  refs.archiveDateSelect.disabled = state.challengeType !== "daily" || visibleArchiveKeys.length === 0;
+  refs.archivePrev.disabled = state.challengeType !== "daily" || archiveIndex <= 0;
+  refs.archiveNext.disabled = state.challengeType !== "daily" || archiveIndex === -1 || archiveIndex >= visibleArchiveKeys.length - 1;
+}
+
+function jumpArchiveDaily(delta) {
+  const visibleArchiveKeys = getVisibleArchiveKeys();
+  if (!visibleArchiveKeys.length) {
+    return;
+  }
+
+  const currentIndex = visibleArchiveKeys.indexOf(state.activeDailyKey);
+  const nextIndex = currentIndex === -1
+    ? (delta > 0 ? 0 : visibleArchiveKeys.length - 1)
+    : Math.max(0, Math.min(visibleArchiveKeys.length - 1, currentIndex + delta));
+
+  startChallenge("daily", { dailyKey: visibleArchiveKeys[nextIndex] });
+}
+
+function getVisibleArchiveKeys() {
+  const todayKey = getDailyKey();
+  return APRIL_ARCHIVE_KEYS.filter((key) => key <= todayKey);
+}
+
+function restartCurrentChallenge() {
+  if (state.status !== "complete") {
+    return;
+  }
+  startChallenge(state.challengeType, {
+    dailyKey: state.activeDailyKey,
+    challengeKey: state.challengeKey,
+    seedText: state.activeSeedText
+  });
+}
+
+function getArchiveLabel(dailyKey) {
+  if (!dailyKey) {
+    return "";
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dailyKey);
+  if (!match) {
+    return dailyKey;
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  const date = new Date(Number(yearText), Number(monthText) - 1, Number(dayText), 12);
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    weekday: "short"
+  });
+}
+
+function getDailyChipLabel(dailyKey) {
+  if (!dailyKey) {
+    return "Daily";
+  }
+  if (dailyKey === getDailyKey()) {
+    return "Today";
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dailyKey);
+  if (!match) {
+    return "Archive";
+  }
+
+  const [, yearText, monthText, dayText] = match;
+  const date = new Date(Number(yearText), Number(monthText) - 1, Number(dayText), 12);
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function getRowClueNote(row) {
+  if (!row) {
+    return "";
+  }
+  if (row.requiredTags.includes("world_champion")) {
+    return ' · title must contain "World Champion"';
+  }
+  return "";
 }
 
 function buildChallenge(seedText, dailyKey) {
@@ -1176,6 +1308,7 @@ function finishRun() {
   state.completionPercent = getCompletionPercent(state.score, state.bestPossibleScore);
   refs.share.disabled = false;
   refs.reveal.disabled = false;
+  refs.tryAgain.disabled = false;
   setBanner("success", `Card complete. ${state.completionPercent}% of perfect daily score.`);
 }
 
@@ -1190,16 +1323,18 @@ function syncControls() {
   const solvedSummary = row?.wrestlerId
     ? ` · solved by ${getWrestler(row.wrestlerId).name} · ${formatPercentile(row.metricPercentile)}`
     : "";
+  const clueNote = row ? getRowClueNote(row) : "";
 
   refs.selectedRowTitle.textContent = row ? row.clueLabel : "Pick a clue row";
   refs.selectedRowDescription.textContent = row
-    ? `${row.promotionIds.map((id) => PROMOTION_DEFS[id].label).join(" / ")} · ${row.years[0]} to ${row.years[1]} · ${row.scopeLabel.toLowerCase()} · score by ${metric.label.toLowerCase()}${solvedSummary}`
+    ? `${row.promotionIds.map((id) => PROMOTION_DEFS[id].label).join(" / ")} · ${row.years[0]} to ${row.years[1]} · ${row.scopeLabel.toLowerCase()} · score by ${metric.label.toLowerCase()}${solvedSummary}${clueNote}`
     : "Click a row to start.";
   refs.statusLine.textContent = state.banner?.text || "";
   refs.dailyScoreSummary.textContent = buildDailyScoreSummary();
   refs.submit.disabled = !row || Boolean(row.wrestlerId) || state.status !== "active";
   refs.clear.disabled = !state.modalOpen;
   refs.cancel.disabled = !state.modalOpen;
+  refs.tryAgain.disabled = state.status !== "complete";
   refs.copyStatus.textContent = state.copiedMessage || "";
   renderModalSuggestions();
 }
@@ -1215,19 +1350,26 @@ function render() {
 }
 
 function drawHeader() {
+  const challengeLabel = state.challengeType === "daily"
+    ? (state.activeDailyKey === getDailyKey() ? "Today" : getArchiveLabel(state.activeDailyKey) || "Daily archive")
+    : "Practice";
+  const challengeChipLabel = state.challengeType === "daily"
+    ? getDailyChipLabel(state.activeDailyKey)
+    : "Practice";
+
   CTX.fillStyle = "#f2f2f2";
   CTX.font = "700 28px Arial";
-  CTX.fillText("WrestlePad.com", layout.contentX + 10, layout.topY + 18);
+  CTX.fillText("GrappleGrid.com", layout.contentX + 10, layout.topY + 18);
 
   CTX.fillStyle = "#bdbdbd";
   CTX.font = "600 13px Arial";
   CTX.fillText(
-    `${state.board?.category || "Card"} card · score by ${getBoardMetric().label.toLowerCase()}`,
+    `${challengeLabel} · ${state.board?.category || "Card"} card · score by ${getBoardMetric().label.toLowerCase()}`,
     layout.contentX + 10,
     layout.topY + 42
   );
 
-  drawChip(CANVAS.width - 206, 18, 86, 38, state.challengeType === "daily" ? "Today" : "Practice");
+  drawChip(CANVAS.width - 206, 18, 86, 38, challengeChipLabel);
   drawChip(CANVAS.width - 112, 18, 76, 38, "WRESTLE");
 }
 
@@ -1304,20 +1446,20 @@ function drawClueCell(row, rect) {
 }
 
 function drawPortraitCell(row, rect) {
-  if (!row.wrestlerId) {
-    drawCenteredText("portrait", rect.x + rect.w / 2, rect.y + 42, rect.w - 18, "700 15px Arial", "#bdbdbd");
-    drawCenteredText("shows here", rect.x + rect.w / 2, rect.y + 68, rect.w - 18, "700 13px Arial", "#888888");
-    return;
-  }
-
-  const wrestler = getWrestler(row.wrestlerId);
-  const imageRecord = getPortraitImageRecord(wrestler);
   const innerRect = {
     x: rect.x + 12,
     y: rect.y + 10,
     w: rect.w - 24,
     h: rect.h - 20
   };
+
+  if (!row.wrestlerId) {
+    drawSilhouettePlaceholder(innerRect, { alpha: 0.38 });
+    return;
+  }
+
+  const wrestler = getWrestler(row.wrestlerId);
+  const imageRecord = getPortraitImageRecord(wrestler);
 
   if (imageRecord.status === "loaded" && imageRecord.image) {
     const fitRect = getAspectFitRect(imageRecord.image, innerRect, 6);
@@ -1331,9 +1473,7 @@ function drawPortraitCell(row, rect) {
     return;
   }
 
-  drawRoundedRect(innerRect.x, innerRect.y, innerRect.w, innerRect.h, 12, "#2f2f2f", "#4a4a4a");
-  drawCenteredText(getInitials(wrestler.name), innerRect.x + innerRect.w / 2, innerRect.y + 40, innerRect.w - 12, "700 28px Arial", "#f2f2f2");
-  drawCenteredText("local image", innerRect.x + innerRect.w / 2, innerRect.y + 68, innerRect.w - 12, "700 11px Arial", "#a9a9a9");
+  drawSilhouettePlaceholder(innerRect, { alpha: 0.78 });
 }
 
 function drawActionCell(row, rect, isSelected) {
@@ -1450,6 +1590,32 @@ function getAspectFitRect(image, targetRect, inset = 0) {
   };
 }
 
+function drawSilhouettePlaceholder(rect, options = {}) {
+  const alpha = Number.isFinite(options.alpha) ? options.alpha : 0.72;
+  drawRoundedRect(rect.x, rect.y, rect.w, rect.h, 12, "#2f2f2f", "#4a4a4a");
+
+  CTX.save();
+  CTX.globalAlpha = alpha;
+  CTX.fillStyle = "#d8d8d8";
+
+  const headRadius = Math.min(rect.w, rect.h) * 0.14;
+  const headX = rect.x + rect.w / 2;
+  const headY = rect.y + rect.h * 0.33;
+  CTX.beginPath();
+  CTX.arc(headX, headY, headRadius, 0, Math.PI * 2);
+  CTX.fill();
+
+  const shouldersW = rect.w * 0.48;
+  const shouldersH = rect.h * 0.27;
+  const shouldersX = rect.x + (rect.w - shouldersW) / 2;
+  const shouldersY = rect.y + rect.h * 0.5;
+  CTX.beginPath();
+  roundedRectPath(shouldersX, shouldersY, shouldersW, shouldersH, Math.min(shouldersH / 2, 18));
+  CTX.fill();
+
+  CTX.restore();
+}
+
 function drawRoundedRect(x, y, w, h, radius, fill, stroke, lineWidth = 1) {
   CTX.beginPath();
   roundedRectPath(x, y, w, h, radius);
@@ -1490,6 +1656,7 @@ function renderGameToText() {
     origin: "Canvas origin is top-left; x increases to the right and y increases downward.",
     challengeType: state.challengeType,
     challengeKey: state.challengeKey,
+    challengeLabel: state.challengeType === "daily" ? (getArchiveLabel(state.activeDailyKey) || state.challengeKey) : "Practice",
     category: state.board?.category || null,
     dailyMetric: getBoardMetric().label,
     statsSource: getStatsSourceSummary(),
@@ -1548,7 +1715,7 @@ function copyShareResult() {
 
 function buildShareText() {
   return [
-    `WrestlePad ${state.challengeType === "daily" ? "Today" : "Practice"} ${state.challengeKey}`,
+    `Grapple Grid ${state.challengeType === "daily" ? "Today" : "Practice"} ${state.challengeKey}`,
     `Daily stat: ${state.board.dailyMetric.label}`,
     `Score ${state.score} / ${state.bestPossibleScore} · ${state.completionPercent ?? getCompletionPercent(state.score, state.bestPossibleScore)}% of perfect · Guesses ${state.guesses}`,
     ...state.rows.map((row) => (row.wrestlerId ? "🟩" : "⬛"))
@@ -1636,7 +1803,7 @@ function openEntryModal(rowIndex = state.selectedRowIndex) {
   state.selectedRowIndex = rowIndex;
   refs.search.value = "";
   refs.modalTitle.textContent = row.clueLabel;
-  refs.modalDescription.textContent = `${row.promotionIds.map((id) => PROMOTION_DEFS[id].label).join(" / ")} · ${row.years[0]} to ${row.years[1]} · ${row.scopeLabel.toLowerCase()} · score by ${getBoardMetric().label.toLowerCase()}`;
+  refs.modalDescription.textContent = `${row.promotionIds.map((id) => PROMOTION_DEFS[id].label).join(" / ")} · ${row.years[0]} to ${row.years[1]} · ${row.scopeLabel.toLowerCase()} · score by ${getBoardMetric().label.toLowerCase()}${getRowClueNote(row)}`;
   setModalState(true);
   syncControls();
   render();
@@ -1693,7 +1860,7 @@ function renderModalSuggestions() {
       return `
         <button class="modal-suggestion-button" type="button" data-wrestler-id="${entry.wrestler.id}" data-state="${stateLabel}">
           <div class="modal-suggestion-name">${escapeHtml(entry.wrestler.name)}</div>
-          <div class="modal-suggestion-meta">${escapeHtml(formatMetricValue(state.board.dailyMetricId, entry.metricValue))} · ${escapeHtml(fitLabel)} · ${escapeHtml(entry.wrestler.era)}</div>
+          <div class="modal-suggestion-meta">${escapeHtml(fitLabel)} · ${escapeHtml(entry.wrestler.era)}</div>
         </button>
       `;
     })
@@ -1989,12 +2156,17 @@ function showUsedPopup(wrestler, row, points) {
   const portraitPath = getWrestlerPortraitPath(wrestler);
   refs.usedPopupName.textContent = wrestler.name;
   refs.usedPopupMeta.textContent = `${formatMetricValue(state.board.dailyMetricId, row.metricValue)} · ${formatPercentile(row.metricPercentile)} · ${row.clueLabel} · +${points} points`;
-  refs.usedPopupFallback.textContent = getInitials(wrestler.name);
   refs.usedPopupFallback.classList.remove("hidden");
 
-  refs.usedPopupImage.src = portraitPath;
-  refs.usedPopupImage.alt = `${wrestler.name} portrait`;
-  refs.usedPopupImage.classList.remove("hidden");
+  if (portraitPath) {
+    refs.usedPopupImage.src = portraitPath;
+    refs.usedPopupImage.alt = `${wrestler.name} portrait`;
+    refs.usedPopupImage.classList.remove("hidden");
+  } else {
+    refs.usedPopupImage.classList.add("hidden");
+    refs.usedPopupImage.removeAttribute("src");
+    refs.usedPopupImage.alt = "";
+  }
 
   refs.usedPopup.classList.remove("hidden");
   state.usedPopupMs = USED_POPUP_MS;
@@ -2020,12 +2192,22 @@ function handleUsedPopupImageLoad() {
 }
 
 function getWrestlerPortraitPath(wrestler) {
-  return LOADED_PORTRAITS_SNAPSHOT.paths?.[wrestler.id] || `/assets/wrestlers/${wrestler.id}.png`;
+  return LOADED_PORTRAITS_SNAPSHOT.paths?.[wrestler.id] || "";
 }
 
 function getPortraitImageRecord(wrestler) {
   if (PORTRAIT_IMAGE_CACHE.has(wrestler.id)) {
     return PORTRAIT_IMAGE_CACHE.get(wrestler.id);
+  }
+
+  const portraitPath = getWrestlerPortraitPath(wrestler);
+  if (!portraitPath) {
+    const missingRecord = {
+      status: "error",
+      image: null
+    };
+    PORTRAIT_IMAGE_CACHE.set(wrestler.id, missingRecord);
+    return missingRecord;
   }
 
   const record = {
@@ -2041,19 +2223,9 @@ function getPortraitImageRecord(wrestler) {
     record.status = "error";
     render();
   });
-  record.image.src = getWrestlerPortraitPath(wrestler);
+  record.image.src = portraitPath;
   PORTRAIT_IMAGE_CACHE.set(wrestler.id, record);
   return record;
-}
-
-function getInitials(name) {
-  const initials = String(name)
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("");
-  return initials || "WP";
 }
 
 function updateTransientState(ms) {
