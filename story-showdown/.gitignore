@@ -1,0 +1,6 @@
+node_modules/
+data/games.json
+data/games.json.tmp
+test-output/
+.env
+.DS_Store

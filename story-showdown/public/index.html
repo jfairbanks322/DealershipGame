@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#6c3ff5">
+  <title>Story Showdown</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="landing-page">
+  <canvas id="ambient-canvas" aria-hidden="true"></canvas>
+  <main class="landing-shell">
+    <div class="brand-mark" aria-hidden="true">SS</div>
+    <p class="eyebrow">Write bold. Vote fair. Win together.</p>
+    <h1>Story <span>Showdown</span></h1>
+    <p class="landing-lede">A live creative-writing arena made for the classroom—bold genres, anonymous applause, and team glory.</p>
+    <div class="genre-cloud" aria-label="Featured prompt categories"><span>♫ Rhyming poetry</span><span>≈ Free verse</span><span>◉ Suspense</span><span>☺ Comedy</span><span>✧ Fantasy</span><span>↝ Connect the story</span></div>
+    <div class="path-grid">
+      <a class="path-card teacher-path" href="/teacher.html">
+        <span class="path-icon" aria-hidden="true">✦</span>
+        <span class="path-kicker">Projector control</span>
+        <strong>Host as teacher</strong>
+        <span>Create a game, moderate entries, and run the show.</span>
+        <b>Open teacher desk →</b>
+      </a>
+      <a class="path-card student-path" href="/student.html">
+        <span class="path-icon" aria-hidden="true">↗</span>
+        <span class="path-kicker">Student device</span>
+        <strong>Join the showdown</strong>
+        <span>Enter a class code, write your entry, and cast your vote.</span>
+        <b>Join a game →</b>
+      </a>
+    </div>
+    <div class="feature-row" aria-label="Game features">
+      <span>144 prompts</span><i></i><span>16 categories</span><i></i><span>Anonymous voting</span><i></i><span>Live sync</span>
+    </div>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/common.js"></script>
+</body>
+</html>

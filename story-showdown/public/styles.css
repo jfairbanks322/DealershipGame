@@ -1,0 +1,407 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f1ff;
+  --surface: #fffdfb;
+  --surface-2: #eee9ff;
+  --ink: #18152e;
+  --muted: #666983;
+  --line: #dcd7ee;
+  --purple: #6c3ff5;
+  --purple-dark: #4823bf;
+  --teal: #00a88f;
+  --pink: #f34f8c;
+  --gold: #ffb423;
+  --sky: #3a8dff;
+  --red: #dc424f;
+  --shadow: 0 20px 55px rgba(70, 45, 145, 0.13);
+  --shadow-small: 0 8px 24px rgba(70, 45, 145, 0.09);
+  --radius: 22px;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --bg: #111022;
+  --surface: #1c1a30;
+  --surface-2: #292447;
+  --ink: #fbf9ff;
+  --muted: #b7b3ca;
+  --line: #3d3858;
+  --purple: #9b7aff;
+  --purple-dark: #7957ec;
+  --teal: #35d4bd;
+  --pink: #ff719f;
+  --gold: #ffc85a;
+  --sky: #70adff;
+  --red: #ff6f78;
+  --shadow: 0 22px 60px rgba(0, 0, 0, 0.3);
+  --shadow-small: 0 9px 28px rgba(0, 0, 0, 0.22);
+}
+
+* { box-sizing: border-box; }
+html { min-height: 100%; background: var(--bg); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 8%, color-mix(in srgb, var(--purple) 17%, transparent), transparent 31rem),
+    radial-gradient(circle at 92% 74%, color-mix(in srgb, var(--teal) 13%, transparent), transparent 30rem),
+    radial-gradient(circle at 72% 4%, color-mix(in srgb, var(--pink) 9%, transparent), transparent 24rem),
+    linear-gradient(color-mix(in srgb, var(--purple) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--purple) 4%, transparent) 1px, transparent 1px),
+    var(--bg);
+  background-size: auto, auto, auto, 36px 36px, 36px 36px, auto;
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.45;
+}
+
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--purple) 45%, transparent);
+  outline-offset: 2px;
+}
+
+#ambient-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-shell, .site-header, .app-root, .connection-banner, .toast-region { position: relative; z-index: 1; }
+
+.landing-page { display: grid; place-items: center; padding: 38px 22px; overflow-x: hidden; }
+.landing-shell { width: min(1060px, 100%); text-align: center; }
+.brand-mark, .mini-brand span {
+  display: inline-grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(135deg, var(--purple), var(--pink) 72%, var(--gold));
+  border: 2px solid color-mix(in srgb, white 52%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--purple) 34%, transparent);
+  font-family: "League Spartan", sans-serif;
+  transform: rotate(-4deg);
+}
+.brand-mark { width: 74px; height: 74px; border-radius: 23px; font-size: 27px; margin-bottom: 20px; }
+.eyebrow, .section-kicker, .path-kicker {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: .15em;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--purple);
+}
+.landing-shell h1 {
+  margin: 0;
+  font: 800 clamp(58px, 10vw, 112px)/.84 "League Spartan", sans-serif;
+  letter-spacing: -.055em;
+}
+.landing-shell h1 span { display: block; color: transparent; background: linear-gradient(90deg, var(--purple), var(--pink), var(--gold)); background-clip: text; -webkit-background-clip: text; }
+.eyebrow { display: inline-flex; padding: 7px 12px; border: 1px solid color-mix(in srgb, var(--purple) 22%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--surface) 78%, transparent); box-shadow: var(--shadow-small); }
+.landing-lede { max-width: 660px; margin: 26px auto 34px; font-size: clamp(18px, 2.2vw, 23px); color: var(--muted); }
+.genre-cloud { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 880px; margin: -13px auto 30px; }
+.genre-cloud span { padding: 7px 11px; border: 1px solid color-mix(in srgb, var(--purple) 17%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--surface) 86%, transparent); color: var(--ink); box-shadow: 0 4px 14px color-mix(in srgb, var(--purple) 7%, transparent); font-size: 12px; font-weight: 800; }
+.path-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; text-align: left; }
+.path-card {
+  position: relative;
+  min-height: 250px;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 98%, transparent), color-mix(in srgb, var(--surface-2) 54%, var(--surface)));
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.path-card:hover { transform: translateY(-6px) rotate(-.25deg); border-color: var(--purple); box-shadow: 0 25px 60px color-mix(in srgb, var(--purple) 18%, transparent); }
+.path-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 7px; background: linear-gradient(90deg, var(--purple), var(--pink)); }
+.student-path::before { background: linear-gradient(90deg, var(--teal), var(--sky)); }
+.path-card::after { content: ""; position: absolute; width: 170px; height: 170px; border-radius: 50%; right: -65px; bottom: -80px; background: color-mix(in srgb, var(--purple) 14%, transparent); }
+.student-path::after { background: color-mix(in srgb, var(--teal) 16%, transparent); }
+.path-icon { display: grid; place-items: center; width: 50px; height: 50px; margin-bottom: 24px; border-radius: 16px; background: linear-gradient(145deg, var(--surface-2), var(--surface)); color: var(--purple); box-shadow: var(--shadow-small); font-size: 27px; }
+.student-path .path-icon, .student-path .path-kicker { color: var(--teal); }
+.path-card strong { display: block; font: 800 30px/1 "League Spartan", sans-serif; margin-bottom: 12px; }
+.path-card > span:not(.path-icon):not(.path-kicker) { display: block; max-width: 360px; color: var(--muted); font-size: 16px; }
+.path-card b { display: block; margin-top: 26px; color: var(--purple); }
+.student-path b { color: var(--teal); }
+.feature-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: 28px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.feature-row i { width: 4px; height: 4px; border-radius: 50%; background: var(--gold); }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 12px clamp(18px, 4vw, 48px);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 83%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--purple) 7%, transparent);
+}
+body[data-role="teacher"] .site-header { border-top: 3px solid var(--purple); }
+body[data-role="student"] .site-header { border-top: 3px solid var(--teal); }
+.mini-brand { display: inline-flex; align-items: center; gap: 11px; font-family: "League Spartan", sans-serif; font-weight: 800; text-decoration: none; font-size: 19px; }
+.mini-brand span { width: 35px; height: 35px; border-radius: 11px; font-size: 13px; }
+.header-actions { display: flex; gap: 8px; }
+.icon-button { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 13px; background: linear-gradient(145deg, var(--surface), var(--surface-2)); color: var(--ink); box-shadow: 0 4px 12px color-mix(in srgb, var(--purple) 7%, transparent); font-size: 19px; }
+.app-root { width: min(1440px, 100%); margin: 0 auto; padding: 28px clamp(16px, 3vw, 44px) 60px; }
+.student-root { width: min(960px, 100%); }
+.loading-card { display: grid; place-items: center; min-height: 55vh; color: var(--muted); }
+.spinner { width: 34px; height: 34px; border: 4px solid var(--line); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.connection-banner { position: sticky; top: 0; z-index: 20; padding: 7px 18px; background: var(--gold); color: #2f2411; text-align: center; font-size: 13px; font-weight: 800; }
+.toast-region { position: fixed; right: 18px; bottom: 18px; z-index: 40; display: grid; gap: 10px; width: min(380px, calc(100% - 36px)); }
+.toast { padding: 14px 17px; border-radius: 14px; background: #29243f; color: white; box-shadow: var(--shadow); font-weight: 700; animation: toast-in .2s ease-out; }
+.toast.success { background: #087d6f; }
+@keyframes toast-in { from { transform: translateY(10px); opacity: 0; } }
+
+.create-shell, .join-shell { min-height: calc(100vh - 150px); display: grid; place-items: center; }
+.create-card, .join-card {
+  position: relative;
+  overflow: hidden;
+  width: min(680px, 100%);
+  padding: clamp(26px, 5vw, 48px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: linear-gradient(150deg, var(--surface), color-mix(in srgb, var(--surface-2) 42%, var(--surface)));
+  box-shadow: var(--shadow);
+}
+.create-card::before, .join-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 8px; background: linear-gradient(90deg, var(--purple), var(--pink), var(--gold)); }
+.join-card::before { background: linear-gradient(90deg, var(--teal), var(--sky), var(--purple)); }
+.join-card { width: min(520px, 100%); }
+.create-card h1, .join-card h1, .phase-title { margin: 5px 0 10px; font: 800 clamp(38px, 6vw, 62px)/.96 "League Spartan", sans-serif; letter-spacing: -.035em; }
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 26px; }
+.field { display: grid; gap: 7px; }
+.field.full { grid-column: 1 / -1; }
+.field label, .field-label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.input, input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 12px 14px;
+}
+.input:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 4px color-mix(in srgb, var(--purple) 11%, transparent); }
+textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
+.join-code-input { text-transform: uppercase; letter-spacing: .28em; text-align: center; font-size: 24px; font-weight: 800; }
+.check-row { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); font-size: 14px; }
+.check-row input { width: 18px; height: 18px; accent-color: var(--purple); }
+
+.button-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; }
+.button {
+  min-height: 44px;
+  padding: 10px 17px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--purple) 22%, transparent);
+  transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+}
+.button:hover:not(:disabled) { filter: brightness(1.06) saturate(1.05); transform: translateY(-2px); box-shadow: 0 11px 24px color-mix(in srgb, var(--purple) 27%, transparent); }
+.button.large { min-height: 52px; padding-inline: 24px; font-size: 16px; }
+.button.teal { background: linear-gradient(135deg, var(--teal), #087eac); box-shadow: 0 8px 18px color-mix(in srgb, var(--teal) 24%, transparent); }
+.button.gold { background: linear-gradient(135deg, var(--gold), #ff8a36); color: #302510; }
+.button.danger { background: linear-gradient(135deg, var(--red), #ad2d5c); }
+.button.ghost { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
+.button.soft { background: linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--purple) 13%, var(--surface))); color: var(--purple); box-shadow: none; }
+.button.tiny { min-height: 34px; padding: 6px 10px; border-radius: 9px; font-size: 12px; }
+.button.full { width: 100%; }
+.text-button { border: 0; background: none; color: var(--purple); font-weight: 800; padding: 4px; }
+
+.game-header { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: end; margin-bottom: 18px; }
+.game-header h1 { margin: 2px 0 0; font: 800 clamp(32px, 5vw, 52px)/.95 "League Spartan", sans-serif; letter-spacing: -.035em; }
+.game-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; color: var(--muted); font-size: 13px; }
+.code-pill { padding: 8px 12px; border-radius: 11px; background: linear-gradient(135deg, var(--ink), color-mix(in srgb, var(--ink) 72%, var(--purple))); color: var(--surface); box-shadow: 0 7px 17px color-mix(in srgb, var(--ink) 19%, transparent); letter-spacing: .17em; font-weight: 800; }
+.phase-pill, .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--surface-2); color: var(--purple); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.status-pill.online::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+.notice-bar { margin-bottom: 18px; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--purple) 12%, var(--line)); border-left: 5px solid var(--purple); border-radius: 12px; background: linear-gradient(90deg, color-mix(in srgb, var(--purple) 10%, var(--surface)), color-mix(in srgb, var(--surface) 90%, transparent)); color: var(--muted); font-weight: 700; }
+
+.score-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.score-chip { position: relative; overflow: hidden; padding: 13px 14px 12px; border: 1px solid var(--line); border-top: 4px solid var(--team-color); border-radius: 15px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--team-color) 5%, var(--surface))); box-shadow: var(--shadow-small); }
+.score-chip::after { content: ""; position: absolute; width: 54px; height: 54px; right: -25px; bottom: -29px; border-radius: 50%; background: color-mix(in srgb, var(--team-color) 17%, transparent); }
+.score-chip b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.score-chip strong { font: 800 25px/1 "League Spartan", sans-serif; }
+.score-chip span { color: var(--muted); font-size: 11px; }
+
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, .7fr); gap: 18px; align-items: start; }
+.panel { border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(150deg, var(--surface), color-mix(in srgb, var(--surface-2) 20%, var(--surface))); box-shadow: var(--shadow-small); overflow: hidden; }
+.panel + .panel { margin-top: 18px; }
+.panel-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 20px 22px 0; }
+.panel-head h2, .panel h2 { margin: 0; font: 800 25px/1.08 "League Spartan", sans-serif; }
+.panel-body { padding: 20px 22px 22px; }
+.muted { color: var(--muted); }
+.fine-print { color: var(--muted); font-size: 12px; }
+.empty-state { display: grid; place-items: center; text-align: center; min-height: 170px; padding: 30px; color: var(--muted); }
+.empty-state strong { display: block; color: var(--ink); font-size: 18px; margin-bottom: 5px; }
+
+.roster-list { display: grid; gap: 9px; max-height: min(52vh, 540px); overflow: auto; overscroll-behavior: contain; padding-right: 3px; }
+.roster-row { display: grid; grid-template-columns: 1fr minmax(135px, .6fr) auto; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: 13px; }
+.student-name { display: flex; align-items: center; gap: 9px; font-weight: 800; }
+.connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.connection-dot.on { background: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 13%, transparent); }
+.team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 13px; }
+.team-card { padding: 18px; border: 1px solid var(--line); border-top: 5px solid var(--team-color); border-radius: 16px; background: var(--surface); }
+.team-card h3 { margin: 0 0 8px; font: 800 22px/1 "League Spartan", sans-serif; }
+.team-card ul { list-style: none; padding: 0; margin: 11px 0 0; color: var(--muted); }
+
+.prompt-lab { display: grid; gap: 16px; }
+.category-rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 9px; overflow-x: auto; padding: 2px 2px 10px; scroll-snap-type: x proximity; scrollbar-color: var(--purple) transparent; }
+.category-card { scroll-snap-align: start; display: grid; grid-template-columns: 36px 1fr; gap: 9px; align-items: center; min-height: 58px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface-2) 55%, var(--surface))); color: var(--ink); text-align: left; box-shadow: 0 5px 14px color-mix(in srgb, var(--purple) 6%, transparent); transition: transform .16s ease, border-color .16s ease; }
+.category-card:hover, .category-card.active { transform: translateY(-2px); border-color: var(--purple); }
+.category-card.active { background: linear-gradient(145deg, color-mix(in srgb, var(--purple) 15%, var(--surface)), var(--surface)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 10%, transparent); }
+.category-card span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; font-size: 16px; font-weight: 900; }
+.category-card b { font-size: 12px; line-height: 1.15; }
+.prompt-filters { display: grid; grid-template-columns: 1.5fr .8fr auto auto; gap: 10px; }
+.prompt-preview { padding: 22px; border: 1px solid color-mix(in srgb, var(--purple) 16%, var(--line)); border-radius: 19px; background: linear-gradient(145deg, color-mix(in srgb, var(--surface-2) 80%, var(--surface)), var(--surface)); box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent); }
+.prompt-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.prompt-title-row .section-kicker { margin-bottom: 0; }
+.prompt-category-badge, .difficulty-badge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--purple) 20%, var(--line)); border-radius: 999px; background: var(--surface); color: var(--purple); font-size: 11px; font-weight: 900; letter-spacing: .03em; }
+.prompt-category-badge b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; }
+.difficulty-badge { color: var(--muted); text-transform: uppercase; }
+.prompt-help { margin: -3px 0 15px; }
+.prompt-preview blockquote, .projector-copy { margin: 8px 0; font: 700 clamp(23px, 3.5vw, 38px)/1.18 "League Spartan", sans-serif; letter-spacing: -.02em; }
+.prompt-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+.meta-tag { padding: 6px 10px; border: 1px solid color-mix(in srgb, var(--purple) 20%, var(--line)); border-radius: 999px; color: var(--muted); background: color-mix(in srgb, var(--surface) 88%, transparent); font-size: 11px; font-weight: 800; }
+.prompt-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.prompt-editor .wide { grid-column: 1 / -1; }
+
+.projector-stage { position: relative; isolation: isolate; min-height: 390px; display: grid; place-items: center; text-align: center; padding: clamp(30px, 6vw, 75px); border-radius: calc(var(--radius) + 4px); background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--pink) 13%, transparent), transparent 28%), radial-gradient(circle at 90% 90%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 30%), linear-gradient(145deg, var(--surface-2), var(--surface)); border: 1px solid color-mix(in srgb, var(--purple) 22%, var(--line)); box-shadow: var(--shadow); overflow: hidden; }
+.projector-stage::before, .projector-stage::after { content: ""; position: absolute; z-index: -1; width: 130px; height: 130px; border: 2px solid color-mix(in srgb, var(--purple) 13%, transparent); border-radius: 38px; transform: rotate(24deg); }
+.projector-stage::before { left: -76px; top: -72px; }
+.projector-stage::after { right: -82px; bottom: -78px; transform: rotate(-18deg); }
+.projector-stage .entry-label { color: var(--purple); text-transform: uppercase; letter-spacing: .16em; font-size: 13px; font-weight: 800; }
+.projector-stage .entry-text { max-width: 1020px; margin: 20px auto; white-space: pre-wrap; font-size: clamp(22px, 4vw, 42px); line-height: 1.28; font-weight: 600; }
+.projector-stage .projector-copy { max-width: 1050px; }
+.stage-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.progress-track { width: min(520px, 100%); height: 9px; margin: 16px auto 4px; border-radius: 999px; overflow: hidden; background: var(--line); }
+.progress-track span { display: block; height: 100%; background: linear-gradient(90deg, var(--purple), var(--pink)); transition: width .2s ease; }
+
+.timer-display { font: 800 clamp(68px, 12vw, 132px)/.8 "League Spartan", sans-serif; letter-spacing: -.05em; color: var(--purple); text-shadow: 0 9px 28px color-mix(in srgb, var(--purple) 20%, transparent); font-variant-numeric: tabular-nums; }
+.timer-display.warning { color: var(--gold); }
+.timer-display.urgent { color: var(--red); animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.035); } }
+.writing-status { margin-top: 20px; font-weight: 800; color: var(--muted); }
+
+.submission-list { display: grid; gap: 13px; }
+.submission-card { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.submission-card.flagged { border-color: var(--gold); }
+.submission-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding: 14px 16px; background: var(--surface-2); }
+.submission-top b { color: var(--purple); }
+.submission-body { padding: 14px 16px 16px; }
+.submission-body textarea { min-height: 130px; }
+.flag-note { display: inline-flex; margin: 8px 0; padding: 5px 9px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 18%, var(--surface)); color: color-mix(in srgb, var(--gold) 60%, var(--ink)); font-size: 12px; font-weight: 800; }
+
+.vote-card { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; padding: 18px; border: 1px solid var(--line); border-radius: 17px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface-2) 22%, var(--surface))); box-shadow: var(--shadow-small); transition: transform .16s ease, border-color .16s ease; }
+.vote-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--teal) 50%, var(--line)); }
+.vote-card.selected { border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 13%, transparent); }
+.vote-label { display: grid; place-items: center; width: 47px; height: 47px; border-radius: 13px; background: var(--surface-2); color: var(--purple); font-weight: 800; }
+.vote-copy { white-space: pre-wrap; }
+.vote-copy strong { display: block; margin-bottom: 5px; }
+.vote-grid { display: grid; gap: 12px; }
+
+.podium-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: end; margin-top: 22px; }
+.podium-card { min-height: 220px; padding: 20px; border: 1px solid var(--line); border-top: 6px solid var(--team-color, var(--line)); border-radius: 18px; background: var(--surface); }
+.podium-card.first { min-height: 270px; order: 2; }
+.podium-card.second { min-height: 240px; order: 1; }
+.podium-card.third { order: 3; }
+.podium-card .place { font: 800 48px/1 "League Spartan", sans-serif; color: var(--purple); }
+.podium-card blockquote { max-height: 160px; overflow: auto; margin: 15px 0; white-space: pre-wrap; }
+.hidden-podium { display: grid; place-items: center; color: var(--muted); background: var(--surface-2); }
+.points-pop { color: var(--teal); font-size: 19px; font-weight: 800; }
+
+.leaderboard { display: grid; gap: 10px; }
+.leader-row { display: grid; grid-template-columns: 45px 1fr auto auto; gap: 12px; align-items: center; padding: 14px; border: 1px solid var(--line); border-left: 6px solid var(--team-color); border-radius: 14px; background: var(--surface); }
+.leader-row:first-child { background: color-mix(in srgb, var(--gold) 10%, var(--surface)); }
+.rank-number { font: 800 25px/1 "League Spartan", sans-serif; }
+.leader-name { font-weight: 800; }
+.leader-name small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.leader-delta { color: var(--teal); font-size: 12px; font-weight: 800; }
+.leader-score { font: 800 24px/1 "League Spartan", sans-serif; }
+.score-tools { display: flex; gap: 6px; align-items: center; }
+.score-tools input { width: 85px !important; padding: 7px 8px !important; }
+
+.student-state { text-align: center; }
+.state-hero { padding: clamp(28px, 6vw, 64px); border: 1px solid color-mix(in srgb, var(--purple) 16%, var(--line)); border-radius: 27px; background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--purple) 13%, transparent), transparent 43%), linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface-2) 30%, var(--surface))); box-shadow: var(--shadow); }
+.state-icon { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 18px; border-radius: 24px; background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; box-shadow: 0 12px 28px color-mix(in srgb, var(--purple) 27%, transparent); font-size: 35px; transform: rotate(-3deg); }
+.student-team-badge { display: inline-flex; align-items: center; gap: 8px; margin-top: 13px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--team-color); font-weight: 800; }
+.student-team-badge::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--team-color); }
+.student-writing { display: grid; gap: 16px; }
+.student-prompt { position: relative; overflow: hidden; padding: 24px; border: 1px solid color-mix(in srgb, var(--purple) 20%, var(--line)); border-left: 7px solid var(--purple); border-radius: 20px; background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--pink) 12%, transparent), transparent 35%), linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface-2) 40%, var(--surface))); box-shadow: var(--shadow); }
+.student-prompt h2 { margin: 8px 0; font: 800 clamp(24px, 5vw, 38px)/1.15 "League Spartan", sans-serif; }
+.writing-desk { padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--teal) 3%, var(--surface))); box-shadow: var(--shadow-small); }
+.desk-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; }
+.desk-heading span { color: var(--teal); font-size: 12px; font-weight: 900; }
+.writing-desk textarea { min-height: min(44vh, 420px); font-size: 17px; }
+.writing-tools { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 10px; }
+.word-count { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 800; }
+.student-timer { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 18px; border-radius: 17px; background: linear-gradient(110deg, var(--ink), color-mix(in srgb, var(--ink) 68%, var(--purple))); color: var(--surface); box-shadow: var(--shadow-small); }
+.student-timer strong { font: 800 31px/1 "League Spartan", sans-serif; font-variant-numeric: tabular-nums; }
+.student-timer.warning { background: #9a6513; color: white; }
+.student-timer.urgent { background: #a62f3d; color: white; animation: pulse 1s ease-in-out infinite; }
+
+.final-banner { position: relative; padding: 42px; border: 1px solid color-mix(in srgb, white 25%, transparent); border-radius: 27px; background: radial-gradient(circle at 18% 15%, rgba(255,255,255,.2), transparent 23%), linear-gradient(135deg, var(--purple-dark), #a33480 63%, #d76543); color: white; text-align: center; box-shadow: 0 25px 70px color-mix(in srgb, var(--purple) 27%, transparent); overflow: hidden; }
+.final-banner h2 { margin: 0; font: 800 clamp(45px, 8vw, 82px)/.9 "League Spartan", sans-serif; }
+.final-banner p { margin-bottom: 0; opacity: .84; }
+.winner-name { color: #ffd47d; }
+.honors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 13px; }
+.honor-card { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.honor-card h3 { margin: 0 0 8px; font: 800 21px/1.1 "League Spartan", sans-serif; }
+.honor-card > .muted { min-height: 60px; }
+.honor-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.honor-row span { color: var(--muted); text-align: right; }
+.spotlight-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+.spotlight-row > div { padding: 15px; border-radius: 14px; background: var(--surface-2); }
+.spotlight-row span, .spotlight-row b { display: block; }
+.spotlight-row span { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-aside { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .dashboard-aside .panel { margin: 0; }
+  .prompt-filters { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 680px) {
+  .landing-page { align-items: start; }
+  .landing-shell h1 { font-size: 62px; }
+  .path-grid, .form-grid, .prompt-editor, .podium-grid, .dashboard-aside { grid-template-columns: 1fr; }
+  .spotlight-row { grid-template-columns: 1fr; }
+  .path-card { min-height: 220px; }
+  .game-header { grid-template-columns: 1fr; align-items: start; }
+  .prompt-filters { grid-template-columns: 1fr; }
+  .category-rail { grid-auto-columns: minmax(138px, 44vw); }
+  .genre-cloud { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; padding: 2px 2px 8px; }
+  .genre-cloud span { white-space: nowrap; }
+  .desk-heading { align-items: flex-start; flex-direction: column; }
+  .roster-row { grid-template-columns: 1fr auto; }
+  .roster-row select { grid-column: 1 / -1; grid-row: 2; }
+  .podium-card.first, .podium-card.second, .podium-card.third { order: initial; min-height: 0; }
+  .leader-row { grid-template-columns: 34px 1fr auto; }
+  .leader-delta { grid-column: 2; }
+  .score-tools { grid-column: 1 / -1; }
+  .vote-card { grid-template-columns: auto 1fr; }
+  .vote-card .button { grid-column: 1 / -1; }
+  .site-header { min-height: 62px; }
+  .app-root { padding-top: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; }
+}
