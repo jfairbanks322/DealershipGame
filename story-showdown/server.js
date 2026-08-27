@@ -989,7 +989,12 @@ function csvCell(value) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-app.get("/api/health", (req, res) => res.json({ ok: true, games: games.size, promptCount: starterPrompts.length }));
+function sendHealth(_req, res) {
+  res.json({ ok: true, games: games.size, promptCount: starterPrompts.length });
+}
+
+app.get("/health", sendHealth);
+app.get("/api/health", sendHealth);
 
 app.get("/api/games/:code/export.csv", (req, res) => {
   try {

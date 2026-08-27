@@ -44,8 +44,8 @@ This repository contains several apps, so configure Story Showdown as an isolate
 2. In **Service → Settings → Source**, set **Root Directory** to `/story-showdown`.
 3. Railway will detect `package.json`; use `npm start` as the start command if it is not selected automatically.
 4. In **Networking**, generate a public Railway domain. The app already binds to Railway's injected `PORT`.
-5. Set the health-check path to `/api/health`.
-6. Attach a Railway Volume to this service with mount path `/data`. Railway supplies `RAILWAY_VOLUME_MOUNT_PATH`, and the app automatically stores `/data/games.json` there.
+5. Set the health-check path to `/health` (`/api/health` remains available as an alias).
+6. Attach a Railway Volume to this service with mount path `/app/data`. Railway supplies `RAILWAY_VOLUME_MOUNT_PATH`, and the app automatically stores `games.json` there.
 7. Keep the service at **one replica**. This version keeps the live Socket.IO room and authoritative game state in one Node process; multiple replicas would require Redis/pub-sub plus shared database persistence.
 
 A volume is strongly recommended. Without it, running games survive normal process operation but the JSON file is on Railway's ephemeral deployment filesystem and can be lost on redeploy. If the service is configured to sleep, allow it to wake before class and keep the teacher dashboard open during play.
