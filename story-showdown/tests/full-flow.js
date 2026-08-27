@@ -4,7 +4,7 @@ const os = require("os");
 const { io: Client } = require("socket.io-client");
 
 process.env.STORY_SHOWDOWN_DATA_FILE = path.join(os.tmpdir(), `story-showdown-smoke-${process.pid}.json`);
-const { server, games } = require("../server");
+const { server, games, AVATAR_CHOICES, teacherSnapshot, studentSnapshot } = require("../server");
 
 const latest = new WeakMap();
 const clients = [];
@@ -96,12 +96,14 @@ async function main() {
 
   const players = [];
   const sessions = [];
-  for (const name of ["Avery", "Blake", "Casey", "Devon", "Emery", "Frankie"]) {
+  for (const [index, name] of ["Avery", "Blake", "Casey", "Devon", "Emery", "Frankie"].entries()) {
     const socket = await connect(url);
-    const joined = await action(socket, "student:join", { code: created.code, name });
+    const avatarId = AVATAR_CHOICES[index].id;
+    const joined = await action(socket, "student:join", { code: created.code, name, avatarId });
     latest.set(socket, joined.state);
     players.push(socket);
-    sessions.push({ code: created.code, name, sessionToken: joined.sessionToken });
+    sessions.push({ code: created.code, name, avatarId, sessionToken: joined.sessionToken });
+    assert.equal(joined.state.me.avatar.id, avatarId);
   }
   assert.equal((await waitFor(teacher, (s) => s.playerCount === 6, "six-player lobby")).connectedCount, 6);
   await rejected(players[0], "student:join", { code: created.code, name: "Avery" }, /already being used/i);
@@ -128,6 +130,7 @@ async function main() {
   const rejoinResponse = await action(rejoined, "student:join", sessions[5]);
   latest.set(rejoined, rejoinResponse.state);
   assert.equal(rejoinResponse.state.me.teamId, originalTeam);
+  assert.equal(rejoinResponse.state.me.avatar.id, sessions[5].avatarId);
   assert.equal(rejoinResponse.state.round.myDraft, "A draft survives a dropped connection.");
   players[5] = rejoined;
 
@@ -153,6 +156,7 @@ async function main() {
   assert.equal(teacherState.round.presentationCount, 5);
   const studentPresentation = await waitFor(players[0], (s) => s.phase === "presentation", "student presentation");
   assert.equal(Object.hasOwn(studentPresentation.round.currentEntry, "studentName"), false);
+  assert.equal(Object.hasOwn(studentPresentation, "playerLeaderboards"), false);
   assert.equal(studentPresentation.round.entries.some((entry) => entry.id === frankie.id), false);
 
   for (let i = 1; i < teacherState.round.presentationCount; i += 1) await teacherAction(teacher, auth, "teacher:navigate-presentation", { direction: 1 });
@@ -179,7 +183,14 @@ async function main() {
   teacherState = await waitFor(teacher, (s) => s.round.revealCount === 3, "all podium reveals");
   assert.equal(teacherState.round.results.length, 3);
   await teacherAction(teacher, auth, "teacher:show-leaderboard");
-  await waitFor(teacher, (s) => s.phase === "leaderboard", "leaderboard");
+  teacherState = await waitFor(teacher, (s) => s.phase === "leaderboard", "leaderboard");
+  assert.equal(teacherState.playerLeaderboards.visible, true);
+  assert.equal(teacherState.playerLeaderboards.roundsCompleted, 1);
+  assert.equal(teacherState.playerLeaderboards.overall.length, 6);
+  assert.equal(teacherState.playerLeaderboards.overall.reduce((sum, entry) => sum + entry.totalPoints, 0), 2250);
+  assert.equal(teacherState.playerLeaderboards.overall[0].avatar.id.length > 0, true);
+  const studentLeaderboard = await waitFor(players[0], (s) => s.phase === "leaderboard", "student writer leaderboard");
+  assert.equal(studentLeaderboard.playerLeaderboards.overall.length, 6);
   const scoreTeam = latest.get(teacher).teams[0];
   const beforeCorrection = scoreTeam.score;
   await teacherAction(teacher, auth, "teacher:adjust-score", { teamId: scoreTeam.id, delta: -50 });
@@ -227,7 +238,15 @@ async function main() {
   }
   assert.equal(teacherState.phase, "results");
   await teacherAction(teacher, auth, "teacher:end-game");
-  await waitFor(teacher, (s) => s.phase === "final", "final results");
+  teacherState = await waitFor(teacher, (s) => s.phase === "final", "final results");
+  assert.equal(teacherState.playerLeaderboards.roundsCompleted, 2);
+  assert.ok(teacherState.playerLeaderboards.overall.every((entry) => entry.roundsPlayed === 2));
+  assert.ok(teacherState.playerLeaderboards.average.every((entry) => entry.averagePoints === entry.totalPoints / 2));
+  internal.settings.revealNames = false;
+  assert.equal(teacherSnapshot(internal).playerLeaderboards.visible, false);
+  assert.deepEqual(teacherSnapshot(internal).playerLeaderboards.overall, []);
+  assert.equal(studentSnapshot(internal, internal.players[latest.get(players[0]).me.id]).playerLeaderboards.visible, false);
+  internal.settings.revealNames = true;
 
   const csvResponse = await fetch(`${url}/api/games/${created.code}/export.csv?token=${encodeURIComponent(created.teacherToken)}`);
   assert.equal(csvResponse.status, 200);
@@ -245,7 +264,8 @@ async function main() {
     promptCount: created.state.promptBank.length,
     roundOne: "anonymous presentation, unique voting, scoring, reveals",
     roundTwo: "teacher-authored prompt, timer auto-submit, and manual tie resolution",
-    reconnection: "draft and team restored",
+    reconnection: "draft, team, and avatar restored",
+    writerLeaderboards: "total and per-round average podium points",
     exports: ["CSV", "printable PDF view"]
   }, null, 2));
 }

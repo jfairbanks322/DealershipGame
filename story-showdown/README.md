@@ -2,7 +2,7 @@
 
 Story Showdown is a teacher-led, real-time creative-writing competition for high-school classrooms. A teacher hosts from a projected dashboard; students join from any modern browser with a five-character code and a temporary display name.
 
-The core loop is fully functional for classrooms of up to 30 students with 144 prompts across 16 categories—including rhyming poetry, free verse, suspense, comedy, fantasy, finish-the-story, and connect-the-start-and-end challenges. It includes fixed random teams, server-authoritative writing timers, draft recovery, automatic submission, private moderation, randomized anonymous presentation, one-vote ballots, own-response blocking, tie resolution, team scoring, podium reveals, score corrections, final standings, CSV export, and a printable Save-as-PDF report.
+The core loop is fully functional for classrooms of up to 30 students with 144 prompts across 16 categories—including rhyming poetry, free verse, suspense, comedy, fantasy, finish-the-story, and connect-the-start-and-end challenges. It includes student-selected preset avatars, fixed random teams, server-authoritative writing timers, draft recovery, automatic submission, private moderation, randomized anonymous presentation, one-vote ballots, own-response blocking, tie resolution, team scoring, podium reveals, running writer rankings by total and per-round average podium points, score corrections, final standings, CSV export, and a printable Save-as-PDF report.
 
 ## Technology and architecture
 
@@ -12,6 +12,8 @@ The core loop is fully functional for classrooms of up to 30 students with 144 p
 - Active games persist to one JSON file using an atomic temporary-file rename.
 - Teacher actions require a 192-bit token created with the game. The token stays in that teacher browser's local storage and is verified for every privileged socket action and export.
 - Student reconnection uses a separate random session token. It restores the same display name, team, and current draft from the same browser when possible.
+- Students choose from 12 school-safe preset avatars. Avatars reconnect with the same session and are never attached to anonymous presentation or voting entries.
+- Individual leaderboards rank podium points by cumulative total and average per completed round entered. They appear between rounds and at the finale, and are hidden when the teacher disables writer-name reveals.
 
 This build intentionally collects no email address, account, camera, microphone, or other unnecessary student information.
 

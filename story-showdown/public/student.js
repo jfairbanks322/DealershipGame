@@ -1,5 +1,6 @@
 (function () {
   const { escapeHtml: esc, toast, emit, formatTime, remainingSeconds, wordCount, setStateProvider, categoryIcon } = window.StoryCommon;
+  const { AVATAR_CHOICES } = window.StoryAvatars;
   const app = document.getElementById("app");
   const socket = io({ transports: ["websocket", "polling"] });
   let state = null;
@@ -36,7 +37,7 @@
   function joinScreen(message = "") {
     state = null;
     document.body.classList.remove("celebrating");
-    app.innerHTML = `<div class="join-shell"><section class="join-card"><p class="section-kicker">Student entrance</p><h1>Join the showdown</h1><p class="muted">Use the five-character code on the classroom screen. A nickname is all you need.</p>${message ? `<div class="notice-bar">${esc(message)}</div>` : ""}<form id="join-form" class="form-grid" autocomplete="off"><div class="field full"><label for="game-code">Game code</label><input class="join-code-input" id="game-code" name="code" maxlength="5" value="${esc(queryCode())}" required autocomplete="off" autocapitalize="characters" placeholder="ABCDE"></div><div class="field full"><label for="student-name">First name or classroom nickname</label><input id="student-name" name="name" maxlength="24" minlength="2" required autocomplete="nickname" placeholder="Your name"></div><div class="field full"><button class="button large teal full" type="submit">Join game</button></div></form><p class="fine-print">Up to 30 students can join. Your name is temporary and only used inside this game.</p></section></div>`;
+    app.innerHTML = `<div class="join-shell"><section class="join-card"><p class="section-kicker">Student entrance</p><h1>Join the showdown</h1><p class="muted">Use the five-character code on the classroom screen. Pick a temporary nickname and a writing avatar.</p>${message ? `<div class="notice-bar">${esc(message)}</div>` : ""}<form id="join-form" class="form-grid" autocomplete="off"><div class="field full"><label for="game-code">Game code</label><input class="join-code-input" id="game-code" name="code" maxlength="5" value="${esc(queryCode())}" required autocomplete="off" autocapitalize="characters" placeholder="ABCDE"></div><div class="field full"><label for="student-name">First name or classroom nickname</label><input id="student-name" name="name" maxlength="24" minlength="2" required autocomplete="nickname" placeholder="Your name"></div><fieldset class="avatar-picker full"><legend>Choose your profile avatar</legend><div class="avatar-grid">${AVATAR_CHOICES.map((avatar, index) => `<label class="avatar-choice"><input type="radio" name="avatarId" value="${esc(avatar.id)}" ${index === 0 ? "checked" : ""}><span class="avatar-orb" aria-hidden="true">${esc(avatar.emoji)}</span><small>${esc(avatar.label)}</small></label>`).join("")}</div></fieldset><div class="field full"><button class="button large teal full" type="submit">Join game</button></div></form><p class="fine-print">Up to 30 students can join. Your name and avatar are temporary and only used inside this game.</p></section></div>`;
   }
 
   function myTeam() { return state?.teams?.find((team) => team.id === state.me?.teamId); }
@@ -45,7 +46,7 @@
     return team ? `<span class="student-team-badge" style="--team-color:${esc(team.color)}">${esc(team.name)}</span>` : "";
   }
   function shell(content) {
-    return `<div class="game-header"><div><p class="section-kicker">Round ${state.roundNumber}/${state.totalRounds}</p><h1>${esc(state.me.name)}’s desk</h1></div><div class="game-meta"><span class="code-pill">${esc(state.code)}</span>${teamBadge()}</div></div><div class="notice-bar">${esc(state.notice || "Connected to the game.")}</div>${content}`;
+    return `<div class="game-header"><div class="student-profile-title"><span class="profile-avatar" aria-label="${esc(state.me.avatar.label)} avatar">${esc(state.me.avatar.emoji)}</span><div><p class="section-kicker">Round ${state.roundNumber}/${state.totalRounds}</p><h1>${esc(state.me.name)}’s desk</h1></div></div><div class="game-meta"><span class="code-pill">${esc(state.code)}</span>${teamBadge()}</div></div><div class="notice-bar">${esc(state.notice || "Connected to the game.")}</div>${content}`;
   }
 
   function waitState(icon, kicker, title, copy, extra = "") {
@@ -60,11 +61,12 @@
   function teamRevealView() {
     const team = myTeam();
     const mates = state.players.filter((player) => player.teamId === team?.id && player.id !== state.me.id);
-    return `<section class="state-hero" style="border-top:7px solid ${esc(team?.color || "var(--purple)")};text-align:center"><div class="state-icon">⚑</div><p class="section-kicker">Your team for the whole game</p><h2 class="phase-title">${esc(team?.name || "Team pending")}</h2><p class="muted">${mates.length ? `You’re writing alongside ${mates.map((player) => player.name).join(", ")}.` : "You are the first writer on this team."}</p><p>Individual entries. Shared points. Cheer for every bold idea.</p></section>`;
+    return `<section class="state-hero" style="border-top:7px solid ${esc(team?.color || "var(--purple)")};text-align:center"><div class="state-icon">⚑</div><p class="section-kicker">Your team for the whole game</p><h2 class="phase-title">${esc(team?.name || "Team pending")}</h2>${mates.length ? `<div class="mate-list">${mates.map((player) => `<span><b>${esc(player.avatar.emoji)}</b>${esc(player.name)}</span>`).join("")}</div>` : '<p class="muted">You are the first writer on this team.</p>'}<p>Individual entries. Shared points. Cheer for every bold idea.</p></section>`;
   }
 
   function preRoundView() {
-    return waitState("⌁", `Round ${state.roundNumber + 1} is next`, "Prompt incoming", "Your teacher is choosing the next creative-writing challenge.");
+    const waiting = waitState("⌁", `Round ${state.roundNumber + 1} is next`, "Prompt incoming", "Your teacher is choosing the next creative-writing challenge.");
+    return `${waiting}${state.roundNumber ? writerLeaderboardPanel("Running writer leaderboard") : ""}`;
   }
 
   function writingView() {
@@ -94,7 +96,7 @@
   function resultCards() {
     const results = state.round?.results || [];
     if (!results.length) return `<div class="empty-state"><div><strong>Drumroll…</strong>The teacher is about to reveal the next placement.</div></div>`;
-    return `<div class="podium-grid">${results.map((result) => `<article class="podium-card ${result.placement === 1 ? "first" : result.placement === 2 ? "second" : "third"}" style="--team-color:${esc(result.teamColor)}"><div class="place">${result.placement}</div><b>${esc(result.label)} · ${esc(result.studentName)}</b><p>${esc(result.teamName)}</p><blockquote>${esc(result.text)}</blockquote><div class="points-pop">+${result.points.toLocaleString()} team points</div></article>`).join("")}</div>`;
+    return `<div class="podium-grid">${results.map((result) => `<article class="podium-card ${result.placement === 1 ? "first" : result.placement === 2 ? "second" : "third"}" style="--team-color:${esc(result.teamColor)}"><div class="place">${result.placement}</div><b class="podium-writer">${result.avatar ? `<span class="avatar-bubble">${esc(result.avatar.emoji)}</span>` : ""}${esc(result.label)} · ${esc(result.studentName)}</b><p>${esc(result.teamName)}</p><blockquote>${esc(result.text)}</blockquote><div class="points-pop">+${result.points.toLocaleString()} team points</div></article>`).join("")}</div>`;
   }
 
   function resultsView() {
@@ -105,14 +107,25 @@
     return `<div class="leaderboard">${state.teams.map((team) => { const recentWinner = team.winners?.at(-1); return `<div class="leader-row" style="--team-color:${esc(team.color)}"><span class="rank-number">${team.rank}</span><span class="leader-name">${esc(team.name)}${recentWinner ? `<small>R${recentWinner.round}: ${esc(recentWinner.studentName)} · place ${recentWinner.placement}</small>` : ""}</span><span class="leader-delta">${team.lastRoundPoints ? `${team.lastRoundPoints > 0 ? "+" : ""}${team.lastRoundPoints} this round` : ""}</span><span class="leader-score">${team.score.toLocaleString()}</span></div>`; }).join("")}</div>`;
   }
 
+  function writerRows(entries, metric) {
+    return entries.slice(0, 5).map((entry) => `<div class="writer-rank-row ${entry.playerId === state.me.id ? "mine" : ""}" style="--team-color:${esc(entry.teamColor)}"><span class="writer-rank">${entry.rank}</span><span class="avatar-bubble">${esc(entry.avatar.emoji)}</span><span class="writer-name">${esc(entry.name)}<small>${esc(entry.teamName)} · ${entry.roundsPlayed} ${entry.roundsPlayed === 1 ? "round" : "rounds"}</small></span><strong>${metric === "average" ? `${entry.averagePoints.toLocaleString()} avg` : `${entry.totalPoints.toLocaleString()} pts`}</strong></div>`).join("");
+  }
+
+  function writerLeaderboardPanel(title = "Writer leaderboard") {
+    const boards = state.playerLeaderboards;
+    if (!boards?.visible) return `<section class="panel writer-leaderboard-panel"><div class="panel-head"><h2>${esc(title)}</h2></div><div class="panel-body"><p class="muted">Individual rankings are hidden because writer-name reveals are turned off.</p></div></section>`;
+    if (!boards.roundsCompleted) return "";
+    return `<section class="panel writer-leaderboard-panel"><div class="panel-head"><div><p class="section-kicker">Podium points through round ${boards.roundsCompleted}</p><h2>${esc(title)}</h2></div></div><div class="panel-body"><div class="writer-board-grid"><div class="writer-board"><div class="writer-board-heading"><span>★</span><div><h3>Top overall</h3><p>Total points earned</p></div></div>${writerRows(boards.overall, "total")}</div><div class="writer-board"><div class="writer-board-heading"><span>÷</span><div><h3>Top average</h3><p>Points per completed round</p></div></div>${writerRows(boards.average, "average")}</div></div></div></section>`;
+  }
+
   function leaderboardView() {
-    return `<section class="panel"><div class="panel-head"><div><p class="section-kicker">After round ${state.roundNumber}</p><h2>Team standings</h2></div></div><div class="panel-body">${leaderboardMarkup()}<p class="muted" style="text-align:center">The next prompt is coming soon.</p></div></section>`;
+    return `<section class="panel"><div class="panel-head"><div><p class="section-kicker">After round ${state.roundNumber}</p><h2>Team standings</h2></div></div><div class="panel-body">${leaderboardMarkup()}<p class="muted" style="text-align:center">The next prompt is coming soon.</p></div></section>${writerLeaderboardPanel()}`;
   }
 
   function finalView() {
     const winner = state.teams[0];
     document.body.classList.add("celebrating");
-    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Story Showdown champions</p><h2 class="winner-name">${esc(winner?.name || "Great writing")}</h2><p>${winner?.score.toLocaleString() || 0} points</p></section><section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Final rankings</h2></div><div class="panel-body">${leaderboardMarkup()}<p class="muted" style="text-align:center">Every finished draft is a win. Thanks for bringing your voice.</p></div></section>`;
+    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Story Showdown champions</p><h2 class="winner-name">${esc(winner?.name || "Great writing")}</h2><p>${winner?.score.toLocaleString() || 0} points</p></section><section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Final team rankings</h2></div><div class="panel-body">${leaderboardMarkup()}<p class="muted" style="text-align:center">Every finished draft is a win. Thanks for bringing your voice.</p></div></section>${writerLeaderboardPanel("Final writer leaderboard")}`;
   }
 
   function render() {
@@ -140,7 +153,7 @@
 
   async function connectSession(saved) {
     const response = await emit(socket, "student:join", saved);
-    saveSession({ code: saved.code, name: saved.name, sessionToken: response.sessionToken });
+    saveSession({ code: saved.code, name: saved.name, avatarId: response.state.me.avatar.id, sessionToken: response.sessionToken });
     state = response.state;
     render();
   }
@@ -152,7 +165,7 @@
     const button = event.target.querySelector("button");
     try {
       button.disabled = true;
-      await connectSession({ code: String(data.get("code")).toUpperCase(), name: data.get("name"), sessionToken: null });
+      await connectSession({ code: String(data.get("code")).toUpperCase(), name: data.get("name"), avatarId: data.get("avatarId"), sessionToken: null });
     } catch (error) { toast(error.message); button.disabled = false; }
   });
 

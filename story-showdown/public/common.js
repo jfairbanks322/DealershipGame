@@ -130,7 +130,11 @@
       voterCount: round?.voterCount ?? null,
       presentation: round ? { index: round.presentationIndex, count: round.presentationCount, currentLabel: round.currentEntry?.label || null } : null,
       teams: (source.teams || []).map((team) => ({ name: team.name, score: team.score, rank: team.rank })),
-      me: source.me ? { name: source.me.name, teamId: source.me.teamId } : null
+      writerLeaders: source.playerLeaderboards?.visible ? {
+        overall: source.playerLeaderboards.overall.slice(0, 5).map((entry) => ({ name: entry.name, totalPoints: entry.totalPoints, rank: entry.rank })),
+        average: source.playerLeaderboards.average.slice(0, 5).map((entry) => ({ name: entry.name, averagePoints: entry.averagePoints, rank: entry.rank }))
+      } : null,
+      me: source.me ? { name: source.me.name, avatar: source.me.avatar?.id || null, teamId: source.me.teamId } : null
     });
   }
 

@@ -4,7 +4,7 @@ const os = require("os");
 const { io: Client } = require("socket.io-client");
 
 process.env.STORY_SHOWDOWN_DATA_FILE = path.join(os.tmpdir(), `story-showdown-capacity-${process.pid}.json`);
-const { server, games, MAX_PLAYERS_PER_GAME } = require("../server");
+const { server, games, AVATAR_CHOICES, MAX_PLAYERS_PER_GAME } = require("../server");
 
 const latest = new WeakMap();
 const clients = [];
@@ -95,10 +95,11 @@ async function main() {
   for (let index = 1; index <= MAX_PLAYERS_PER_GAME; index += 1) {
     const socket = await connect(url);
     const name = `Writer ${String(index).padStart(2, "0")}`;
-    const joined = await action(socket, "student:join", { code: created.code, name });
+    const avatarId = AVATAR_CHOICES[(index - 1) % AVATAR_CHOICES.length].id;
+    const joined = await action(socket, "student:join", { code: created.code, name, avatarId });
     latest.set(socket, joined.state);
     players.push(socket);
-    sessions.push({ code: created.code, name, sessionToken: joined.sessionToken });
+    sessions.push({ code: created.code, name, avatarId, sessionToken: joined.sessionToken });
   }
 
   let teacherState = await waitFor(teacher, (state) => state.playerCount === 30 && state.connectedCount === 30, "30-player lobby");
@@ -112,6 +113,7 @@ async function main() {
   players[0] = reconnected;
   assert.equal(resumed.state.playerCount, 30);
   assert.equal(resumed.state.me.name, "Writer 01");
+  assert.equal(resumed.state.me.avatar.id, sessions[0].avatarId);
 
   const overflow = await connect(url);
   await rejected(overflow, "student:join", { code: created.code, name: "Writer 31" }, /full.*30 students/i);
@@ -166,6 +168,8 @@ async function main() {
   await teacherAction(teacher, auth, "teacher:show-leaderboard");
   teacherState = await waitFor(teacher, (state) => state.phase === "final", "30-player final standings");
   assert.equal(teacherState.playerCount, 30);
+  assert.equal(teacherState.playerLeaderboards.overall.length, 30);
+  assert.deepEqual(teacherState.playerLeaderboards.overall.slice(0, 3).map((entry) => entry.totalPoints), [1000, 750, 500]);
 
   console.log(JSON.stringify({
     ok: true,

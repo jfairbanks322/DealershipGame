@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { prompts, categories } = require("../prompts");
+const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("../public/avatars");
 
 test("starter bank contains 144 fully described prompts across the expanded category set", () => {
   const requestedCategories = [
@@ -21,4 +22,13 @@ test("starter bank contains 144 fully described prompts across the expanded cate
     assert.ok([120, 240, 360].includes(prompt.timerSeconds));
     assert.ok(prompt.suggestion);
   }
+});
+
+test("avatar choices are unique, labeled, and safely normalized", () => {
+  assert.equal(AVATAR_CHOICES.length, 12);
+  assert.equal(new Set(AVATAR_CHOICES.map((avatar) => avatar.id)).size, AVATAR_CHOICES.length);
+  assert.ok(AVATAR_CHOICES.every((avatar) => avatar.id && avatar.emoji && avatar.label));
+  assert.equal(normalizeAvatarId("robot"), "robot");
+  assert.equal(normalizeAvatarId("not-a-real-avatar"), AVATAR_CHOICES[0].id);
+  assert.equal(avatarFor("dragon").emoji, "🐉");
 });

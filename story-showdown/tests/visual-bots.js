@@ -4,9 +4,9 @@ const code = String(process.argv[2] || "").toUpperCase();
 const baseUrl = process.argv[3] || "http://127.0.0.1:3040";
 if (!code) throw new Error("Pass the visual test game code.");
 
-const bots = ["Jordan", "Sam"].map((name) => {
+const bots = [{ name: "Jordan", avatarId: "robot" }, { name: "Sam", avatarId: "dragon" }].map(({ name, avatarId }) => {
   const socket = io(baseUrl, { transports: ["websocket"], reconnection: true });
-  socket.on("connect", () => socket.emit("student:join", { code, name }, (response) => {
+  socket.on("connect", () => socket.emit("student:join", { code, name, avatarId }, (response) => {
     if (!response?.ok && !/already being used/i.test(response?.error || "")) console.error(`${name}: ${response?.error}`);
   }));
   socket.on("state", (state) => {

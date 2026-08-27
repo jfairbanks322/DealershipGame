@@ -5,6 +5,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const { prompts: starterPrompts, categories } = require("./prompts");
+const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("./public/avatars");
 
 const PORT = Number(process.env.PORT || 3040);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -67,7 +68,13 @@ function shuffle(items) {
 }
 
 function publicPlayer(player) {
-  return { id: player.id, name: player.name, teamId: player.teamId, connected: Boolean(player.connected) };
+  return {
+    id: player.id,
+    name: player.name,
+    avatar: avatarFor(player.avatarId),
+    teamId: player.teamId,
+    connected: Boolean(player.connected)
+  };
 }
 
 function publicTeam(team, revealNames = true) {
@@ -80,7 +87,8 @@ function publicTeam(team, revealNames = true) {
     rank: team.rank || 1,
     winners: (team.winners || []).map((winner) => ({
       ...winner,
-      studentName: revealNames ? winner.studentName : "Anonymous writer"
+      studentName: revealNames ? winner.studentName : "Anonymous writer",
+      avatar: revealNames && winner.avatarId ? avatarFor(winner.avatarId) : null
     }))
   };
 }
@@ -149,6 +157,7 @@ function loadGames() {
       if (!raw.code || !raw.teacherToken) continue;
       raw.players ||= {};
       for (const player of Object.values(raw.players)) {
+        player.avatarId = normalizeAvatarId(player.avatarId);
         player.connected = false;
         delete player.socketId;
       }
@@ -372,7 +381,7 @@ function awardResults(game, counts, allowSharedTies = false) {
     if (!player || !team || !points) return;
     team.score += points;
     team.lastRoundPoints += points;
-    team.winners.push({ round: game.roundNumber, placement, studentName: player.name, points });
+    team.winners.push({ round: game.roundNumber, placement, studentName: player.name, playerId: player.id, avatarId: player.avatarId, points });
     results.push({
       placement,
       submissionId: submission.id,
@@ -380,6 +389,7 @@ function awardResults(game, counts, allowSharedTies = false) {
       points,
       studentName: player.name,
       playerId: player.id,
+      avatarId: player.avatarId,
       teamId: team.id,
       teamName: team.name,
       teamColor: team.color,
@@ -443,6 +453,71 @@ function scoreboard(game) {
   return game.teams.map((team) => publicTeam(team, game.settings.revealNames)).sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
 }
 
+function rankPlayerStats(entries, metric, secondaryMetric) {
+  const sorted = [...entries].sort((a, b) =>
+    b[metric] - a[metric] ||
+    b[secondaryMetric] - a[secondaryMetric] ||
+    b.podiums - a.podiums ||
+    a.name.localeCompare(b.name)
+  );
+  let previous = null;
+  let rank = 0;
+  return sorted.map((entry, index) => {
+    if (entry[metric] !== previous) rank = index + 1;
+    previous = entry[metric];
+    return { ...entry, rank };
+  });
+}
+
+function playerLeaderboards(game) {
+  const completedRounds = game.roundHistory || [];
+  const entries = Object.values(game.players).map((player) => {
+    let totalPoints = 0;
+    let roundsPlayed = 0;
+    let podiums = 0;
+    let firstPlaces = 0;
+    for (const round of completedRounds) {
+      if (round.submissions?.[player.id]) roundsPlayed += 1;
+      const result = (round.results || []).find((item) => item.playerId === player.id);
+      if (!result) continue;
+      totalPoints += Number(result.points) || 0;
+      podiums += 1;
+      if (result.placement === 1) firstPlaces += 1;
+    }
+    const team = game.teams.find((item) => item.id === player.teamId);
+    return {
+      playerId: player.id,
+      name: player.name,
+      avatar: avatarFor(player.avatarId),
+      teamId: player.teamId,
+      teamName: team?.name || "Unassigned",
+      teamColor: team?.color || "#777",
+      totalPoints,
+      averagePoints: roundsPlayed ? Math.round(totalPoints / roundsPlayed * 10) / 10 : 0,
+      roundsPlayed,
+      podiums,
+      firstPlaces
+    };
+  });
+  return {
+    visible: Boolean(game.settings.revealNames),
+    roundsCompleted: completedRounds.length,
+    overall: game.settings.revealNames ? rankPlayerStats(entries, "totalPoints", "averagePoints") : [],
+    average: game.settings.revealNames ? rankPlayerStats(entries, "averagePoints", "totalPoints") : []
+  };
+}
+
+function resultFor(game, result) {
+  const revealNames = game.settings.revealNames;
+  const player = game.players[result.playerId];
+  const avatarId = result.avatarId || player?.avatarId;
+  return {
+    ...result,
+    studentName: revealNames ? result.studentName : "Anonymous writer",
+    avatar: revealNames && avatarId ? avatarFor(avatarId) : null
+  };
+}
+
 function baseSnapshot(game) {
   const round = game.currentRound;
   const resultPlacements = round ? [...new Set((round.results || []).map((result) => result.placement))].sort((a, b) => b - a) : [];
@@ -481,6 +556,7 @@ function baseSnapshot(game) {
 function teacherSnapshot(game) {
   const snapshot = baseSnapshot(game);
   snapshot.players = Object.values(game.players).map(publicPlayer).sort((a, b) => a.name.localeCompare(b.name));
+  if (["pre_round", "leaderboard", "final"].includes(game.phase)) snapshot.playerLeaderboards = playerLeaderboards(game);
   snapshot.promptBank = starterPrompts;
   snapshot.categories = categories;
   snapshot.customPrompts = game.customPrompts;
@@ -489,10 +565,7 @@ function teacherSnapshot(game) {
     id: round.id,
     number: round.number,
     prompt: round.prompt,
-    results: (round.results || []).map((result) => ({
-      ...result,
-      studentName: game.settings.revealNames ? result.studentName : "Anonymous writer"
-    }))
+    results: (round.results || []).map((result) => resultFor(game, result))
   }));
   if (game.currentRound) {
     const round = game.currentRound;
@@ -504,10 +577,7 @@ function teacherSnapshot(game) {
       .slice(0, round.revealCount);
     snapshot.round.results = (game.phase === "results"
       ? round.results.filter((result) => revealedPlacements.includes(result.placement))
-      : round.results).map((result) => ({
-        ...result,
-        studentName: game.settings.revealNames ? result.studentName : "Anonymous writer"
-      }));
+      : round.results).map((result) => resultFor(game, result));
     snapshot.round.tieContext = round.tieContext ? {
       ...round.tieContext,
       entries: round.tieContext.ids.map((id) => entryFor(game, Object.values(round.submissions).find((item) => item.id === id), true))
@@ -519,6 +589,7 @@ function teacherSnapshot(game) {
 function studentSnapshot(game, player) {
   const snapshot = baseSnapshot(game);
   snapshot.me = publicPlayer(player);
+  if (["pre_round", "leaderboard", "final"].includes(game.phase)) snapshot.playerLeaderboards = playerLeaderboards(game);
   snapshot.players = ["lobby", "team_reveal", "pre_round", "leaderboard", "final"].includes(game.phase)
     ? Object.values(game.players).map(publicPlayer)
     : [];
@@ -548,10 +619,7 @@ function studentSnapshot(game, player) {
       .sort((a, b) => b - a)
       .slice(0, round.revealCount);
     const visibleResults = game.phase === "results" ? round.results.filter((result) => revealedPlacements.includes(result.placement)) : round.results;
-    snapshot.round.results = visibleResults.map((result) => ({
-      ...result,
-      studentName: game.settings.revealNames ? result.studentName : "Anonymous writer"
-    }));
+    snapshot.round.results = visibleResults.map((result) => resultFor(game, result));
   }
   return snapshot;
 }
@@ -618,7 +686,11 @@ io.on("connection", (socket) => {
         const name = cleanText(payload.name, 24);
         if (name.length < 2) throw new Error("Enter a name with at least two characters.");
         if (Object.values(game.players).some((item) => item.name.toLowerCase() === name.toLowerCase())) throw new Error("That name is already being used in this game.");
-        player = { id: token(8), sessionToken: token(), name, teamId: null, connected: true, joinedAt: Date.now(), draftText: "" };
+        player = {
+          id: token(8), sessionToken: token(), name,
+          avatarId: normalizeAvatarId(payload.avatarId),
+          teamId: null, connected: true, joinedAt: Date.now(), draftText: ""
+        };
         game.players[player.id] = player;
         if (game.phase !== "lobby" && game.teams.length) {
           const sizes = game.teams.map((team) => ({ team, count: Object.values(game.players).filter((item) => item.teamId === team.id).length }));
@@ -626,6 +698,7 @@ io.on("connection", (socket) => {
           player.teamId = sizes[0].team.id;
         }
       }
+      if (payload.avatarId) player.avatarId = normalizeAvatarId(payload.avatarId);
       player.connected = true;
       player.socketId = socket.id;
       socket.data = { role: "student", code: game.code, playerId: player.id };
@@ -1056,4 +1129,7 @@ if (require.main === module) {
   server.listen(PORT, HOST, () => console.log(`Story Showdown listening on http://${HOST}:${PORT}`));
 }
 
-module.exports = { app, server, io, games, createGame, teacherSnapshot, studentSnapshot, starterPrompts, MAX_PLAYERS_PER_GAME };
+module.exports = {
+  app, server, io, games, createGame, teacherSnapshot, studentSnapshot, starterPrompts,
+  AVATAR_CHOICES, playerLeaderboards, MAX_PLAYERS_PER_GAME
+};
