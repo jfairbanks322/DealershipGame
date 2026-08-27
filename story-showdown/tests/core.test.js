@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { prompts, categories } = require("../prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("../public/avatars");
 
@@ -25,10 +27,14 @@ test("starter bank contains 144 fully described prompts across the expanded cate
 });
 
 test("avatar choices are unique, labeled, and safely normalized", () => {
-  assert.equal(AVATAR_CHOICES.length, 12);
+  assert.equal(AVATAR_CHOICES.length, 50);
   assert.equal(new Set(AVATAR_CHOICES.map((avatar) => avatar.id)).size, AVATAR_CHOICES.length);
-  assert.ok(AVATAR_CHOICES.every((avatar) => avatar.id && avatar.emoji && avatar.label));
+  assert.equal(new Set(AVATAR_CHOICES.map((avatar) => avatar.src)).size, AVATAR_CHOICES.length);
+  assert.ok(AVATAR_CHOICES.every((avatar) => avatar.id && avatar.src && avatar.label));
+  for (const avatar of AVATAR_CHOICES) {
+    assert.ok(fs.existsSync(path.join(__dirname, "..", "public", avatar.src.replace(/^\//, ""))), `${avatar.id} image is missing`);
+  }
   assert.equal(normalizeAvatarId("robot"), "robot");
   assert.equal(normalizeAvatarId("not-a-real-avatar"), AVATAR_CHOICES[0].id);
-  assert.equal(avatarFor("dragon").emoji, "🐉");
+  assert.equal(avatarFor("dragon").src, "/assets/avatars/dragon.jpg");
 });

@@ -72,6 +72,16 @@
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
   }
 
+  function avatarMarkup(avatar, className = "avatar-bubble", accessible = false) {
+    if (!avatar) return "";
+    const safeClass = String(className).replace(/[^a-zA-Z0-9 _-]/g, "").trim() || "avatar-bubble";
+    const attributes = accessible
+      ? `role="img" aria-label="${escapeHtml(avatar.label || "Profile")} avatar"`
+      : 'aria-hidden="true"';
+    if (avatar.src) return `<span class="${safeClass}" ${attributes}><img src="${escapeHtml(avatar.src)}" alt="" draggable="false"></span>`;
+    return `<span class="${safeClass}" ${attributes}>${escapeHtml(avatar.emoji || "✦")}</span>`;
+  }
+
   function formatTime(seconds) {
     const safe = Math.max(0, Math.ceil(seconds));
     return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, "0")}`;
@@ -163,7 +173,7 @@
   drawParticles();
   requestAnimationFrame(frame);
 
-  window.StoryCommon = { escapeHtml, formatTime, remainingSeconds, wordCount, toast, emit, setStateProvider, categoryIcon };
+  window.StoryCommon = { escapeHtml, avatarMarkup, formatTime, remainingSeconds, wordCount, toast, emit, setStateProvider, categoryIcon };
   window.render_game_to_text = renderGameToText;
   window.advanceTime = (ms) => step(Math.max(0, Number(ms) || 0));
 })();

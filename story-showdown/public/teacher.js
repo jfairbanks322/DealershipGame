@@ -1,5 +1,5 @@
 (function () {
-  const { escapeHtml: esc, toast, emit, formatTime, remainingSeconds, setStateProvider, categoryIcon } = window.StoryCommon;
+  const { escapeHtml: esc, avatarMarkup, toast, emit, formatTime, remainingSeconds, setStateProvider, categoryIcon } = window.StoryCommon;
   const app = document.getElementById("app");
   const socket = io({ transports: ["websocket", "polling"] });
   let state = null;
@@ -81,7 +81,7 @@
     if (!state.players.length) return `<div class="empty-state"><div><strong>Waiting for writers</strong>Students will appear here as they join.</div></div>`;
     return `<div class="roster-list">${state.players.map((player) => `
       <div class="roster-row">
-        <div class="student-name"><span class="avatar-bubble">${esc(player.avatar.emoji)}</span><span><i class="connection-dot ${player.connected ? "on" : ""}"></i>${esc(player.name)}</span></div>
+        <div class="student-name">${avatarMarkup(player.avatar)}<span><i class="connection-dot ${player.connected ? "on" : ""}"></i>${esc(player.name)}</span></div>
         ${teamSelect ? `<select data-action="reassign" data-player-id="${esc(player.id)}" aria-label="Team for ${esc(player.name)}"><option value="">Unassigned</option>${state.teams.map((team) => `<option value="${esc(team.id)}" ${player.teamId === team.id ? "selected" : ""}>${esc(team.name)}</option>`).join("")}</select>` : `<span class="muted">${esc(state.teams.find((team) => team.id === player.teamId)?.name || "Unassigned")}</span>`}
         <button class="button tiny ghost" data-action="remove-player" data-player-id="${esc(player.id)}">Remove</button>
       </div>`).join("")}</div>`;
@@ -114,7 +114,7 @@
 
   function teamRevealView() {
     return `<section class="panel"><div class="panel-head"><div><p class="section-kicker">Teams are locked for the game</p><h2>Meet the writing crews</h2></div></div><div class="panel-body"><div class="team-grid">${state.teams.map((team) => `
-      <article class="team-card" style="--team-color:${esc(team.color)}"><input aria-label="Rename ${esc(team.name)}" value="${esc(team.name)}" data-team-name="${esc(team.id)}"><button class="button tiny soft" data-action="rename-team" data-team-id="${esc(team.id)}">Rename</button><ul>${state.players.filter((player) => player.teamId === team.id).map((player) => `<li><span class="avatar-bubble small">${esc(player.avatar.emoji)}</span>${esc(player.name)}</li>`).join("") || "<li>No writers yet</li>"}</ul></article>`).join("")}</div><div class="button-row"><button class="button large" data-action="continue-teams">Open the prompt lab</button></div></div></section>`;
+      <article class="team-card" style="--team-color:${esc(team.color)}"><input aria-label="Rename ${esc(team.name)}" value="${esc(team.name)}" data-team-name="${esc(team.id)}"><button class="button tiny soft" data-action="rename-team" data-team-id="${esc(team.id)}">Rename</button><ul>${state.players.filter((player) => player.teamId === team.id).map((player) => `<li>${avatarMarkup(player.avatar, "avatar-bubble small")}${esc(player.name)}</li>`).join("") || "<li>No writers yet</li>"}</ul></article>`).join("")}</div><div class="button-row"><button class="button large" data-action="continue-teams">Open the prompt lab</button></div></div></section>`;
   }
 
   function promptView() {
@@ -163,7 +163,7 @@
     const results = state.round.results || [];
     return `<div class="podium-grid">${[1,2,3].flatMap((place) => {
       const placed = results.filter((item) => item.placement === place);
-      return placed.length ? placed.map((result) => `<article class="podium-card ${place === 1 ? "first" : place === 2 ? "second" : "third"}" style="--team-color:${esc(result.teamColor)}"><div class="place">${place}</div><b class="podium-writer">${result.avatar ? `<span class="avatar-bubble">${esc(result.avatar.emoji)}</span>` : ""}${esc(result.label)} · ${esc(result.studentName)}</b><p>${esc(result.teamName)}</p><blockquote>${esc(result.text)}</blockquote><div class="points-pop">+${result.points.toLocaleString()} team points</div></article>`) : [`<article class="podium-card hidden-podium ${place === 1 ? "first" : place === 2 ? "second" : "third"}"><div><div class="place">${place}</div><p>Waiting for reveal…</p></div></article>`];
+      return placed.length ? placed.map((result) => `<article class="podium-card ${place === 1 ? "first" : place === 2 ? "second" : "third"}" style="--team-color:${esc(result.teamColor)}"><div class="place">${place}</div><b class="podium-writer">${avatarMarkup(result.avatar)}${esc(result.label)} · ${esc(result.studentName)}</b><p>${esc(result.teamName)}</p><blockquote>${esc(result.text)}</blockquote><div class="points-pop">+${result.points.toLocaleString()} team points</div></article>`) : [`<article class="podium-card hidden-podium ${place === 1 ? "first" : place === 2 ? "second" : "third"}"><div><div class="place">${place}</div><p>Waiting for reveal…</p></div></article>`];
     }).join("")}</div>`;
   }
 
@@ -181,7 +181,7 @@
   }
 
   function writerRows(entries, metric) {
-    return entries.slice(0, 5).map((entry) => `<div class="writer-rank-row" style="--team-color:${esc(entry.teamColor)}"><span class="writer-rank">${entry.rank}</span><span class="avatar-bubble">${esc(entry.avatar.emoji)}</span><span class="writer-name">${esc(entry.name)}<small>${esc(entry.teamName)} · ${entry.roundsPlayed} ${entry.roundsPlayed === 1 ? "round" : "rounds"}</small></span><strong>${metric === "average" ? `${entry.averagePoints.toLocaleString()} avg` : `${entry.totalPoints.toLocaleString()} pts`}</strong></div>`).join("");
+    return entries.slice(0, 5).map((entry) => `<div class="writer-rank-row" style="--team-color:${esc(entry.teamColor)}"><span class="writer-rank">${entry.rank}</span>${avatarMarkup(entry.avatar)}<span class="writer-name">${esc(entry.name)}<small>${esc(entry.teamName)} · ${entry.roundsPlayed} ${entry.roundsPlayed === 1 ? "round" : "rounds"}</small></span><strong>${metric === "average" ? `${entry.averagePoints.toLocaleString()} avg` : `${entry.totalPoints.toLocaleString()} pts`}</strong></div>`).join("");
   }
 
   function writerLeaderboardPanel(title = "Writer leaderboard") {
@@ -192,7 +192,7 @@
   }
 
   function leaderboardView() {
-    return `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><div><p class="section-kicker">Round ${state.roundNumber} complete</p><h2>Team standings</h2></div></div><div class="panel-body">${leaderboardMarkup(true)}<div class="button-row"><button class="button large" data-action="next-prompt">Choose round ${state.roundNumber + 1} prompt</button><button class="button danger ghost" data-action="end-game">End game now</button></div></div></section><aside><section class="panel"><div class="panel-head"><h2>Round winners</h2></div><div class="panel-body">${(state.round.results || []).map((result) => `<p class="round-winner-line">${result.avatar ? `<span class="avatar-bubble">${esc(result.avatar.emoji)}</span>` : ""}<span><b>${result.placement}. ${esc(result.studentName)}</b><br><span class="muted">${esc(result.teamName)} · +${result.points}</span></span></p>`).join("")}</div></section></aside></div>${writerLeaderboardPanel()}`;
+    return `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><div><p class="section-kicker">Round ${state.roundNumber} complete</p><h2>Team standings</h2></div></div><div class="panel-body">${leaderboardMarkup(true)}<div class="button-row"><button class="button large" data-action="next-prompt">Choose round ${state.roundNumber + 1} prompt</button><button class="button danger ghost" data-action="end-game">End game now</button></div></div></section><aside><section class="panel"><div class="panel-head"><h2>Round winners</h2></div><div class="panel-body">${(state.round.results || []).map((result) => `<p class="round-winner-line">${avatarMarkup(result.avatar)}<span><b>${result.placement}. ${esc(result.studentName)}</b><br><span class="muted">${esc(result.teamName)} · +${result.points}</span></span></p>`).join("")}</div></section></aside></div>${writerLeaderboardPanel()}`;
   }
 
   function finalView() {
