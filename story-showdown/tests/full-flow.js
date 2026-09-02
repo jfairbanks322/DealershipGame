@@ -87,10 +87,12 @@ async function main() {
   const port = server.address().port;
   const url = `http://127.0.0.1:${port}`;
   const teacher = await connect(url);
-  const created = await action(teacher, "game:create", { settings: { teamCount: 3, totalRounds: 2, defaultDuration: 120, revealNames: true } });
+  const created = await action(teacher, "game:create", { settings: { teamCount: 4, totalRounds: 2, defaultDuration: 120, revealNames: true } });
   const auth = { code: created.code, teacherToken: created.teacherToken };
   latest.set(teacher, created.state);
   assert.match(created.code, /^[A-Z2-9]{5}$/);
+  assert.equal(created.state.settings.teamCount, 4);
+  assert.equal(created.state.teams.length, 4);
   assert.equal(created.state.promptBank.length, 144);
   await rejected(teacher, "teacher:lock-joining", { code: created.code, teacherToken: "wrong", locked: true }, /authorization/i);
 
@@ -108,8 +110,10 @@ async function main() {
   assert.equal((await waitFor(teacher, (s) => s.playerCount === 6, "six-player lobby")).connectedCount, 6);
   await rejected(players[0], "student:join", { code: created.code, name: "Avery" }, /already being used/i);
 
-  await teacherAction(teacher, auth, "teacher:start-game");
+  await teacherAction(teacher, auth, "teacher:start-game", { settings: { ...created.state.settings, teamCount: 3 } });
   let teacherState = await waitFor(teacher, (s) => s.phase === "team_reveal", "team reveal");
+  assert.equal(teacherState.settings.teamCount, 3);
+  assert.equal(teacherState.teams.length, 3);
   assert.ok(teacherState.players.every((player) => player.teamId));
   await teacherAction(teacher, auth, "teacher:continue-from-teams");
   await teacherAction(teacher, auth, "teacher:preview-prompt", { filters: { category: "Science fiction", responseLength: "short" } });

@@ -48,7 +48,27 @@ const AVATAR_CHOICES = Object.freeze([
   { id: "toast-hero", src: "/assets/avatars/toast-hero.jpg", label: "Toast Hero" },
   { id: "party-yeti", src: "/assets/avatars/party-yeti.jpg", label: "Party Yeti" },
   { id: "mime", src: "/assets/avatars/mime.jpg", label: "Mime" },
-  { id: "raccoon-artist", src: "/assets/avatars/raccoon-artist.jpg", label: "Raccoon Artist" }
+  { id: "raccoon-artist", src: "/assets/avatars/raccoon-artist.jpg", label: "Raccoon Artist" },
+  { id: "dragon-professor", src: "/assets/avatars/dragon-professor.png", label: "Dragon Professor" },
+  { id: "forest-ranger", src: "/assets/avatars/forest-ranger.png", label: "Forest Ranger" },
+  { id: "moon-fairy", src: "/assets/avatars/moon-fairy.png", label: "Moon Fairy" },
+  { id: "dwarf-engineer", src: "/assets/avatars/dwarf-engineer.png", label: "Dwarf Engineer" },
+  { id: "storm-sorcerer", src: "/assets/avatars/storm-sorcerer.png", label: "Storm Sorcerer" },
+  { id: "sea-elf", src: "/assets/avatars/sea-elf.png", label: "Sea Elf" },
+  { id: "griffin-rider", src: "/assets/avatars/griffin-rider.png", label: "Griffin Rider" },
+  { id: "goblin-librarian", src: "/assets/avatars/goblin-librarian.png", label: "Goblin Librarian" },
+  { id: "royal-knight", src: "/assets/avatars/royal-knight.png", label: "Royal Knight" },
+  { id: "potion-witch", src: "/assets/avatars/potion-witch.png", label: "Potion Witch" },
+  { id: "renaissance-writer", src: "/assets/avatars/renaissance-writer.png", label: "Renaissance Writer" },
+  { id: "victorian-detective", src: "/assets/avatars/victorian-detective.png", label: "Victorian Detective" },
+  { id: "city-reporter", src: "/assets/avatars/city-reporter.png", label: "City Reporter" },
+  { id: "clockwork-inventor", src: "/assets/avatars/clockwork-inventor.png", label: "Clockwork Inventor" },
+  { id: "map-pirate", src: "/assets/avatars/map-pirate.png", label: "Map Pirate" },
+  { id: "desert-explorer", src: "/assets/avatars/desert-explorer.png", label: "Desert Explorer" },
+  { id: "egyptian-scribe", src: "/assets/avatars/egyptian-scribe.png", label: "Egyptian Scribe" },
+  { id: "samurai-poet", src: "/assets/avatars/samurai-poet.png", label: "Samurai Poet" },
+  { id: "jazz-detective", src: "/assets/avatars/jazz-detective.png", label: "Jazz Detective" },
+  { id: "traveling-bard", src: "/assets/avatars/traveling-bard.png", label: "Traveling Bard" }
 ]);
 
 function normalizeAvatarId(value) {

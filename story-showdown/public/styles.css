@@ -395,6 +395,7 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .final-banner { position: relative; padding: 42px; border: 1px solid color-mix(in srgb, white 25%, transparent); border-radius: 27px; background: radial-gradient(circle at 18% 15%, rgba(255,255,255,.2), transparent 23%), linear-gradient(135deg, var(--purple-dark), #a33480 63%, #d76543); color: white; text-align: center; box-shadow: 0 25px 70px color-mix(in srgb, var(--purple) 27%, transparent); overflow: hidden; }
 .final-banner h2 { margin: 0; font: 800 clamp(45px, 8vw, 82px)/.9 "League Spartan", sans-serif; }
 .final-banner p { margin-bottom: 0; opacity: .84; }
+.final-banner .button-row { justify-content: center; }
 .winner-name { color: #ffd47d; }
 .honors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 13px; }
 .honor-card { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }

@@ -3,269 +3,146 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>County Fair Frenzy</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <title>What In The Word</title>
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <div class="glow glow-top"></div>
-    <div class="glow glow-bottom"></div>
+    <main class="app-shell">
+      <header class="topbar">
+        <img class="top-logo" src="/assets/what-in-the-word-logo.png" alt="What In The Word" />
+        <div id="connectionStatus" class="status-pill">Connecting...</div>
+      </header>
 
-    <main class="shell">
-      <section class="hero card">
-        <div class="hero-copy-wrap">
-          <p class="eyebrow">Business Management Simulation</p>
-          <div class="hero-logo-lockup hero-wordmark-lockup">
-            <div>
-              <h1>County Fair Frenzy</h1>
-              <p class="hero-subbrand">Festival Tycoon</p>
-            </div>
+      <section id="welcomeScreen" class="screen active">
+        <div class="hero-panel">
+          <div class="hero-copy">
+            <p class="eyebrow">Guess Gap</p>
+            <h2>Pick a secret word. Guess your opponent's. Follow the alphabet clues.</h2>
+            <p>
+              Each round has one topic and one approved answer bank. Lock your secret word, then use UP,
+              DOWN, distance, and temperature clues to close the gap.
+            </p>
           </div>
-          <p class="hero-copy">
-            Students run competing county fair booths, handle live midway chaos, and try to grow revenue
-            without breaking crew morale, trust, or fairgoer confidence.
-          </p>
-          <div class="hero-tags">
-            <span class="tag">Teacher-pushed global events</span>
-            <span class="tag">5-step chaos chains</span>
-            <span class="tag">8 fair crew trust meters</span>
-          </div>
-          <div class="hero-resource-row">
-            <a class="button-link secondary" href="/student-cheat-sheet.html">Student Quick Start</a>
-            <a class="button-link subtle" href="/awards-report.html">Awards Report</a>
+
+          <div class="join-grid">
+            <article class="card">
+              <h3>Create Room</h3>
+              <label>
+                Player name
+                <input id="createName" maxlength="24" placeholder="Player 1" autocomplete="off" />
+              </label>
+              <button id="createRoomButton">Create Room</button>
+            </article>
+
+            <article class="card">
+              <h3>Join Room</h3>
+              <label>
+                Player name
+                <input id="joinName" maxlength="24" placeholder="Player 2" autocomplete="off" />
+              </label>
+              <label>
+                Room code
+                <input id="roomCodeInput" maxlength="5" placeholder="ABCDE" autocomplete="off" />
+              </label>
+              <button id="joinRoomButton">Join Room</button>
+            </article>
           </div>
         </div>
       </section>
 
-      <section id="auth-section" class="grid auth-grid">
-        <article class="card">
-          <div class="section-head">
-            <p class="eyebrow">Students</p>
-            <h2>Join The Fairgrounds</h2>
-          </div>
-          <p class="section-copy">Returning student? Log in first. New student? Create an account below.</p>
-
-          <form id="student-login-form" class="stack">
-            <label>
-              Username
-              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" minlength="4" placeholder="Password" required />
-            </label>
-            <button type="submit" class="secondary">Student Login</button>
-          </form>
-
-          <div class="divider"></div>
-
-          <form id="student-register-form" class="stack">
-            <label>
-              Display Name
-              <input name="displayName" type="text" maxlength="32" placeholder="Avery" required />
-            </label>
-            <label>
-              Username
-              <input name="username" type="text" maxlength="20" placeholder="avery1" required />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" minlength="4" placeholder="4+ characters" required />
-            </label>
-            <div class="stack avatar-picker-block">
-              <div>
-                <div class="avatar-picker-head">
-                  <span>Choose your manager portrait</span>
-                  <span class="subtext">This becomes your County Fair Frenzy profile picture</span>
-                </div>
-                <input id="student-avatar-id" name="avatarId" type="hidden" />
-                <div id="student-avatar-picker" class="avatar-picker-grid"></div>
-              </div>
+      <section id="gameScreen" class="screen">
+        <div class="dashboard-grid">
+          <article class="card room-card">
+            <div class="card-head">
+              <span class="eyebrow">Room</span>
+              <strong id="roomCodeDisplay">-----</strong>
             </div>
-            <button type="submit">Create Student Account</button>
-          </form>
-        </article>
-
-        <article class="card">
-          <div class="section-head">
-            <p class="eyebrow">Teacher</p>
-            <h2>Run The Fair</h2>
-          </div>
-          <p class="section-copy">
-            Teacher mode unlocks class session controls, global event launch tools, password resets, and live response
-            tracking.
-          </p>
-
-          <form id="teacher-login-form" class="stack">
-            <label>
-              Username
-              <input name="username" type="text" placeholder="teacher" required />
-            </label>
-            <label>
-              Password
-              <input name="password" type="password" placeholder="Teacher password" required />
-            </label>
-            <button type="submit">Teacher Login</button>
-          </form>
-        </article>
-      </section>
-
-      <section id="session-bar" class="session-bar hidden"></section>
-
-      <section id="student-view" class="hidden stack-block">
-        <div class="grid two-col">
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">My Booth</p>
-              <h2 id="student-name-heading">Manager Dashboard</h2>
-            </div>
-            <div id="student-summary"></div>
+            <div id="phaseDisplay" class="phase-display">Welcome</div>
+            <p id="statusMessage" class="muted">Create or join a room to begin.</p>
           </article>
 
-          <article class="card">
-          <div class="section-head">
-            <p class="eyebrow">Active Situation</p>
-            <h2>Case Chain</h2>
-          </div>
-          <div id="student-round-panel" class="stack"></div>
+          <article class="card topic-card">
+            <div class="card-head">
+              <span class="eyebrow">Round <span id="roundNumber">0</span></span>
+              <strong id="topicName">Waiting...</strong>
+            </div>
+            <p id="answerCount" class="muted">Answer bank appears when the round starts.</p>
+          </article>
+
+          <article class="card scoreboard-card">
+            <div class="card-head">
+              <span class="eyebrow">Scoreboard</span>
+              <strong id="overallLeader">Waiting for players</strong>
+            </div>
+            <div id="scoreboard" class="scoreboard"></div>
           </article>
         </div>
 
-        <article class="card">
-          <div class="section-head">
-              <p class="eyebrow">Fair Crew</p>
-            <h2>Your Team</h2>
-          </div>
-          <div id="staff-grid" class="staff-grid"></div>
-        </article>
-
-        <article class="card">
-          <div class="section-head">
-            <p class="eyebrow">Decision Log</p>
-            <h2>What You Have Managed</h2>
-          </div>
-          <div id="history-panel"></div>
-        </article>
-      </section>
-
-      <section id="teacher-view" class="hidden stack-block">
-        <div class="grid two-col">
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">Teacher Dashboard</p>
-              <h2>Control Center</h2>
-            </div>
-            <div id="teacher-summary"></div>
+        <div class="players-grid">
+          <article class="card player-card">
+            <span class="eyebrow">You</span>
+            <h3 id="youName">Player</h3>
+            <p id="youStatus" class="muted">Not ready</p>
           </article>
-
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">Teacher Settings</p>
-              <h2>Login and Goal Rules</h2>
-            </div>
-            <form id="teacher-settings-form" class="stack">
-              <label>
-                Teacher Username
-                <input name="teacherUsername" type="text" maxlength="20" required />
-              </label>
-              <label>
-                Revenue Goal
-                <input name="salesGoal" type="number" min="20" max="500" step="1" required />
-              </label>
-              <label>
-                Current Teacher Password
-                <input name="currentPassword" type="password" placeholder="Required only for login changes" />
-              </label>
-              <label>
-                New Teacher Password
-                <input name="newPassword" type="password" minlength="4" placeholder="Leave blank to keep current password" />
-              </label>
-              <button type="submit">Save Teacher Settings</button>
-            </form>
+          <article class="card player-card">
+            <span class="eyebrow">Opponent</span>
+            <h3 id="opponentName">Waiting...</h3>
+            <p id="opponentStatus" class="muted">Waiting for second player...</p>
           </article>
         </div>
 
-        <div class="grid two-col">
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">Session Controls</p>
-              <h2>Open, Close, and Pace the Class</h2>
+        <div class="play-grid">
+          <article id="secretPanel" class="card action-card">
+            <div class="card-head">
+              <span class="eyebrow">Secret Word</span>
+              <strong>Lock your answer</strong>
             </div>
-            <div id="teacher-controls"></div>
+            <label>
+              Choose from this topic
+              <input id="secretInput" list="answerBank" placeholder="Start typing..." autocomplete="off" />
+            </label>
+            <button id="secretButton">Lock Secret Word</button>
+            <p id="secretHelp" class="muted">Your opponent will not see this until the round is over.</p>
           </article>
 
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">Global Event</p>
-              <h2>Launch the Next Fair Crisis</h2>
+          <article id="guessPanel" class="card action-card">
+            <div class="card-head">
+              <span class="eyebrow">Guess</span>
+              <strong>Find their word</strong>
             </div>
-            <form id="scenario-form" class="stack">
-              <label>
-                Event Template
-                <select id="preset-select" name="presetId"></select>
-              </label>
-              <label>
-                Teacher Event Headline
-                <input name="headline" type="text" maxlength="120" placeholder="Optional: customize the live event headline" />
-              </label>
-              <label>
-                Teacher Event Context
-                <textarea name="body" rows="4" placeholder="Optional: customize the live event details students see before the branch begins."></textarea>
-              </label>
-              <div id="scenario-preview"></div>
-              <button id="launch-scenario-button" type="submit">Launch Global Event</button>
-            </form>
-          </article>
-        </div>
-
-        <div class="grid two-col">
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">Student Roster</p>
-              <h2>Who Has Responded</h2>
-            </div>
-            <div id="student-roster"></div>
+            <label>
+              Guess from the answer bank
+              <input id="guessInput" list="answerBank" placeholder="Pick a valid guess..." autocomplete="off" />
+            </label>
+            <button id="guessButton">Submit Guess</button>
+            <div id="latestResult" class="latest-result">No guesses yet.</div>
           </article>
 
-          <article class="card">
-            <div class="section-head">
-              <p class="eyebrow">Teacher Feed</p>
-              <h2>Recent Responses</h2>
+          <article class="card log-card">
+            <div class="card-head">
+              <span class="eyebrow">Private Log</span>
+              <strong>Your guesses</strong>
             </div>
-            <div id="teacher-feed"></div>
+            <ol id="guessLog" class="guess-log"></ol>
+          </article>
+
+          <article id="summaryPanel" class="card summary-card">
+            <div class="card-head">
+              <span class="eyebrow">Round Summary</span>
+              <strong>Results</strong>
+            </div>
+            <div id="roundSummary" class="summary-body"></div>
+            <button id="nextRoundButton" class="secondary">Next Round</button>
           </article>
         </div>
-      </section>
 
-      <section class="grid two-col">
-        <article class="card">
-          <div class="section-head">
-            <p class="eyebrow">Leaderboards</p>
-            <h2>Three Ways To Lead</h2>
-          </div>
-          <div id="leaderboard"></div>
-        </article>
-
-        <article class="card">
-          <div class="section-head">
-            <p class="eyebrow">Event Feed</p>
-            <h2>Global Event Timeline</h2>
-          </div>
-          <div id="round-feed"></div>
-        </article>
+        <datalist id="answerBank"></datalist>
       </section>
     </main>
 
-    <div id="sabotage-caught-popup" class="sabotage-caught-popup hidden">
-      <div class="sabotage-caught-backdrop" data-sabotage-caught-close></div>
-      <section class="sabotage-caught-card card" aria-live="polite" aria-modal="true" role="dialog">
-        <button class="subtle sabotage-caught-close" type="button" data-sabotage-caught-close>Close</button>
-        <p class="eyebrow">Global Alert</p>
-        <h2 id="sabotage-caught-title">Sabotage Caught</h2>
-        <p id="sabotage-caught-detail"></p>
-        <div id="sabotage-caught-meta" class="hero-tags"></div>
-      </section>
-    </div>
-    <div id="toast" class="toast hidden"></div>
-    <script src="/app.js"></script>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/client.js"></script>
   </body>
 </html>

@@ -756,8 +756,12 @@ io.on("connection", (socket) => {
   teacherHandler(socket, "teacher:update-settings", (game, payload) => {
     if (!["lobby", "pre_round", "leaderboard"].includes(game.phase)) throw new Error("These settings cannot be changed during an active round.");
     const previousCount = game.settings.teamCount;
-    game.settings = { ...game.settings, ...normalizeSettings({ ...game.settings, ...payload.settings }), joiningLocked: game.settings.joiningLocked };
-    if (previousCount !== game.settings.teamCount && game.roundNumber === 0) game.teams = makeTeams(game.settings.teamCount);
+    const nextSettings = normalizeSettings({ ...game.settings, ...payload.settings });
+    if (previousCount !== nextSettings.teamCount && (game.phase !== "lobby" || game.roundNumber !== 0)) {
+      throw new Error("The number of teams can only be changed in the lobby before the game starts.");
+    }
+    game.settings = { ...game.settings, ...nextSettings, joiningLocked: game.settings.joiningLocked };
+    if (previousCount !== game.settings.teamCount) game.teams = makeTeams(game.settings.teamCount);
   });
 
   teacherHandler(socket, "teacher:lock-joining", (game, payload) => {
@@ -765,9 +769,14 @@ io.on("connection", (socket) => {
     game.notice = payload.locked ? "Student joining is locked." : "Student joining is open.";
   });
 
-  teacherHandler(socket, "teacher:start-game", (game) => {
+  teacherHandler(socket, "teacher:start-game", (game, payload) => {
     if (game.phase !== "lobby") throw new Error("The game has already started.");
     if (Object.keys(game.players).length < 2) throw new Error("At least two students are needed to start.");
+    if (payload.settings) {
+      const nextSettings = normalizeSettings({ ...game.settings, ...payload.settings });
+      if (nextSettings.teamCount !== game.settings.teamCount) game.teams = makeTeams(nextSettings.teamCount);
+      game.settings = { ...game.settings, ...nextSettings, joiningLocked: game.settings.joiningLocked };
+    }
     assignTeams(game);
     game.settings.joiningLocked = true;
     game.phase = "team_reveal";

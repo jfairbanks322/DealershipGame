@@ -89,6 +89,8 @@ async function main() {
   const created = await action(teacher, "game:create", { settings: { teamCount: 8, totalRounds: 1, defaultDuration: 120 } });
   const auth = { code: created.code, teacherToken: created.teacherToken };
   latest.set(teacher, created.state);
+  assert.equal(created.state.settings.teamCount, 8);
+  assert.equal(created.state.teams.length, 8);
 
   const players = [];
   const sessions = [];
@@ -120,6 +122,7 @@ async function main() {
 
   await teacherAction(teacher, auth, "teacher:start-game");
   teacherState = await waitFor(teacher, (state) => state.phase === "team_reveal", "team reveal");
+  assert.equal(teacherState.teams.length, 8);
   const teamSizes = teacherState.teams.map((team) => teacherState.players.filter((player) => player.teamId === team.id).length);
   assert.equal(teamSizes.reduce((sum, size) => sum + size, 0), 30);
   assert.ok(Math.max(...teamSizes) - Math.min(...teamSizes) <= 1, "teams should be balanced within one writer");

@@ -12,7 +12,7 @@ The core loop is fully functional for classrooms of up to 30 students with 144 p
 - Active games persist to one JSON file using an atomic temporary-file rename.
 - Teacher actions require a 192-bit token created with the game. The token stays in that teacher browser's local storage and is verified for every privileged socket action and export.
 - Student reconnection uses a separate random session token. It restores the same display name, team, and current draft from the same browser when possible.
-- Students choose from 50 illustrated, school-safe character avatars. Avatars reconnect with the same session and are never attached to anonymous presentation or voting entries.
+- Students choose from 70 illustrated, school-safe character avatars. Avatars reconnect with the same session and are never attached to anonymous presentation or voting entries.
 - Individual leaderboards rank podium points by cumulative total and average per completed round entered. They appear between rounds and at the finale, and are hidden when the teacher disables writer-name reveals.
 
 This build intentionally collects no email address, account, camera, microphone, or other unnecessary student information.

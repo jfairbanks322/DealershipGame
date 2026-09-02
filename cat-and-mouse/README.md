@@ -62,6 +62,8 @@ After Railway gives you a public URL:
 
 On Railway, the server URL field should already be set to the site URL automatically.
 
+If Railway reports that the service needs a volume mounted at `/app/data`, it is deploying the repo root DealershipGame service instead of this app. Create a separate Railway service with **Root Directory** set to `cat-and-mouse`, or deploy from this subdirectory directly. Cat and Mouse does not use SQLite and does not require a Railway volume.
+
 ## Prototype Notes
 
 - Local state is persisted with AsyncStorage.

@@ -20,6 +20,7 @@
       const token = localStorage.getItem(`storyShowdownTeacher:${code}`);
       if (token) return { code, teacherToken: token };
     }
+    if (sessionStorage.getItem("storyShowdownStartFresh") === "true") return null;
     try {
       const recent = JSON.parse(localStorage.getItem("storyShowdownTeacherRecent"));
       if (recent?.code && recent?.teacherToken) return recent;
@@ -29,6 +30,7 @@
 
   function saveCredentials(value) {
     credentials = value;
+    sessionStorage.removeItem("storyShowdownStartFresh");
     localStorage.setItem(`storyShowdownTeacher:${value.code}`, value.teacherToken);
     localStorage.setItem("storyShowdownTeacherRecent", JSON.stringify(value));
     history.replaceState(null, "", `/teacher.html?code=${encodeURIComponent(value.code)}`);
@@ -37,6 +39,17 @@
   async function teacherAction(event, payload = {}) {
     if (!credentials) throw new Error("Create or reconnect to a game first.");
     return emit(socket, event, { ...payload, ...credentials });
+  }
+
+  function openNewGameSetup() {
+    credentials = null;
+    state = null;
+    sessionStorage.setItem("storyShowdownStartFresh", "true");
+    history.replaceState(null, "", "/teacher.html");
+    document.body.classList.remove("celebrating");
+    socket.disconnect();
+    socket.connect();
+    createScreen();
   }
 
   function createScreen() {
@@ -71,7 +84,7 @@
   function gameHeader() {
     return `<div class="game-header">
       <div><p class="section-kicker">Teacher control room</p><h1>${state.phase === "final" ? "The final page" : phaseNames[state.phase] || "Story Showdown"}</h1></div>
-      <div class="game-meta"><span class="code-pill">${esc(state.code)}</span><span class="status-pill online">${state.connectedCount}/${state.playerCount} online</span><span class="phase-pill">Round ${state.roundNumber}/${state.totalRounds}</span></div>
+      <div class="game-meta"><button class="button tiny ghost" type="button" data-action="new-game">＋ New game</button><span class="code-pill">${esc(state.code)}</span><span class="status-pill online">${state.connectedCount}/${state.playerCount} online</span><span class="phase-pill">Round ${state.roundNumber}/${state.totalRounds}</span></div>
     </div>
     <div class="notice-bar">${esc(state.notice || "Live game ready.")}</div>
     ${scoreStrip()}`;
@@ -94,7 +107,8 @@
       <div class="field"><label>Default time</label><select name="defaultDuration">${[[120,"2 minutes"],[240,"4 minutes"],[360,"6 minutes"]].map(([value,label]) => `<option value="${value}" ${value === state.settings.defaultDuration ? "selected" : ""}>${label}</option>`).join("")}</select></div>
       <div class="field"><label>Prompt choice</label><select name="promptMode"><option value="random" ${state.settings.promptMode === "random" ? "selected" : ""}>Random</option><option value="manual" ${state.settings.promptMode === "manual" ? "selected" : ""}>Manual</option></select></div>
       <label class="check-row full"><input type="checkbox" name="revealNames" ${state.settings.revealNames ? "checked" : ""}><span>Reveal writers after voting</span></label>
-      <button class="button soft full" type="submit">Save game settings</button>
+      <p class="fine-print full" role="status">${state.teams.length} team${state.teams.length === 1 ? "" : "s"} ready · Changes save automatically.</p>
+      <button class="button soft full" type="submit">Save settings now</button>
     </form>`;
   }
 
@@ -210,7 +224,7 @@
     const firstPlaceStar = stats.sort((a, b) => b.firsts - a.firsts || b.votes - a.votes)[0];
     const voteStar = [...stats].sort((a, b) => b.votes - a.votes || b.firsts - a.firsts)[0];
     document.body.classList.add("celebrating");
-    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Story Showdown champions</p><h2 class="winner-name">${esc(winner?.name || "Great writing")}</h2><p>${winner?.score.toLocaleString() || 0} points · A room full of bold ideas</p></section><section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Final rankings</h2><div class="button-row" style="margin:0"><a class="button tiny ghost" href="/api/games/${encodeURIComponent(state.code)}/export.csv?token=${encodeURIComponent(credentials.teacherToken)}">Export CSV</a><a class="button tiny" target="_blank" rel="noopener" href="/api/games/${encodeURIComponent(state.code)}/print?token=${encodeURIComponent(credentials.teacherToken)}">Print / Save PDF</a></div></div><div class="panel-body">${leaderboardMarkup(true)}</div></section>
+    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Story Showdown champions</p><h2 class="winner-name">${esc(winner?.name || "Great writing")}</h2><p>${winner?.score.toLocaleString() || 0} points · A room full of bold ideas</p><div class="button-row"><button class="button large gold" type="button" data-action="new-game">Start a new game</button></div></section><section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Final rankings</h2><div class="button-row" style="margin:0"><a class="button tiny ghost" href="/api/games/${encodeURIComponent(state.code)}/export.csv?token=${encodeURIComponent(credentials.teacherToken)}">Export CSV</a><a class="button tiny" target="_blank" rel="noopener" href="/api/games/${encodeURIComponent(state.code)}/print?token=${encodeURIComponent(credentials.teacherToken)}">Print / Save PDF</a></div></div><div class="panel-body">${leaderboardMarkup(true)}</div></section>
       ${writerLeaderboardPanel("Final writer leaderboard")}<section class="panel"><div class="panel-head"><div><p class="section-kicker">Every round</p><h2>Writer honors</h2></div></div><div class="panel-body"><div class="honors-grid">${state.roundHistory.map((round) => `<article class="honor-card"><p class="section-kicker">Round ${round.number}</p><h3>${esc(round.prompt.category)}</h3><p class="muted">${esc(round.prompt.text)}</p>${[...round.results].sort((a,b) => a.placement-b.placement).map((result) => `<div class="honor-row"><b>${result.placement}. ${esc(result.studentName)}</b><span>${esc(result.teamName)} · ${result.points.toLocaleString()} pts</span></div>`).join("") || '<p class="muted">No placements recorded.</p>'}</article>`).join("")}</div>${state.settings.revealNames && firstPlaceStar ? `<div class="spotlight-row"><div><span>Most first-place finishes</span><b>${esc(firstPlaceStar.name)} · ${firstPlaceStar.firsts}</b></div><div><span>Most total podium votes</span><b>${esc(voteStar.name)} · ${voteStar.votes}</b></div></div>` : ""}</div></section>`;
   }
 
@@ -252,6 +266,26 @@
     };
   }
 
+  function settingsPayload(form) {
+    const data = new FormData(form);
+    return {
+      teamCount: Number(data.get("teamCount")),
+      totalRounds: Number(data.get("totalRounds")),
+      defaultDuration: Number(data.get("defaultDuration")),
+      promptMode: data.get("promptMode"),
+      revealNames: data.get("revealNames") === "on"
+    };
+  }
+
+  async function saveLobbySettings(showToast = true) {
+    const form = document.getElementById("settings-form");
+    if (!form) return null;
+    const settings = settingsPayload(form);
+    await teacherAction("teacher:update-settings", { settings });
+    if (showToast) toast(`${settings.teamCount} teams ready. Settings saved.`, "success");
+    return settings;
+  }
+
   app.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
@@ -264,9 +298,7 @@
         state = response.state;
         render();
       } else if (event.target.id === "settings-form") {
-        const data = new FormData(event.target);
-        await teacherAction("teacher:update-settings", { settings: { teamCount: Number(data.get("teamCount")), totalRounds: Number(data.get("totalRounds")), defaultDuration: Number(data.get("defaultDuration")), promptMode: data.get("promptMode"), revealNames: data.get("revealNames") === "on" } });
-        toast("Game settings saved.", "success");
+        await saveLobbySettings();
       } else if (event.target.id === "prompt-form") {
         const prompt = promptPayload(event.target);
         await teacherAction("teacher:start-round", { prompt, durationSeconds: prompt.timerSeconds });
@@ -275,8 +307,10 @@
   });
 
   app.addEventListener("change", async (event) => {
-    if (event.target.dataset.action !== "reassign") return;
-    try { await teacherAction("teacher:reassign-player", { playerId: event.target.dataset.playerId, teamId: event.target.value }); }
+    try {
+      if (event.target.form?.id === "settings-form") await saveLobbySettings();
+      else if (event.target.dataset.action === "reassign") await teacherAction("teacher:reassign-player", { playerId: event.target.dataset.playerId, teamId: event.target.value });
+    }
     catch (error) { toast(error.message); }
   });
 
@@ -286,8 +320,15 @@
     const action = button.dataset.action;
     try {
       button.disabled = true;
-      if (action === "toggle-lock") await teacherAction("teacher:lock-joining", { locked: !state.settings.joiningLocked });
-      else if (action === "start-game") await teacherAction("teacher:start-game");
+      if (action === "new-game") {
+        if (!confirm("Open a fresh game setup? Your current game will stay saved.")) { button.disabled = false; return; }
+        openNewGameSetup();
+      }
+      else if (action === "toggle-lock") await teacherAction("teacher:lock-joining", { locked: !state.settings.joiningLocked });
+      else if (action === "start-game") {
+        const settings = document.getElementById("settings-form") ? settingsPayload(document.getElementById("settings-form")) : null;
+        await teacherAction("teacher:start-game", settings ? { settings } : {});
+      }
       else if (action === "continue-teams") await teacherAction("teacher:continue-from-teams");
       else if (action === "remove-player") { if (!confirm("Remove this student from the game?")) { button.disabled = false; return; } await teacherAction("teacher:remove-player", { playerId: button.dataset.playerId }); }
       else if (action === "rename-team") await teacherAction("teacher:rename-team", { teamId: button.dataset.teamId, name: document.querySelector(`[data-team-name="${CSS.escape(button.dataset.teamId)}"]`).value });

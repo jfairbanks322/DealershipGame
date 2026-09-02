@@ -27,7 +27,7 @@ test("starter bank contains 144 fully described prompts across the expanded cate
 });
 
 test("avatar choices are unique, labeled, and safely normalized", () => {
-  assert.equal(AVATAR_CHOICES.length, 50);
+  assert.equal(AVATAR_CHOICES.length, 70);
   assert.equal(new Set(AVATAR_CHOICES.map((avatar) => avatar.id)).size, AVATAR_CHOICES.length);
   assert.equal(new Set(AVATAR_CHOICES.map((avatar) => avatar.src)).size, AVATAR_CHOICES.length);
   assert.ok(AVATAR_CHOICES.every((avatar) => avatar.id && avatar.src && avatar.label));
@@ -37,4 +37,5 @@ test("avatar choices are unique, labeled, and safely normalized", () => {
   assert.equal(normalizeAvatarId("robot"), "robot");
   assert.equal(normalizeAvatarId("not-a-real-avatar"), AVATAR_CHOICES[0].id);
   assert.equal(avatarFor("dragon").src, "/assets/avatars/dragon.jpg");
+  assert.equal(avatarFor("traveling-bard").src, "/assets/avatars/traveling-bard.png");
 });
