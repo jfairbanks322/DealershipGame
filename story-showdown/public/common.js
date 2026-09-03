@@ -141,10 +141,13 @@
       presentation: round ? { index: round.presentationIndex, count: round.presentationCount, currentLabel: round.currentEntry?.label || null } : null,
       teams: (source.teams || []).map((team) => ({ name: team.name, score: team.score, rank: team.rank })),
       cooperativeStory: source.coop ? {
+        frame: source.coop.frame ? { title: source.coop.frame.title, hero: source.coop.frame.hero, opening: source.coop.frame.opening } : null,
+        topic: source.coop.topic ? { label: source.coop.topic.label, category: source.coop.topic.category, custom: Boolean(source.coop.topic.custom) } : null,
         submissionCount: source.coop.submissionCount,
         sectionCount: source.coop.sectionCount,
         currentSectionIndex: source.coop.currentSectionIndex,
         currentSection: source.coop.currentSection?.label || null,
+        currentStem: source.coop.currentSection?.stem || null,
         selections: (source.coop.selections || []).map((selection) => ({ sectionId: selection.sectionId, text: selection.text, studentName: selection.studentName })),
         storyParts: (source.coop.storyParts || []).map((part) => ({ label: part.label, bridge: part.bridge, text: part.text })),
         complete: Boolean(source.coop.complete)

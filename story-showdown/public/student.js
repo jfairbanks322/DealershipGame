@@ -147,20 +147,27 @@
   function coopAnswersFromForm(form = document.getElementById("coop-form")) {
     if (!form) return state.coop?.myDraft || {};
     const data = new FormData(form);
-    return Object.fromEntries(COOP_SECTIONS.map((section) => [section.id, data.get(section.id) || ""]));
+    return Object.fromEntries((state.coop?.sections || COOP_SECTIONS).map((section) => [section.id, data.get(section.id) || ""]));
+  }
+
+  function coopBriefMarkup() {
+    const frame = state.coop?.frame;
+    const topic = state.coop?.topic;
+    if (!frame) return "";
+    return `<section class="story-brief"><div class="story-brief-top"><span class="story-brief-icon">⌁</span><div><p class="section-kicker">Everyone uses this story recipe</p><h2>${esc(frame.title)}</h2></div><div class="story-brief-tags"><span>${esc(frame.genre)}</span><span>${esc(frame.tone)}</span></div></div>${topic ? `<div class="story-topic"><span>Class topic</span><strong>${esc(topic.label)}</strong><small>${esc(topic.category)}</small></div>` : ""}<p>${esc(frame.opening)}</p><small>Keep every answer connected to <b>${esc(frame.hero)}</b>, this setting, and this central problem${topic ? ` while exploring <b>${esc(topic.label)}</b>` : ""}. Write in present tense.</small></section>`;
   }
 
   function coopWritingView() {
     const coop = state.coop;
     if (coop.mySubmission) {
-      return waitState("✓", "Ideas submitted", "Your ingredients are in the machine", `${coop.submissionCount} of ${state.playerCount} writers are ready. Watch the classroom screen when the spinning begins.`, '<div class="feature-row"><span>Draft locked</span><i></i><span>Creating together</span></div>');
+      return `${coopBriefMarkup()}${waitState("✓", "Ideas submitted", "Your connected plot pieces are in the machine", `${coop.submissionCount} of ${state.playerCount} writers are ready. Watch the classroom screen when the spinning begins.`, '<div class="feature-row"><span>Draft locked</span><i></i><span>One shared story</span></div>')}`;
     }
-    return `<div class="student-writing coop-writing"><div class="student-timer timer-box"><span>Time to write eight ingredients</span><strong class="timer-live">${formatTime(remainingSeconds(coop))}</strong></div><section class="student-prompt coop-intro"><div><p class="section-kicker">Creative writing Mad Lib</p><h2>Complete sentences make the magic work.</h2><p class="muted">Each box is a separate idea. The Story Machine will randomly choose one class answer for every part.</p></div></section><form id="coop-form" class="coop-prompt-grid">${COOP_SECTIONS.map((section, index) => `<label class="coop-prompt-card" for="coop-${esc(section.id)}"><span class="coop-step">${index + 1}</span><span class="coop-part-icon">${esc(section.icon)}</span><span><b>${esc(section.label)}</b><strong>${esc(section.prompt)}</strong><small>${esc(section.guidance)}</small></span><textarea id="coop-${esc(section.id)}" name="${esc(section.id)}" data-coop-answer maxlength="360" required placeholder="Example: ${esc(section.placeholder)}">${esc(coop.myDraft?.[section.id] || "")}</textarea><i data-coop-count="${esc(section.id)}">${String(coop.myDraft?.[section.id] || "").length}/360</i></label>`).join("")}<div class="coop-submit-bar"><span>Write one complete sentence in every box.</span><button class="button large teal" type="submit">Send all ideas to the machine</button></div></form></div>`;
+    return `<div class="student-writing coop-writing"><div class="student-timer timer-box"><span>Time to build eight connected plot beats</span><strong class="timer-live">${formatTime(remainingSeconds(coop))}</strong></div>${coopBriefMarkup()}<section class="student-prompt coop-intro"><div><p class="section-kicker">Structured creative-writing Mad Lib</p><h2>You invent the details. The machine handles the grammar.</h2><p class="muted">Finish each locked sentence stem. Because everyone uses the same story recipe and plot order, randomly selected answers will still belong together.</p></div></section><form id="coop-form" class="coop-prompt-grid">${coop.sections.map((section, index) => `<label class="coop-prompt-card" for="coop-${esc(section.id)}"><span class="coop-step">${index + 1}</span><span class="coop-part-icon">${esc(section.icon)}</span><span><b>${esc(section.label)}</b><strong>${esc(section.prompt)}</strong><small>${esc(section.guidance)}</small></span><p class="coop-sentence-stem"><span>Locked sentence start</span><strong>${esc(section.stem)}</strong><i>…</i></p><textarea id="coop-${esc(section.id)}" name="${esc(section.id)}" data-coop-answer maxlength="360" required placeholder="Finish it: ${esc(section.placeholder)}">${esc(coop.myDraft?.[section.id] || "")}</textarea><i data-coop-count="${esc(section.id)}">${String(coop.myDraft?.[section.id] || "").length}/360</i></label>`).join("")}<div class="coop-submit-bar"><span>Finish every stem with one focused plot detail.</span><button class="button large teal" type="submit">Send all ideas to the machine</button></div></form></div>`;
   }
 
   function coopStoryMarkup() {
     if (!state.coop.storyParts.length) return "";
-    return `<section class="panel coop-story-panel"><div class="panel-head"><div><p class="section-kicker">Built together</p><h2>Our story so far</h2></div></div><div class="panel-body coop-final-story">${state.coop.storyParts.map((part) => {
+    return `<section class="panel coop-story-panel"><div class="panel-head"><div><p class="section-kicker">Built together · ${esc(state.coop.frame?.title || "Shared story")} · ${esc(state.coop.topic?.label || "Shared topic")}</p><h2>Our story so far</h2></div></div><div class="panel-body coop-final-story"><article class="coop-opening"><span>⌁</span><div><p class="coop-bridge">Shared opening</p><p class="coop-prose">${esc(state.coop.frame?.opening || "The class story begins.")}</p><small>Fixed story recipe</small></div></article>${state.coop.storyParts.map((part) => {
       const selection = state.coop.selections.find((item) => item.sectionId === part.sectionId);
       return `<article><span>${esc(part.icon)}</span><div><p class="coop-bridge">${esc(part.bridge)}</p><p class="coop-prose">${esc(part.text)}</p><small>${avatarMarkup(selection?.avatar, "avatar-bubble small")} ${esc(selection?.studentName || "The class")}</small></div></article>`;
     }).join("")}</div></section>`;
@@ -168,12 +175,12 @@
 
   function coopSpinView() {
     const current = state.coop.currentSection;
-    return `<section class="student-state state-hero coop-watch"><div class="state-icon">${esc(current?.icon || "✦")}</div><p class="section-kicker">Story Machine · ${state.coop.selections.length}/${state.coop.sectionCount}</p><h2 class="phase-title">${current ? `Spinning for ${esc(current.label)}` : "Every ingredient is chosen"}</h2><p class="muted">${current ? "Watch the classroom screen. Any class idea could click into place." : "The complete story is about to be revealed."}</p></section>${coopStoryMarkup()}`;
+    return `<section class="student-state state-hero coop-watch"><div class="state-icon">${esc(current?.icon || "✦")}</div><p class="section-kicker">${esc(state.coop.frame?.title || "Story Machine")} · ${esc(state.coop.topic?.label || "Shared topic")} · ${state.coop.selections.length}/${state.coop.sectionCount}</p><h2 class="phase-title">${current ? `Spinning for ${esc(current.label)}` : "Every plot beat is chosen"}</h2><p class="muted">${current ? `The machine is choosing how the class completes “${esc(current.stem)} …”` : "The complete connected story is about to be revealed."}</p></section>${coopStoryMarkup()}`;
   }
 
   function coopFinalView() {
     document.body.classList.add("celebrating");
-    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Created together</p><h2 class="winner-name">Our impossible story</h2><p>${state.playerCount} writers · ${state.coop.sectionCount} story ingredients</p></section>${coopStoryMarkup()}`;
+    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Created together · ${esc(state.coop.topic?.label || "one shared topic")}</p><h2 class="winner-name">${esc(state.coop.frame?.title || "Our impossible story")}</h2><p>${state.playerCount} writers · one protagonist · one problem · one ending</p></section>${coopStoryMarkup()}`;
   }
 
   function finalView() {

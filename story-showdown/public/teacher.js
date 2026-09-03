@@ -1,6 +1,6 @@
 (function () {
   const { escapeHtml: esc, avatarMarkup, toast, emit, formatTime, remainingSeconds, setStateProvider, categoryIcon } = window.StoryCommon;
-  const { COOP_SECTIONS } = window.StoryCoop;
+  const { COOP_STORY_FRAMES, COOP_TOPIC_GROUPS } = window.StoryCoop;
   const app = document.getElementById("app");
   const socket = io({ transports: ["websocket", "polling"] });
   let state = null;
@@ -55,6 +55,22 @@
     createScreen();
   }
 
+  function coopFrameOptions(selected = "random") {
+    return `<option value="random" ${selected === "random" ? "selected" : ""}>Surprise me · random recipe</option>${COOP_STORY_FRAMES.map((frame) => `<option value="${esc(frame.id)}" ${selected === frame.id ? "selected" : ""}>${esc(frame.title)} · ${esc(frame.genre)}</option>`).join("")}`;
+  }
+
+  function coopTopicOptions(selected = "random") {
+    return `<option value="random" ${selected === "random" ? "selected" : ""}>Surprise me · random topic</option><option value="custom" ${selected === "custom" ? "selected" : ""}>Write my own topic…</option>${COOP_TOPIC_GROUPS.map((group) => `<optgroup label="${esc(group.category)}">${group.topics.map((label) => {
+      const id = label.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      return `<option value="${esc(id)}" ${selected === id ? "selected" : ""}>${esc(label)}</option>`;
+    }).join("")}</optgroup>`).join("")}`;
+  }
+
+  function coopBriefMarkup(frame, topic, compact = false) {
+    if (!frame) return "";
+    return `<section class="story-brief ${compact ? "compact" : ""}"><div class="story-brief-top"><span class="story-brief-icon">⌁</span><div><p class="section-kicker">Shared story recipe</p><h2>${esc(frame.title)}</h2></div><div class="story-brief-tags"><span>${esc(frame.genre)}</span><span>${esc(frame.tone)}</span></div></div>${topic ? `<div class="story-topic"><span>Class topic</span><strong>${esc(topic.label)}</strong><small>${esc(topic.category)}</small></div>` : ""}<p>${esc(frame.opening)}</p><small>Every answer must stay with <b>${esc(frame.hero)}</b>, this setting, and this central problem${topic ? ` while exploring <b>${esc(topic.label)}</b>` : ""}.</small></section>`;
+  }
+
   function createScreen() {
     state = null;
     app.innerHTML = `
@@ -66,6 +82,9 @@
           <form id="create-form" class="form-grid">
             <div class="field full"><label for="game-mode">Game mode</label><select id="game-mode" name="gameMode"><option value="competitive">Competitive · Story Showdown</option><option value="cooperative">Cooperative · Story Machine</option></select></div>
             <div class="mode-explainer full" id="coop-mode-explainer" hidden><b>One class. One wonderfully unpredictable story.</b><span>Students write eight one-sentence ingredients for five minutes. You spin the Story Machine to assemble them—no teams, scores, or voting.</span></div>
+            <div class="field full" data-cooperative-setting hidden><label for="coop-frame">Shared story recipe</label><select id="coop-frame" name="coopFrameId">${coopFrameOptions()}</select><span class="fine-print">One protagonist, setting, central problem, tone, and present-tense arc will guide every student.</span></div>
+            <div class="field full" data-cooperative-setting hidden><label for="coop-topic">Broad story topic</label><select id="coop-topic" name="coopTopicId">${coopTopicOptions()}</select><span class="fine-print">Choose from 100 topics, type a first letter to jump through the list, or write your own.</span></div>
+            <div class="field full" data-cooperative-setting data-custom-topic-field hidden><label for="coop-custom-topic">Your broad topic</label><input id="coop-custom-topic" name="coopCustomTopic" maxlength="80" placeholder="Example: When loyalty becomes a problem"><span class="fine-print">Keep it broad enough that every student can interpret it differently.</span></div>
             <div class="field" data-competitive-setting><label for="team-count">Teams</label><select id="team-count" name="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
             <div class="field" data-competitive-setting><label for="round-count">Rounds</label><select id="round-count" name="totalRounds"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
             <div class="field" data-competitive-setting><label for="default-time">Default writing time</label><select id="default-time" name="defaultDuration"><option value="120">Short · 2 minutes</option><option value="240" selected>Medium · 4 minutes</option><option value="360">Long · 6 minutes</option></select></div>
@@ -84,7 +103,20 @@
     if (!form) return;
     const cooperative = form.elements.gameMode.value === "cooperative";
     form.querySelectorAll("[data-competitive-setting]").forEach((element) => { element.hidden = cooperative; });
+    form.querySelectorAll("[data-cooperative-setting]").forEach((element) => { element.hidden = !cooperative; });
     document.getElementById("coop-mode-explainer").hidden = !cooperative;
+    syncCoopTopicField(form);
+  }
+
+  function syncCoopTopicField(form) {
+    if (!form) return;
+    const field = form.querySelector("[data-custom-topic-field]");
+    const input = form.elements.namedItem("coopCustomTopic");
+    if (!field || !input) return;
+    const cooperative = form.elements.namedItem("gameMode")?.value === "cooperative";
+    const custom = cooperative && form.elements.namedItem("coopTopicId")?.value === "custom";
+    field.hidden = !custom;
+    input.required = custom;
   }
 
   function scoreStrip() {
@@ -121,7 +153,7 @@
     const cooperative = state.settings.gameMode === "cooperative";
     return `<form id="settings-form" class="form-grid">
       <div class="field full"><label>Game mode</label><select name="gameMode"><option value="competitive" ${!cooperative ? "selected" : ""}>Competitive · Story Showdown</option><option value="cooperative" ${cooperative ? "selected" : ""}>Cooperative · Story Machine</option></select></div>
-      ${cooperative ? `<div class="mode-explainer full"><b>Cooperative Story Machine</b><span>Eight guided ingredients · five minutes · no teams, scores, or voting.</span></div>` : `
+      ${cooperative ? `<div class="mode-explainer full"><b>Cooperative Story Machine</b><span>Every writer uses the same protagonist, setting, problem, topic, tone, and sentence stems.</span></div><div class="field full"><label>Shared story recipe</label><select name="coopFrameId">${coopFrameOptions(state.settings.coopFrameId)}</select><span class="fine-print">Choose a recipe or let the machine surprise the class when writing starts.</span></div><div class="field full"><label>Broad story topic</label><select name="coopTopicId">${coopTopicOptions(state.settings.coopTopicId)}</select><span class="fine-print">100 ready-made topics, one random choice, or your own idea.</span></div><div class="field full" data-custom-topic-field hidden><label>Your broad topic</label><input name="coopCustomTopic" maxlength="80" value="${esc(state.settings.coopCustomTopic || "")}" placeholder="Example: When loyalty becomes a problem"><span class="fine-print">This becomes the shared thematic lens for all eight plot beats.</span></div>` : `
       <div class="field"><label>Teams</label><select name="teamCount">${[2,3,4,5,6,7,8].map((value) => `<option ${value === state.settings.teamCount ? "selected" : ""}>${value}</option>`).join("")}</select></div>
       <div class="field"><label>Rounds</label><select name="totalRounds">${[1,2,3,4,5,6,7,8,9,10].map((value) => `<option ${value === state.settings.totalRounds ? "selected" : ""}>${value}</option>`).join("")}</select></div>
       <div class="field"><label>Default time</label><select name="defaultDuration">${[[120,"2 minutes"],[240,"4 minutes"],[360,"6 minutes"]].map(([value,label]) => `<option value="${value}" ${value === state.settings.defaultDuration ? "selected" : ""}>${label}</option>`).join("")}</select></div>
@@ -233,13 +265,13 @@
   function coopWritingView() {
     const coop = state.coop;
     const submittedPercent = state.playerCount ? Math.round(coop.submissionCount / state.playerCount * 100) : 0;
-    return `<section class="projector-stage coop-monitor"><div><p class="section-kicker">Cooperative story lab</p><div class="timer-display timer-live">${formatTime(remainingSeconds(coop))}</div><h2 class="projector-copy">Eight ideas. One shared story.</h2><p class="muted">Students are writing complete sentences on their own screens. Drafts save as they type.</p><div class="writing-status">${coop.submissionCount} of ${state.playerCount} writers submitted</div><div class="progress-track"><span style="width:${submittedPercent}%"></span></div></div></section>
+    return `<section class="projector-stage coop-monitor"><div><p class="section-kicker">Cooperative story lab · ${esc(coop.frame?.genre || "Shared story")}</p><div class="timer-display timer-live">${formatTime(remainingSeconds(coop))}</div><h2 class="projector-copy">${esc(coop.frame?.title || "Eight ideas. One shared story.")}</h2><p class="muted">Everyone is building around the same protagonist, setting, problem, topic, and narrative arc.</p>${coopBriefMarkup(coop.frame, coop.topic, true)}<div class="writing-status">${coop.submissionCount} of ${state.playerCount} writers submitted</div><div class="progress-track"><span style="width:${submittedPercent}%"></span></div></div></section>
       <div class="stage-controls"><button class="button ghost" data-action="${coop.pausedRemainingMs !== null ? "coop-resume-timer" : "coop-pause-timer"}">${coop.pausedRemainingMs !== null ? "Resume timer" : "Pause timer"}</button><button class="button soft" data-action="coop-add-time" data-seconds="30">+30 seconds</button><button class="button danger" data-action="coop-end-writing">Collect ideas now</button></div>`;
   }
 
   function coopSelectionMarkup() {
     if (!state.coop.selections.length) return "";
-    return `<section class="panel coop-picked-panel"><div class="panel-head"><div><p class="section-kicker">Story so far</p><h2>Locked ingredients</h2></div></div><div class="panel-body coop-picked-list">${state.coop.storyParts.map((part) => {
+    return `<section class="panel coop-picked-panel"><div class="panel-head"><div><p class="section-kicker">Story so far · ${esc(state.coop.frame?.title || "Shared story")} · ${esc(state.coop.topic?.label || "Shared topic")}</p><h2>One connected plot</h2></div></div><div class="panel-body coop-picked-list"><article class="coop-picked-card coop-opening-card"><span class="coop-part-icon">⌁</span><div><b>Fixed story opening</b><p>${esc(state.coop.frame?.opening || "The class story begins.")}</p><small>Shared by every writer</small></div></article>${state.coop.storyParts.map((part) => {
       const selection = state.coop.selections.find((item) => item.sectionId === part.sectionId);
       return `<article class="coop-picked-card"><span class="coop-part-icon">${esc(part.icon)}</span><div><b>${esc(part.label)}</b><p><em>${esc(part.bridge)}</em> ${esc(part.text)}</p><small>${avatarMarkup(selection?.avatar, "avatar-bubble small")} Contributed by ${esc(selection?.studentName || "the class")}</small></div><button class="button tiny ghost" data-action="coop-spin" data-section-id="${esc(part.sectionId)}">Re-spin</button></article>`;
     }).join("")}</div></section>`;
@@ -248,25 +280,25 @@
   function coopSpinView() {
     const coop = state.coop;
     const section = coopSpinAnimation?.section || coop.currentSection;
-    const displayedSectionIndex = Math.max(0, COOP_SECTIONS.findIndex((item) => item.id === section?.id));
+    const displayedSectionIndex = Math.max(0, coop.sections.findIndex((item) => item.id === section?.id));
     const candidates = section ? (coop.candidatesBySection?.[section.id] || []) : [];
     const slotCopy = coopSpinAnimation?.preview || (section ? "Pull the lever to choose a class idea." : "Every ingredient is locked in.");
     if (!section && coop.complete) {
       return `<section class="projector-stage coop-complete-stage"><div><p class="section-kicker">All ${coop.sectionCount} spins complete</p><div class="state-icon">✦</div><h2 class="projector-copy">Our story is ready to read.</h2><p class="muted">The transitions and sentence polish are already in place.</p><button class="button large gold" data-action="coop-finish">Reveal the complete story</button></div></section>${coopSelectionMarkup()}`;
     }
-    return `<section class="slot-stage"><div class="slot-topline"><span>Spin ${Math.min(displayedSectionIndex + 1, coop.sectionCount)} of ${coop.sectionCount}</span><span>${candidates.length} possible idea${candidates.length === 1 ? "" : "s"}</span></div><div class="slot-section-icon">${esc(section?.icon || "✦")}</div><p class="section-kicker">${esc(section?.label || "Story ingredient")}</p><h2>${esc(section?.prompt || "Our story is ready.")}</h2><div class="slot-machine ${coopSpinAnimation ? "is-spinning" : ""}"><div class="slot-light-row" aria-hidden="true">${"<i></i>".repeat(11)}</div><div class="slot-window"><p id="slot-copy">${esc(slotCopy)}</p></div><div class="slot-light-row" aria-hidden="true">${"<i></i>".repeat(11)}</div></div><p class="slot-guidance">${esc(section?.guidance || "")}</p><button class="button large gold slot-lever" data-action="coop-spin" data-section-id="${esc(section?.id || "")}" ${coopSpinAnimation ? "disabled" : ""}>${coopSpinAnimation ? "Spinning…" : coop.selections.some((item) => item.sectionId === section?.id) ? "Spin this section again" : "Spin the Story Machine"}</button></section>${coopSelectionMarkup()}`;
+    return `<section class="slot-stage"><div class="slot-topline"><span>${esc(coop.frame?.title || "Story Machine")} · ${esc(coop.topic?.label || "Shared topic")} · spin ${Math.min(displayedSectionIndex + 1, coop.sectionCount)} of ${coop.sectionCount}</span><span>${candidates.length} possible idea${candidates.length === 1 ? "" : "s"}</span></div><div class="slot-section-icon">${esc(section?.icon || "✦")}</div><p class="section-kicker">${esc(section?.label || "Story ingredient")}</p><h2>${esc(section?.prompt || "Our story is ready.")}</h2><div class="slot-machine ${coopSpinAnimation ? "is-spinning" : ""}"><div class="slot-light-row" aria-hidden="true">${"<i></i>".repeat(11)}</div><div class="slot-window"><p id="slot-copy">${esc(slotCopy)}</p></div><div class="slot-light-row" aria-hidden="true">${"<i></i>".repeat(11)}</div></div><p class="slot-guidance"><b>${esc(section?.stem || "")}</b> … · ${esc(section?.guidance || "")}</p><button class="button large gold slot-lever" data-action="coop-spin" data-section-id="${esc(section?.id || "")}" ${coopSpinAnimation ? "disabled" : ""}>${coopSpinAnimation ? "Spinning…" : coop.selections.some((item) => item.sectionId === section?.id) ? "Spin this section again" : "Spin the Story Machine"}</button></section>${coopSelectionMarkup()}`;
   }
 
   function coopFinalView() {
     document.body.classList.add("celebrating");
-    return `<section class="final-banner coop-final-banner"><p class="section-kicker" style="color:#ffd47d">Created together</p><h2 class="winner-name">Our impossible story</h2><p>${state.playerCount} writers · ${state.coop.sectionCount} spins · one shared result</p><div class="button-row"><button class="button large gold" type="button" data-action="new-game">Start another game</button></div></section><section class="panel coop-story-panel"><div class="panel-head"><div><p class="section-kicker">Read it aloud</p><h2>The class story</h2></div></div><div class="panel-body coop-final-story">${state.coop.storyParts.map((part) => {
+    return `<section class="final-banner coop-final-banner"><p class="section-kicker" style="color:#ffd47d">Created together · ${esc(state.coop.frame?.genre || "Shared story")}</p><h2 class="winner-name">${esc(state.coop.frame?.title || "Our impossible story")}</h2><p>${state.playerCount} writers · topic: ${esc(state.coop.topic?.label || "shared discovery")} · one complete arc</p><div class="button-row"><button class="button large gold" type="button" data-action="new-game">Start another game</button></div></section><section class="panel coop-story-panel"><div class="panel-head"><div><p class="section-kicker">Read it aloud · ${esc(state.coop.topic?.label || "Shared topic")}</p><h2>The class story</h2></div></div><div class="panel-body coop-final-story"><article class="coop-opening"><span>⌁</span><div><p class="coop-bridge">Shared opening</p><p class="coop-prose">${esc(state.coop.frame?.opening || "The class story begins.")}</p><small>${esc(state.coop.frame?.tone || "Built from one shared recipe")}</small></div></article>${state.coop.storyParts.map((part) => {
       const selection = state.coop.selections.find((item) => item.sectionId === part.sectionId);
       return `<article><span>${esc(part.icon)}</span><div><p class="coop-bridge">${esc(part.bridge)}</p><p class="coop-prose">${esc(part.text)}</p><small>${avatarMarkup(selection?.avatar, "avatar-bubble small")} ${esc(selection?.studentName || "The class")}</small></div></article>`;
     }).join("")}</div></section>`;
   }
 
   async function runCoopSpin(sectionId) {
-    const section = COOP_SECTIONS.find((item) => item.id === sectionId);
+    const section = state.coop.sections.find((item) => item.id === sectionId);
     const candidates = state.coop.candidatesBySection?.[sectionId] || [];
     if (!section || !candidates.length) throw new Error("No ideas are available for this story section.");
     coopSpinAnimation = { section, preview: candidates[0].text };
@@ -334,6 +366,7 @@
       coop_final: coopFinalView
     };
     app.innerHTML = `${gameHeader()}${(views[state.phase] || lobbyView)()}`;
+    syncCoopTopicField(document.getElementById("settings-form"));
     updateTimers();
   }
 
@@ -358,10 +391,13 @@
 
   function settingsPayload(form) {
     const data = new FormData(form);
-    const fallback = state?.settings || { gameMode: "competitive", teamCount: 4, totalRounds: 3, defaultDuration: 240, promptMode: "random", revealNames: true };
+    const fallback = state?.settings || { gameMode: "competitive", coopFrameId: "random", coopTopicId: "random", coopCustomTopic: "", teamCount: 4, totalRounds: 3, defaultDuration: 240, promptMode: "random", revealNames: true };
     const revealControl = form.elements.namedItem("revealNames");
     return {
       gameMode: data.get("gameMode") || fallback.gameMode,
+      coopFrameId: data.get("coopFrameId") || fallback.coopFrameId,
+      coopTopicId: data.get("coopTopicId") || fallback.coopTopicId,
+      coopCustomTopic: data.get("coopCustomTopic") || fallback.coopCustomTopic,
       teamCount: Number(data.get("teamCount")) || fallback.teamCount,
       totalRounds: Number(data.get("totalRounds")) || fallback.totalRounds,
       defaultDuration: Number(data.get("defaultDuration")) || fallback.defaultDuration,
@@ -398,8 +434,17 @@
 
   app.addEventListener("change", async (event) => {
     try {
-      if (event.target.form?.id === "create-form" && event.target.name === "gameMode") syncCreateMode();
-      else if (event.target.form?.id === "settings-form") await saveLobbySettings();
+      if (event.target.form?.id === "create-form") {
+        if (event.target.name === "gameMode") syncCreateMode();
+        if (event.target.name === "coopTopicId") syncCoopTopicField(event.target.form);
+      }
+      else if (event.target.form?.id === "settings-form") {
+        if (event.target.name === "coopTopicId") {
+          syncCoopTopicField(event.target.form);
+          if (event.target.value === "custom") return;
+        }
+        await saveLobbySettings();
+      }
       else if (event.target.dataset.action === "reassign") await teacherAction("teacher:reassign-player", { playerId: event.target.dataset.playerId, teamId: event.target.value });
     }
     catch (error) { toast(error.message); }

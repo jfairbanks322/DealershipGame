@@ -6,7 +6,10 @@ const http = require("http");
 const { Server } = require("socket.io");
 const { prompts: starterPrompts, categories } = require("./prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("./public/avatars");
-const { COOP_SECTIONS, normalizeCoopSentence, buildCoopStory, coopStoryText } = require("./public/coop");
+const {
+  COOP_STORY_FRAMES, COOP_TOPICS, COOP_SECTIONS, coopFrameById, coopTopicById, coopSectionsForFrame,
+  normalizeCoopSentence, formatCoopAnswer, buildCoopStory, coopStoryText
+} = require("./public/coop");
 
 const PORT = Number(process.env.PORT || 3040);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -110,8 +113,14 @@ function normalizeSettings(input = {}) {
   const teamCount = Math.max(2, Math.min(8, Number(input.teamCount) || 4));
   const totalRounds = Math.max(1, Math.min(10, Number(input.totalRounds) || 3));
   const defaultDuration = [120, 240, 360].includes(Number(input.defaultDuration)) ? Number(input.defaultDuration) : 240;
+  const gameMode = input.gameMode === "cooperative" ? "cooperative" : "competitive";
+  const coopTopicId = input.coopTopicId === "random" || input.coopTopicId === "custom" || coopTopicById(input.coopTopicId) ? input.coopTopicId : "random";
+  const coopCustomTopic = cleanText(input.coopCustomTopic, 80).replace(/\s+/g, " ");
   return {
-    gameMode: input.gameMode === "cooperative" ? "cooperative" : "competitive",
+    gameMode,
+    coopFrameId: input.coopFrameId === "random" || COOP_STORY_FRAMES.some((frame) => frame.id === input.coopFrameId) ? input.coopFrameId : "random",
+    coopTopicId,
+    coopCustomTopic,
     teamCount,
     totalRounds,
     defaultDuration,
@@ -121,6 +130,12 @@ function normalizeSettings(input = {}) {
   };
 }
 
+function validateCoopSettings(settings) {
+  if (settings.gameMode === "cooperative" && settings.coopTopicId === "custom" && !settings.coopCustomTopic) {
+    throw new Error("Enter a custom broad topic for the cooperative story.");
+  }
+}
+
 function createGame(input = {}) {
   if (games.size >= MAX_GAMES) {
     const oldest = [...games.values()].sort((a, b) => a.updatedAt - b.updatedAt)[0];
@@ -128,6 +143,7 @@ function createGame(input = {}) {
   }
   const code = randomCode();
   const settings = normalizeSettings(input);
+  validateCoopSettings(settings);
   const game = {
     version: 1,
     code,
@@ -162,6 +178,11 @@ function loadGames() {
       const joiningLocked = Boolean(raw.settings?.joiningLocked);
       raw.settings = { ...normalizeSettings(raw.settings || {}), joiningLocked };
       raw.coopSession ||= null;
+      if (raw.coopSession) {
+        raw.coopSession.structureVersion ||= 1;
+        if (raw.coopSession.structureVersion >= 2 && !raw.coopSession.frame) raw.coopSession.frame = { ...coopFrameById(raw.settings.coopFrameId) };
+        if (raw.coopSession.structureVersion >= 3 && !raw.coopSession.topic) raw.coopSession.topic = makeCoopTopic(raw.settings.coopTopicId, raw.settings.coopCustomTopic);
+      }
       for (const player of Object.values(raw.players)) {
         player.avatarId = normalizeAvatarId(player.avatarId);
         player.coopDraft ||= {};
@@ -266,10 +287,27 @@ function makeRound(game, prompt, duration) {
   };
 }
 
-function makeCoopSession() {
+function makeCoopTopic(topicId = "random", customTopic = "") {
+  const exactTopic = coopTopicById(topicId);
+  if (exactTopic) return { ...exactTopic, custom: false };
+  if (topicId === "custom") return {
+    id: "custom",
+    label: cleanText(customTopic, 80).replace(/\s+/g, " "),
+    category: "Teacher-created",
+    custom: true
+  };
+  return { ...COOP_TOPICS[crypto.randomInt(COOP_TOPICS.length)], custom: false };
+}
+
+function makeCoopSession(frameId = "random", topicId = "random", customTopic = "") {
   const now = Date.now();
+  const exactFrame = COOP_STORY_FRAMES.find((frame) => frame.id === frameId);
+  const frame = exactFrame || COOP_STORY_FRAMES[crypto.randomInt(COOP_STORY_FRAMES.length)];
   return {
     id: token(8),
+    structureVersion: 3,
+    frame: { ...frame },
+    topic: makeCoopTopic(topicId, customTopic),
     durationSeconds: 300,
     startedAt: now,
     endsAt: now + 300_000,
@@ -285,20 +323,27 @@ function activeCoop(game) {
   return game.coopSession;
 }
 
-function cleanCoopAnswers(input = {}, polish = false) {
+function cleanCoopAnswers(input = {}, { polish = false, frame = null, topic = null, structured = false } = {}) {
   return Object.fromEntries(COOP_SECTIONS.map((section) => {
     const cleaned = cleanText(input?.[section.id], 360);
-    return [section.id, polish ? normalizeCoopSentence(cleaned) : cleaned];
+    if (!polish) return [section.id, cleaned];
+    return [section.id, structured ? formatCoopAnswer(section.id, cleaned, frame, topic) : normalizeCoopSentence(cleaned)];
   }));
 }
 
 function submitCoopPlayer(game, player, answers, automatic = false) {
   if (game.phase !== "coop_writing") throw new Error("Cooperative writing is not open.");
   const session = activeCoop(game);
-  const cleaned = cleanCoopAnswers(answers, true);
-  const missing = COOP_SECTIONS.filter((section) => !cleaned[section.id]);
+  const draft = cleanCoopAnswers(answers);
+  const missing = COOP_SECTIONS.filter((section) => !draft[section.id]);
   if (!automatic && missing.length) throw new Error(`Complete every story ingredient before submitting. ${missing.length} still need an idea.`);
-  player.coopDraft = { ...cleaned };
+  const cleaned = cleanCoopAnswers(draft, {
+    polish: true,
+    frame: session.frame,
+    topic: session.topic,
+    structured: session.structureVersion >= 2
+  });
+  player.coopDraft = { ...draft };
   session.submissions[player.id] = {
     playerId: player.id,
     answers: cleaned,
@@ -322,9 +367,13 @@ function endCoopWriting(game, automatic = false) {
 }
 
 function coopCandidates(game, sectionId) {
-  const section = COOP_SECTIONS.find((item) => item.id === sectionId);
-  if (!section) throw new Error("Story section not found.");
   const session = activeCoop(game);
+  const structured = session.structureVersion >= 2;
+  const frame = structured ? { ...coopFrameById(session.frame?.id) } : null;
+  const topic = session.structureVersion >= 3 ? { ...session.topic } : null;
+  const sections = structured ? coopSectionsForFrame(frame, topic) : COOP_SECTIONS;
+  const section = sections.find((item) => item.id === sectionId);
+  if (!section) throw new Error("Story section not found.");
   const candidates = Object.values(session.submissions).flatMap((submission) => {
     const text = normalizeCoopSentence(submission.answers?.[sectionId]);
     if (!text) return [];
@@ -345,7 +394,7 @@ function coopCandidates(game, sectionId) {
     playerId: null,
     studentName: "Story Machine",
     avatarId: null,
-    text: section.fallback
+    text: structured ? formatCoopAnswer(section.id, section.fallback, frame, topic) : section.fallback
   }];
 }
 
@@ -363,25 +412,32 @@ function publicCoopSelection(selection) {
 function coopSnapshot(game, { teacher = false, player = null } = {}) {
   if (!game.coopSession) return null;
   const session = game.coopSession;
+  const structured = session.structureVersion >= 2;
+  const frame = structured ? { ...coopFrameById(session.frame?.id) } : null;
+  const topic = session.structureVersion >= 3 ? { ...session.topic } : null;
+  const sections = structured ? coopSectionsForFrame(frame, topic) : COOP_SECTIONS;
   const selections = session.selections.map(publicCoopSelection);
   const snapshot = {
     id: session.id,
+    structureVersion: session.structureVersion || 1,
+    frame,
+    topic,
     durationSeconds: session.durationSeconds,
     startedAt: session.startedAt,
     endsAt: session.endsAt,
     pausedRemainingMs: session.pausedRemainingMs,
     submissionCount: Object.keys(session.submissions).length,
-    sectionCount: COOP_SECTIONS.length,
-    sections: COOP_SECTIONS,
+    sectionCount: sections.length,
+    sections,
     currentSectionIndex: session.currentSectionIndex,
-    currentSection: COOP_SECTIONS[session.currentSectionIndex] || null,
+    currentSection: sections[session.currentSectionIndex] || null,
     selections,
     storyParts: buildCoopStory(selections),
-    storyText: coopStoryText(selections),
-    complete: session.currentSectionIndex >= COOP_SECTIONS.length
+    storyText: coopStoryText(selections, frame),
+    complete: session.currentSectionIndex >= sections.length
   };
   if (teacher) {
-    snapshot.candidatesBySection = Object.fromEntries(COOP_SECTIONS.map((section) => [
+    snapshot.candidatesBySection = Object.fromEntries(sections.map((section) => [
       section.id,
       coopCandidates(game, section.id).map(publicCoopSelection)
     ]));
@@ -923,6 +979,7 @@ io.on("connection", (socket) => {
     const previousCount = game.settings.teamCount;
     const previousMode = game.settings.gameMode;
     const nextSettings = normalizeSettings({ ...game.settings, ...payload.settings });
+    validateCoopSettings(nextSettings);
     if (previousCount !== nextSettings.teamCount && (game.phase !== "lobby" || game.roundNumber !== 0)) {
       throw new Error("The number of teams can only be changed in the lobby before the game starts.");
     }
@@ -943,15 +1000,17 @@ io.on("connection", (socket) => {
     if (Object.keys(game.players).length < 2) throw new Error("At least two students are needed to start.");
     if (payload.settings) {
       const nextSettings = normalizeSettings({ ...game.settings, ...payload.settings });
+      validateCoopSettings(nextSettings);
       if (nextSettings.teamCount !== game.settings.teamCount) game.teams = makeTeams(nextSettings.teamCount);
       game.settings = { ...game.settings, ...nextSettings, joiningLocked: game.settings.joiningLocked };
     }
+    validateCoopSettings(game.settings);
     if (game.settings.gameMode === "cooperative") {
       for (const player of Object.values(game.players)) {
         player.teamId = null;
         player.coopDraft = {};
       }
-      game.coopSession = makeCoopSession();
+      game.coopSession = makeCoopSession(game.settings.coopFrameId, game.settings.coopTopicId, game.settings.coopCustomTopic);
       game.settings.joiningLocked = true;
       game.phase = "coop_writing";
       game.notice = "Five minutes: write one complete sentence for each story ingredient.";
@@ -1114,12 +1173,13 @@ io.on("connection", (socket) => {
   teacherHandler(socket, "teacher:coop-spin", (game, payload) => {
     if (game.phase !== "coop_spin") throw new Error("The Story Machine is not ready to spin.");
     const session = activeCoop(game);
+    const sections = session.structureVersion >= 2 ? coopSectionsForFrame(coopFrameById(session.frame?.id), session.structureVersion >= 3 ? session.topic : null) : COOP_SECTIONS;
     const requestedSectionId = cleanText(payload.sectionId, 40);
     const section = requestedSectionId
-      ? COOP_SECTIONS.find((item) => item.id === requestedSectionId)
-      : COOP_SECTIONS[session.currentSectionIndex];
+      ? sections.find((item) => item.id === requestedSectionId)
+      : sections[session.currentSectionIndex];
     if (!section) throw new Error("Every story section has already been selected.");
-    const sectionIndex = COOP_SECTIONS.findIndex((item) => item.id === section.id);
+    const sectionIndex = sections.findIndex((item) => item.id === section.id);
     const existingIndex = session.selections.findIndex((selection) => selection.sectionId === section.id);
     if (sectionIndex > session.currentSectionIndex || (existingIndex < 0 && sectionIndex < session.currentSectionIndex)) {
       throw new Error("Spin the story sections in order.");
@@ -1133,10 +1193,10 @@ io.on("connection", (socket) => {
       session.selections.push(selection);
       session.currentSectionIndex += 1;
     }
-    session.selections.sort((a, b) => COOP_SECTIONS.findIndex((sectionItem) => sectionItem.id === a.sectionId) - COOP_SECTIONS.findIndex((sectionItem) => sectionItem.id === b.sectionId));
+    session.selections.sort((a, b) => sections.findIndex((sectionItem) => sectionItem.id === a.sectionId) - sections.findIndex((sectionItem) => sectionItem.id === b.sectionId));
     game.notice = existingIndex >= 0
       ? `${section.label} was spun again. The new piece is locked in.`
-      : `${section.label} is locked in. ${Math.max(0, COOP_SECTIONS.length - session.currentSectionIndex)} spins remain.`;
+      : `${section.label} is locked in. ${Math.max(0, sections.length - session.currentSectionIndex)} spins remain.`;
     return { selection: publicCoopSelection(selection), section };
   });
 
@@ -1392,6 +1452,7 @@ if (require.main === module) {
 
 module.exports = {
   app, server, io, games, createGame, teacherSnapshot, studentSnapshot, starterPrompts,
-  AVATAR_CHOICES, COOP_SECTIONS, normalizeCoopSentence, buildCoopStory, coopStoryText,
+  AVATAR_CHOICES, COOP_STORY_FRAMES, COOP_TOPICS, COOP_SECTIONS, coopFrameById, coopTopicById, coopSectionsForFrame,
+  normalizeCoopSentence, formatCoopAnswer, buildCoopStory, coopStoryText,
   playerLeaderboards, MAX_PLAYERS_PER_GAME
 };

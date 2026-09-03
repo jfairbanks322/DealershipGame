@@ -4,7 +4,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { prompts, categories } = require("../prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("../public/avatars");
-const { COOP_SECTIONS, normalizeCoopSentence, buildCoopStory, coopStoryText } = require("../public/coop");
+const {
+  COOP_STORY_FRAMES, COOP_TOPIC_GROUPS, COOP_TOPICS, COOP_SECTIONS, coopFrameById, coopTopicById, coopSectionsForFrame,
+  normalizeCoopSentence, formatCoopAnswer, buildCoopStory, coopStoryText
+} = require("../public/coop");
 
 test("starter bank contains 144 fully described prompts across the expanded category set", () => {
   const requestedCategories = [
@@ -42,25 +45,44 @@ test("avatar choices are unique, labeled, and safely normalized", () => {
 });
 
 test("cooperative prompts create a polished, connected eight-part story", () => {
+  assert.equal(COOP_STORY_FRAMES.length, 6);
+  assert.equal(new Set(COOP_STORY_FRAMES.map((frame) => frame.id)).size, COOP_STORY_FRAMES.length);
+  assert.ok(COOP_STORY_FRAMES.every((frame) => frame.title && frame.genre && frame.tone && frame.hero && frame.setting && frame.problem && frame.opening));
+  assert.equal(COOP_TOPIC_GROUPS.length, 10);
+  assert.ok(COOP_TOPIC_GROUPS.every((group) => group.category && group.topics.length === 10));
+  assert.equal(COOP_TOPICS.length, 100);
+  assert.equal(new Set(COOP_TOPICS.map((topic) => topic.id)).size, 100);
+  assert.equal(new Set(COOP_TOPICS.map((topic) => topic.label)).size, 100);
+  assert.ok(COOP_TOPICS.every((topic) => topic.id && topic.label && topic.category));
   assert.equal(COOP_SECTIONS.length, 8);
   assert.equal(new Set(COOP_SECTIONS.map((section) => section.id)).size, 8);
-  assert.ok(COOP_SECTIONS.every((section) => section.prompt && section.guidance && section.placeholder && section.bridge && section.fallback));
+  assert.ok(COOP_SECTIONS.every((section) => section.prompt && section.stem && section.guidance && section.placeholder && section.bridge && section.fallback));
   assert.ok(COOP_SECTIONS.some((section) => /make someone laugh/i.test(section.prompt)));
-  assert.ok(COOP_SECTIONS.some((section) => /reaction a group/i.test(section.prompt)));
+  assert.ok(COOP_SECTIONS.some((section) => /nearby group/i.test(section.prompt)));
   assert.equal(normalizeCoopSentence("  a tiny dragon sneezes glitter  "), "A tiny dragon sneezes glitter.");
   assert.equal(normalizeCoopSentence("already finished!"), "Already finished!");
 
+  const frame = coopFrameById("last-bell");
+  const topic = coopTopicById("friendship");
+  const framedSections = coopSectionsForFrame(frame, topic);
+  assert.ok(framedSections.every((section) => !/[{}]/.test(`${section.prompt}${section.stem}`)));
+  assert.ok(framedSections.every((section) => section.prompt.includes("Friendship")));
+  assert.equal(formatCoopAnswer("character", "A cautious inventor who can hear lies", frame, topic), "Rowan is a cautious inventor who can hear lies.");
+  assert.equal(formatCoopAnswer("goal", "Rowan wants to stop the messages!", frame, topic), "Rowan wants to stop the messages!");
+  assert.equal(formatCoopAnswer("setting", "The lights flicker whenever someone lies", frame, topic), "Inside a nearly empty school after the final bell, the lights flicker whenever someone lies.");
+
   const selections = COOP_SECTIONS.map((section, index) => ({
     sectionId: section.id,
-    text: `class idea number ${index + 1}`,
+    text: formatCoopAnswer(section.id, `class idea number ${index + 1}`, frame, topic),
     studentName: `Writer ${index + 1}`
   }));
   const story = buildCoopStory(selections);
   assert.equal(story.length, 8);
   assert.deepEqual(story.map((part) => part.sectionId), COOP_SECTIONS.map((section) => section.id));
   assert.ok(story.every((part) => /^[A-Z]/.test(part.text) && /[.!?]$/.test(part.text)));
-  assert.equal(coopStoryText(selections).split("\n\n").length, 8);
-  assert.match(coopStoryText(selections), new RegExp(COOP_SECTIONS[0].bridge));
+  assert.equal(coopStoryText(selections, frame).split("\n\n").length, 9);
+  assert.ok(coopStoryText(selections, frame).startsWith(frame.opening));
+  assert.match(coopStoryText(selections, frame), new RegExp(COOP_SECTIONS[0].bridge));
 });
 
 test("student game screens always expose a saved-session exit", () => {
