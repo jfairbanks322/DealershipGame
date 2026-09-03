@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { prompts, categories } = require("../prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("../public/avatars");
+const { COOP_SECTIONS, normalizeCoopSentence, buildCoopStory, coopStoryText } = require("../public/coop");
 
 test("starter bank contains 144 fully described prompts across the expanded category set", () => {
   const requestedCategories = [
@@ -38,4 +39,26 @@ test("avatar choices are unique, labeled, and safely normalized", () => {
   assert.equal(normalizeAvatarId("not-a-real-avatar"), AVATAR_CHOICES[0].id);
   assert.equal(avatarFor("dragon").src, "/assets/avatars/dragon.jpg");
   assert.equal(avatarFor("traveling-bard").src, "/assets/avatars/traveling-bard.png");
+});
+
+test("cooperative prompts create a polished, connected eight-part story", () => {
+  assert.equal(COOP_SECTIONS.length, 8);
+  assert.equal(new Set(COOP_SECTIONS.map((section) => section.id)).size, 8);
+  assert.ok(COOP_SECTIONS.every((section) => section.prompt && section.guidance && section.placeholder && section.bridge && section.fallback));
+  assert.ok(COOP_SECTIONS.some((section) => /make someone laugh/i.test(section.prompt)));
+  assert.ok(COOP_SECTIONS.some((section) => /reaction a group/i.test(section.prompt)));
+  assert.equal(normalizeCoopSentence("  a tiny dragon sneezes glitter  "), "A tiny dragon sneezes glitter.");
+  assert.equal(normalizeCoopSentence("already finished!"), "Already finished!");
+
+  const selections = COOP_SECTIONS.map((section, index) => ({
+    sectionId: section.id,
+    text: `class idea number ${index + 1}`,
+    studentName: `Writer ${index + 1}`
+  }));
+  const story = buildCoopStory(selections);
+  assert.equal(story.length, 8);
+  assert.deepEqual(story.map((part) => part.sectionId), COOP_SECTIONS.map((section) => section.id));
+  assert.ok(story.every((part) => /^[A-Z]/.test(part.text) && /[.!?]$/.test(part.text)));
+  assert.equal(coopStoryText(selections).split("\n\n").length, 8);
+  assert.match(coopStoryText(selections), new RegExp(COOP_SECTIONS[0].bridge));
 });

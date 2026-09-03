@@ -140,6 +140,15 @@
       voterCount: round?.voterCount ?? null,
       presentation: round ? { index: round.presentationIndex, count: round.presentationCount, currentLabel: round.currentEntry?.label || null } : null,
       teams: (source.teams || []).map((team) => ({ name: team.name, score: team.score, rank: team.rank })),
+      cooperativeStory: source.coop ? {
+        submissionCount: source.coop.submissionCount,
+        sectionCount: source.coop.sectionCount,
+        currentSectionIndex: source.coop.currentSectionIndex,
+        currentSection: source.coop.currentSection?.label || null,
+        selections: (source.coop.selections || []).map((selection) => ({ sectionId: selection.sectionId, text: selection.text, studentName: selection.studentName })),
+        storyParts: (source.coop.storyParts || []).map((part) => ({ label: part.label, bridge: part.bridge, text: part.text })),
+        complete: Boolean(source.coop.complete)
+      } : null,
       writerLeaders: source.playerLeaderboards?.visible ? {
         overall: source.playerLeaderboards.overall.slice(0, 5).map((entry) => ({ name: entry.name, totalPoints: entry.totalPoints, rank: entry.rank })),
         average: source.playerLeaderboards.average.slice(0, 5).map((entry) => ({ name: entry.name, averagePoints: entry.averagePoints, rank: entry.rank }))

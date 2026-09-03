@@ -6,6 +6,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const { prompts: starterPrompts, categories } = require("./prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("./public/avatars");
+const { COOP_SECTIONS, normalizeCoopSentence, buildCoopStory, coopStoryText } = require("./public/coop");
 
 const PORT = Number(process.env.PORT || 3040);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -110,6 +111,7 @@ function normalizeSettings(input = {}) {
   const totalRounds = Math.max(1, Math.min(10, Number(input.totalRounds) || 3));
   const defaultDuration = [120, 240, 360].includes(Number(input.defaultDuration)) ? Number(input.defaultDuration) : 240;
   return {
+    gameMode: input.gameMode === "cooperative" ? "cooperative" : "competitive",
     teamCount,
     totalRounds,
     defaultDuration,
@@ -138,6 +140,7 @@ function createGame(input = {}) {
     players: {},
     roundNumber: 0,
     currentRound: null,
+    coopSession: null,
     roundHistory: [],
     draftPrompt: null,
     customPrompts: [],
@@ -156,8 +159,12 @@ function loadGames() {
     for (const raw of parsed.games || []) {
       if (!raw.code || !raw.teacherToken) continue;
       raw.players ||= {};
+      const joiningLocked = Boolean(raw.settings?.joiningLocked);
+      raw.settings = { ...normalizeSettings(raw.settings || {}), joiningLocked };
+      raw.coopSession ||= null;
       for (const player of Object.values(raw.players)) {
         player.avatarId = normalizeAvatarId(player.avatarId);
+        player.coopDraft ||= {};
         player.connected = false;
         delete player.socketId;
       }
@@ -257,6 +264,134 @@ function makeRound(game, prompt, duration) {
     baseCounts: null,
     revealCount: 0
   };
+}
+
+function makeCoopSession() {
+  const now = Date.now();
+  return {
+    id: token(8),
+    durationSeconds: 300,
+    startedAt: now,
+    endsAt: now + 300_000,
+    pausedRemainingMs: null,
+    submissions: {},
+    selections: [],
+    currentSectionIndex: 0
+  };
+}
+
+function activeCoop(game) {
+  if (!game.coopSession) throw new Error("There is no cooperative story in progress.");
+  return game.coopSession;
+}
+
+function cleanCoopAnswers(input = {}, polish = false) {
+  return Object.fromEntries(COOP_SECTIONS.map((section) => {
+    const cleaned = cleanText(input?.[section.id], 360);
+    return [section.id, polish ? normalizeCoopSentence(cleaned) : cleaned];
+  }));
+}
+
+function submitCoopPlayer(game, player, answers, automatic = false) {
+  if (game.phase !== "coop_writing") throw new Error("Cooperative writing is not open.");
+  const session = activeCoop(game);
+  const cleaned = cleanCoopAnswers(answers, true);
+  const missing = COOP_SECTIONS.filter((section) => !cleaned[section.id]);
+  if (!automatic && missing.length) throw new Error(`Complete every story ingredient before submitting. ${missing.length} still need an idea.`);
+  player.coopDraft = { ...cleaned };
+  session.submissions[player.id] = {
+    playerId: player.id,
+    answers: cleaned,
+    submittedAt: Date.now(),
+    automatic: Boolean(automatic)
+  };
+}
+
+function endCoopWriting(game, automatic = false) {
+  if (game.phase !== "coop_writing") return;
+  const session = activeCoop(game);
+  for (const player of Object.values(game.players)) {
+    if (!session.submissions[player.id]) submitCoopPlayer(game, player, player.coopDraft || {}, true);
+  }
+  session.endsAt = Date.now();
+  session.pausedRemainingMs = null;
+  game.phase = "coop_spin";
+  game.notice = automatic
+    ? "Time is up. Every saved idea is in the Story Machine."
+    : "Ideas collected. Spin one story ingredient at a time.";
+}
+
+function coopCandidates(game, sectionId) {
+  const section = COOP_SECTIONS.find((item) => item.id === sectionId);
+  if (!section) throw new Error("Story section not found.");
+  const session = activeCoop(game);
+  const candidates = Object.values(session.submissions).flatMap((submission) => {
+    const text = normalizeCoopSentence(submission.answers?.[sectionId]);
+    if (!text) return [];
+    const player = game.players[submission.playerId];
+    return [{
+      id: `${sectionId}-${submission.playerId}`,
+      sectionId,
+      playerId: submission.playerId,
+      studentName: player?.name || "A classmate",
+      avatarId: player?.avatarId || null,
+      text
+    }];
+  });
+  if (candidates.length) return candidates;
+  return [{
+    id: `${sectionId}-fallback`,
+    sectionId,
+    playerId: null,
+    studentName: "Story Machine",
+    avatarId: null,
+    text: section.fallback
+  }];
+}
+
+function publicCoopSelection(selection) {
+  return {
+    id: selection.id,
+    sectionId: selection.sectionId,
+    playerId: selection.playerId,
+    studentName: selection.studentName,
+    avatar: selection.avatarId ? avatarFor(selection.avatarId) : null,
+    text: normalizeCoopSentence(selection.text)
+  };
+}
+
+function coopSnapshot(game, { teacher = false, player = null } = {}) {
+  if (!game.coopSession) return null;
+  const session = game.coopSession;
+  const selections = session.selections.map(publicCoopSelection);
+  const snapshot = {
+    id: session.id,
+    durationSeconds: session.durationSeconds,
+    startedAt: session.startedAt,
+    endsAt: session.endsAt,
+    pausedRemainingMs: session.pausedRemainingMs,
+    submissionCount: Object.keys(session.submissions).length,
+    sectionCount: COOP_SECTIONS.length,
+    sections: COOP_SECTIONS,
+    currentSectionIndex: session.currentSectionIndex,
+    currentSection: COOP_SECTIONS[session.currentSectionIndex] || null,
+    selections,
+    storyParts: buildCoopStory(selections),
+    storyText: coopStoryText(selections),
+    complete: session.currentSectionIndex >= COOP_SECTIONS.length
+  };
+  if (teacher) {
+    snapshot.candidatesBySection = Object.fromEntries(COOP_SECTIONS.map((section) => [
+      section.id,
+      coopCandidates(game, section.id).map(publicCoopSelection)
+    ]));
+  }
+  if (player) {
+    snapshot.myDraft = player.coopDraft || {};
+    const submission = session.submissions[player.id];
+    snapshot.mySubmission = submission ? { answers: submission.answers, automatic: Boolean(submission.automatic) } : null;
+  }
+  return snapshot;
 }
 
 function inappropriateFlags(text) {
@@ -532,6 +667,7 @@ function baseSnapshot(game) {
     maxPlayers: MAX_PLAYERS_PER_GAME,
     connectedCount: Object.values(game.players).filter((player) => player.connected).length,
     notice: game.notice,
+    coop: coopSnapshot(game),
     round: round ? {
       id: round.id,
       number: round.number,
@@ -555,6 +691,7 @@ function baseSnapshot(game) {
 
 function teacherSnapshot(game) {
   const snapshot = baseSnapshot(game);
+  snapshot.coop = coopSnapshot(game, { teacher: true });
   snapshot.players = Object.values(game.players).map(publicPlayer).sort((a, b) => a.name.localeCompare(b.name));
   if (["pre_round", "leaderboard", "final"].includes(game.phase)) snapshot.playerLeaderboards = playerLeaderboards(game);
   snapshot.promptBank = starterPrompts;
@@ -589,6 +726,7 @@ function teacherSnapshot(game) {
 function studentSnapshot(game, player) {
   const snapshot = baseSnapshot(game);
   snapshot.me = publicPlayer(player);
+  snapshot.coop = coopSnapshot(game, { player });
   if (["pre_round", "leaderboard", "final"].includes(game.phase)) snapshot.playerLeaderboards = playerLeaderboards(game);
   snapshot.players = ["lobby", "team_reveal", "pre_round", "leaderboard", "final"].includes(game.phase)
     ? Object.values(game.players).map(publicPlayer)
@@ -689,7 +827,7 @@ io.on("connection", (socket) => {
         player = {
           id: token(8), sessionToken: token(), name,
           avatarId: normalizeAvatarId(payload.avatarId),
-          teamId: null, connected: true, joinedAt: Date.now(), draftText: ""
+          teamId: null, connected: true, joinedAt: Date.now(), draftText: "", coopDraft: {}
         };
         game.players[player.id] = player;
         if (game.phase !== "lobby" && game.teams.length) {
@@ -735,6 +873,33 @@ io.on("connection", (socket) => {
     } catch (error) { failure(ack, error); }
   });
 
+  socket.on("student:coop-draft", (payload = {}, ack) => {
+    try {
+      const game = getGame(socket.data.code);
+      const player = game?.players[socket.data.playerId];
+      if (!game || !player) throw new Error("Reconnect to the game first.");
+      const session = activeCoop(game);
+      if (game.phase !== "coop_writing" || session.submissions[player.id]) throw new Error("These story ingredients can no longer be edited.");
+      player.coopDraft = cleanCoopAnswers(payload.answers || {});
+      changed(game);
+      success(ack);
+    } catch (error) { failure(ack, error); }
+  });
+
+  socket.on("student:coop-submit", (payload = {}, ack) => {
+    try {
+      const game = getGame(socket.data.code);
+      const player = game?.players[socket.data.playerId];
+      if (!game || !player) throw new Error("Reconnect to the game first.");
+      const session = activeCoop(game);
+      if (session.submissions[player.id]) throw new Error("Your story ingredients are already submitted.");
+      submitCoopPlayer(game, player, payload.answers || {}, false);
+      changed(game);
+      emitGame(game);
+      success(ack);
+    } catch (error) { failure(ack, error); }
+  });
+
   socket.on("student:vote", (payload = {}, ack) => {
     try {
       const game = getGame(socket.data.code);
@@ -756,9 +921,13 @@ io.on("connection", (socket) => {
   teacherHandler(socket, "teacher:update-settings", (game, payload) => {
     if (!["lobby", "pre_round", "leaderboard"].includes(game.phase)) throw new Error("These settings cannot be changed during an active round.");
     const previousCount = game.settings.teamCount;
+    const previousMode = game.settings.gameMode;
     const nextSettings = normalizeSettings({ ...game.settings, ...payload.settings });
     if (previousCount !== nextSettings.teamCount && (game.phase !== "lobby" || game.roundNumber !== 0)) {
       throw new Error("The number of teams can only be changed in the lobby before the game starts.");
+    }
+    if (previousMode !== nextSettings.gameMode && (game.phase !== "lobby" || game.roundNumber !== 0)) {
+      throw new Error("The game mode can only be changed in the lobby before the game starts.");
     }
     game.settings = { ...game.settings, ...nextSettings, joiningLocked: game.settings.joiningLocked };
     if (previousCount !== game.settings.teamCount) game.teams = makeTeams(game.settings.teamCount);
@@ -776,6 +945,17 @@ io.on("connection", (socket) => {
       const nextSettings = normalizeSettings({ ...game.settings, ...payload.settings });
       if (nextSettings.teamCount !== game.settings.teamCount) game.teams = makeTeams(nextSettings.teamCount);
       game.settings = { ...game.settings, ...nextSettings, joiningLocked: game.settings.joiningLocked };
+    }
+    if (game.settings.gameMode === "cooperative") {
+      for (const player of Object.values(game.players)) {
+        player.teamId = null;
+        player.coopDraft = {};
+      }
+      game.coopSession = makeCoopSession();
+      game.settings.joiningLocked = true;
+      game.phase = "coop_writing";
+      game.notice = "Five minutes: write one complete sentence for each story ingredient.";
+      return;
     }
     assignTeams(game);
     game.settings.joiningLocked = true;
@@ -799,6 +979,7 @@ io.on("connection", (socket) => {
     const player = game.players[payload.playerId];
     if (!player) throw new Error("Student not found.");
     if (game.phase === "writing" && !game.currentRound.submissions[player.id]) submitPlayer(game, player, player.draftText || "", true);
+    if (game.phase === "coop_writing" && !game.coopSession.submissions[player.id]) submitCoopPlayer(game, player, player.coopDraft || {}, true);
     const targetSocket = player.socketId ? io.sockets.sockets.get(player.socketId) : null;
     targetSocket?.emit("removed", { message: "The teacher removed you from this game." });
     targetSocket?.disconnect(true);
@@ -901,6 +1082,71 @@ io.on("connection", (socket) => {
   });
 
   teacherHandler(socket, "teacher:end-writing", (game) => endWriting(game, false));
+
+  teacherHandler(socket, "teacher:coop-pause-timer", (game) => {
+    const session = activeCoop(game);
+    if (game.phase !== "coop_writing") throw new Error("Cooperative writing is not open.");
+    if (session.pausedRemainingMs !== null) throw new Error("The timer is already paused.");
+    session.pausedRemainingMs = Math.max(0, session.endsAt - Date.now());
+    session.endsAt = null;
+    game.notice = "The cooperative writing timer is paused.";
+  });
+
+  teacherHandler(socket, "teacher:coop-resume-timer", (game) => {
+    const session = activeCoop(game);
+    if (game.phase !== "coop_writing" || session.pausedRemainingMs === null) throw new Error("The timer is not paused.");
+    session.endsAt = Date.now() + session.pausedRemainingMs;
+    session.pausedRemainingMs = null;
+    game.notice = "The cooperative writing timer resumed.";
+  });
+
+  teacherHandler(socket, "teacher:coop-add-time", (game, payload) => {
+    const session = activeCoop(game);
+    if (game.phase !== "coop_writing") throw new Error("Cooperative writing is not open.");
+    const extraMs = Math.max(10, Math.min(300, Number(payload.seconds) || 30)) * 1000;
+    if (session.pausedRemainingMs !== null) session.pausedRemainingMs += extraMs;
+    else session.endsAt += extraMs;
+    game.notice = `${Math.round(extraMs / 1000)} seconds added to cooperative writing.`;
+  });
+
+  teacherHandler(socket, "teacher:coop-end-writing", (game) => endCoopWriting(game, false));
+
+  teacherHandler(socket, "teacher:coop-spin", (game, payload) => {
+    if (game.phase !== "coop_spin") throw new Error("The Story Machine is not ready to spin.");
+    const session = activeCoop(game);
+    const requestedSectionId = cleanText(payload.sectionId, 40);
+    const section = requestedSectionId
+      ? COOP_SECTIONS.find((item) => item.id === requestedSectionId)
+      : COOP_SECTIONS[session.currentSectionIndex];
+    if (!section) throw new Error("Every story section has already been selected.");
+    const sectionIndex = COOP_SECTIONS.findIndex((item) => item.id === section.id);
+    const existingIndex = session.selections.findIndex((selection) => selection.sectionId === section.id);
+    if (sectionIndex > session.currentSectionIndex || (existingIndex < 0 && sectionIndex < session.currentSectionIndex)) {
+      throw new Error("Spin the story sections in order.");
+    }
+    let candidates = coopCandidates(game, section.id);
+    const previous = existingIndex >= 0 ? session.selections[existingIndex] : null;
+    if (previous && candidates.length > 1) candidates = candidates.filter((candidate) => candidate.id !== previous.id);
+    const selection = { ...candidates[crypto.randomInt(candidates.length)] };
+    if (existingIndex >= 0) session.selections[existingIndex] = selection;
+    else {
+      session.selections.push(selection);
+      session.currentSectionIndex += 1;
+    }
+    session.selections.sort((a, b) => COOP_SECTIONS.findIndex((sectionItem) => sectionItem.id === a.sectionId) - COOP_SECTIONS.findIndex((sectionItem) => sectionItem.id === b.sectionId));
+    game.notice = existingIndex >= 0
+      ? `${section.label} was spun again. The new piece is locked in.`
+      : `${section.label} is locked in. ${Math.max(0, COOP_SECTIONS.length - session.currentSectionIndex)} spins remain.`;
+    return { selection: publicCoopSelection(selection), section };
+  });
+
+  teacherHandler(socket, "teacher:coop-finish", (game) => {
+    if (game.phase !== "coop_spin") throw new Error("The cooperative story is not ready.");
+    const session = activeCoop(game);
+    if (session.currentSectionIndex < COOP_SECTIONS.length) throw new Error("Spin every story section first.");
+    game.phase = "coop_final";
+    game.notice = "The class story is complete.";
+  });
 
   teacherHandler(socket, "teacher:moderate", (game, payload) => {
     if (!["review", "presentation"].includes(game.phase)) throw new Error("Moderation is not available now.");
@@ -1116,6 +1362,12 @@ setInterval(() => {
       changed(game);
       emitGame(game);
     }
+    const coop = game.coopSession;
+    if (game.phase === "coop_writing" && coop?.endsAt && now >= coop.endsAt) {
+      endCoopWriting(game, true);
+      changed(game);
+      emitGame(game);
+    }
   }
 }, 250);
 
@@ -1140,5 +1392,6 @@ if (require.main === module) {
 
 module.exports = {
   app, server, io, games, createGame, teacherSnapshot, studentSnapshot, starterPrompts,
-  AVATAR_CHOICES, playerLeaderboards, MAX_PLAYERS_PER_GAME
+  AVATAR_CHOICES, COOP_SECTIONS, normalizeCoopSentence, buildCoopStory, coopStoryText,
+  playerLeaderboards, MAX_PLAYERS_PER_GAME
 };

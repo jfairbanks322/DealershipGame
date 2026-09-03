@@ -1,6 +1,7 @@
 (function () {
   const { escapeHtml: esc, avatarMarkup, toast, emit, formatTime, remainingSeconds, wordCount, setStateProvider, categoryIcon } = window.StoryCommon;
   const { AVATAR_CHOICES } = window.StoryAvatars;
+  const { COOP_SECTIONS } = window.StoryCoop;
   const app = document.getElementById("app");
   const socket = io({ transports: ["websocket", "polling"] });
   let state = null;
@@ -46,7 +47,8 @@
     return team ? `<span class="student-team-badge" style="--team-color:${esc(team.color)}">${esc(team.name)}</span>` : "";
   }
   function shell(content) {
-    return `<div class="game-header"><div class="student-profile-title">${avatarMarkup(state.me.avatar, "profile-avatar", true)}<div><p class="section-kicker">Round ${state.roundNumber}/${state.totalRounds}</p><h1>${esc(state.me.name)}’s desk</h1></div></div><div class="game-meta"><span class="code-pill">${esc(state.code)}</span>${teamBadge()}</div></div><div class="notice-bar">${esc(state.notice || "Connected to the game.")}</div>${content}`;
+    const cooperative = state.settings.gameMode === "cooperative";
+    return `<div class="game-header"><div class="student-profile-title">${avatarMarkup(state.me.avatar, "profile-avatar", true)}<div><p class="section-kicker">${cooperative ? "Cooperative Story Machine" : `Round ${state.roundNumber}/${state.totalRounds}`}</p><h1>${esc(state.me.name)}’s desk</h1></div></div><div class="game-meta"><span class="code-pill">${esc(state.code)}</span>${cooperative ? '<span class="phase-pill">One class · one story</span>' : teamBadge()}</div></div><div class="notice-bar">${esc(state.notice || "Connected to the game.")}</div>${content}`;
   }
 
   function waitState(icon, kicker, title, copy, extra = "") {
@@ -55,7 +57,8 @@
 
   function lobbyView() {
     const maxPlayers = state.maxPlayers || 30;
-    return waitState("✦", "You’re in", "The room is gathering", `${state.playerCount} of ${maxPlayers} writers joined. Your teacher will start when everyone is ready.`, `<div class="feature-row"><span>${state.connectedCount} online</span><i></i><span>No refresh needed</span></div>`);
+    const cooperative = state.settings.gameMode === "cooperative";
+    return waitState(cooperative ? "⁂" : "✦", "You’re in", cooperative ? "The Story Machine is gathering ideas" : "The room is gathering", `${state.playerCount} of ${maxPlayers} writers joined. ${cooperative ? "You’ll have five minutes to write eight one-sentence story ingredients." : "Your teacher will start when everyone is ready."}`, `<div class="feature-row"><span>${state.connectedCount} online</span><i></i><span>${cooperative ? "No scores · create together" : "No refresh needed"}</span></div>`);
   }
 
   function teamRevealView() {
@@ -122,6 +125,38 @@
     return `<section class="panel"><div class="panel-head"><div><p class="section-kicker">After round ${state.roundNumber}</p><h2>Team standings</h2></div></div><div class="panel-body">${leaderboardMarkup()}<p class="muted" style="text-align:center">The next prompt is coming soon.</p></div></section>${writerLeaderboardPanel()}`;
   }
 
+  function coopAnswersFromForm(form = document.getElementById("coop-form")) {
+    if (!form) return state.coop?.myDraft || {};
+    const data = new FormData(form);
+    return Object.fromEntries(COOP_SECTIONS.map((section) => [section.id, data.get(section.id) || ""]));
+  }
+
+  function coopWritingView() {
+    const coop = state.coop;
+    if (coop.mySubmission) {
+      return waitState("✓", "Ideas submitted", "Your ingredients are in the machine", `${coop.submissionCount} of ${state.playerCount} writers are ready. Watch the classroom screen when the spinning begins.`, '<div class="feature-row"><span>Draft locked</span><i></i><span>Creating together</span></div>');
+    }
+    return `<div class="student-writing coop-writing"><div class="student-timer timer-box"><span>Time to write eight ingredients</span><strong class="timer-live">${formatTime(remainingSeconds(coop))}</strong></div><section class="student-prompt coop-intro"><div><p class="section-kicker">Creative writing Mad Lib</p><h2>Complete sentences make the magic work.</h2><p class="muted">Each box is a separate idea. The Story Machine will randomly choose one class answer for every part.</p></div></section><form id="coop-form" class="coop-prompt-grid">${COOP_SECTIONS.map((section, index) => `<label class="coop-prompt-card" for="coop-${esc(section.id)}"><span class="coop-step">${index + 1}</span><span class="coop-part-icon">${esc(section.icon)}</span><span><b>${esc(section.label)}</b><strong>${esc(section.prompt)}</strong><small>${esc(section.guidance)}</small></span><textarea id="coop-${esc(section.id)}" name="${esc(section.id)}" data-coop-answer maxlength="360" required placeholder="Example: ${esc(section.placeholder)}">${esc(coop.myDraft?.[section.id] || "")}</textarea><i data-coop-count="${esc(section.id)}">${String(coop.myDraft?.[section.id] || "").length}/360</i></label>`).join("")}<div class="coop-submit-bar"><span>Write one complete sentence in every box.</span><button class="button large teal" type="submit">Send all ideas to the machine</button></div></form></div>`;
+  }
+
+  function coopStoryMarkup() {
+    if (!state.coop.storyParts.length) return "";
+    return `<section class="panel coop-story-panel"><div class="panel-head"><div><p class="section-kicker">Built together</p><h2>Our story so far</h2></div></div><div class="panel-body coop-final-story">${state.coop.storyParts.map((part) => {
+      const selection = state.coop.selections.find((item) => item.sectionId === part.sectionId);
+      return `<article><span>${esc(part.icon)}</span><div><p class="coop-bridge">${esc(part.bridge)}</p><p class="coop-prose">${esc(part.text)}</p><small>${avatarMarkup(selection?.avatar, "avatar-bubble small")} ${esc(selection?.studentName || "The class")}</small></div></article>`;
+    }).join("")}</div></section>`;
+  }
+
+  function coopSpinView() {
+    const current = state.coop.currentSection;
+    return `<section class="student-state state-hero coop-watch"><div class="state-icon">${esc(current?.icon || "✦")}</div><p class="section-kicker">Story Machine · ${state.coop.selections.length}/${state.coop.sectionCount}</p><h2 class="phase-title">${current ? `Spinning for ${esc(current.label)}` : "Every ingredient is chosen"}</h2><p class="muted">${current ? "Watch the classroom screen. Any class idea could click into place." : "The complete story is about to be revealed."}</p></section>${coopStoryMarkup()}`;
+  }
+
+  function coopFinalView() {
+    document.body.classList.add("celebrating");
+    return `<section class="final-banner"><p class="section-kicker" style="color:#ffd47d">Created together</p><h2 class="winner-name">Our impossible story</h2><p>${state.playerCount} writers · ${state.coop.sectionCount} story ingredients</p></section>${coopStoryMarkup()}`;
+  }
+
   function finalView() {
     const winner = state.teams[0];
     document.body.classList.add("celebrating");
@@ -131,7 +166,7 @@
   function render() {
     if (!state) return joinScreen();
     document.body.classList.toggle("celebrating", state.phase === "final");
-    const views = { lobby: lobbyView, team_reveal: teamRevealView, pre_round: preRoundView, writing: writingView, review: watchingView, presentation: presentationView, voting: votingView, tie: tieView, results: resultsView, leaderboard: leaderboardView, final: finalView };
+    const views = { lobby: lobbyView, team_reveal: teamRevealView, pre_round: preRoundView, writing: writingView, review: watchingView, presentation: presentationView, voting: votingView, tie: tieView, results: resultsView, leaderboard: leaderboardView, final: finalView, coop_writing: coopWritingView, coop_spin: coopSpinView, coop_final: coopFinalView };
     app.innerHTML = shell((views[state.phase] || lobbyView)());
     updateTimer();
   }
@@ -139,8 +174,9 @@
   function updateTimer() {
     const timer = document.querySelector(".timer-live");
     const box = document.querySelector(".timer-box");
-    if (!timer || !state?.round) return;
-    const remaining = remainingSeconds(state.round);
+    const timerSource = state?.phase === "coop_writing" ? state.coop : state?.round;
+    if (!timer || !timerSource) return;
+    const remaining = remainingSeconds(timerSource);
     timer.textContent = formatTime(remaining);
     box?.classList.toggle("warning", remaining <= 60 && remaining > 10);
     box?.classList.toggle("urgent", remaining <= 10);
@@ -159,21 +195,29 @@
   }
 
   app.addEventListener("submit", async (event) => {
-    if (event.target.id !== "join-form") return;
+    if (!["join-form", "coop-form"].includes(event.target.id)) return;
     event.preventDefault();
-    const data = new FormData(event.target);
     const button = event.target.querySelector("button");
     try {
       button.disabled = true;
-      await connectSession({ code: String(data.get("code")).toUpperCase(), name: data.get("name"), avatarId: data.get("avatarId"), sessionToken: null });
+      if (event.target.id === "join-form") {
+        const data = new FormData(event.target);
+        await connectSession({ code: String(data.get("code")).toUpperCase(), name: data.get("name"), avatarId: data.get("avatarId"), sessionToken: null });
+      } else await emit(socket, "student:coop-submit", { answers: coopAnswersFromForm(event.target) });
     } catch (error) { toast(error.message); button.disabled = false; }
   });
 
   app.addEventListener("input", (event) => {
-    if (event.target.id !== "response-draft") return;
-    document.getElementById("word-count").textContent = `${wordCount(event.target.value)} words`;
-    clearTimeout(draftTimer);
-    draftTimer = setTimeout(() => emit(socket, "student:draft", { text: event.target.value }).catch(() => {}), 500);
+    if (event.target.id === "response-draft") {
+      document.getElementById("word-count").textContent = `${wordCount(event.target.value)} words`;
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => emit(socket, "student:draft", { text: event.target.value }).catch(() => {}), 500);
+    } else if (event.target.matches("[data-coop-answer]")) {
+      const count = document.querySelector(`[data-coop-count="${CSS.escape(event.target.name)}"]`);
+      if (count) count.textContent = `${event.target.value.length}/360`;
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => emit(socket, "student:coop-draft", { answers: coopAnswersFromForm() }).catch(() => {}), 500);
+    }
   });
 
   app.addEventListener("click", async (event) => {
@@ -190,15 +234,27 @@
   });
 
   socket.on("state", (nextState) => {
+    const phaseChanged = Boolean(state?.phase && state.phase !== nextState.phase);
     const sameWritingInput = state?.phase === "writing" && nextState.phase === "writing" && document.activeElement?.id === "response-draft";
     const liveDraft = sameWritingInput ? document.activeElement.value : null;
+    const sameCoopInput = state?.phase === "coop_writing" && nextState.phase === "coop_writing" && document.activeElement?.matches("[data-coop-answer]");
+    const activeCoopField = sameCoopInput ? document.activeElement.name : null;
+    const liveCoopDraft = sameCoopInput ? coopAnswersFromForm() : null;
+    const coopCursor = sameCoopInput ? document.activeElement.selectionStart : null;
     state = nextState;
     if (liveDraft !== null) state.round.myDraft = liveDraft;
+    if (liveCoopDraft) state.coop.myDraft = liveCoopDraft;
     render();
+    if (phaseChanged) window.scrollTo({ top: 0, behavior: "auto" });
     if (sameWritingInput) {
       const textarea = document.getElementById("response-draft");
       textarea?.focus();
       textarea?.setSelectionRange(liveDraft.length, liveDraft.length);
+    }
+    if (activeCoopField) {
+      const textarea = document.querySelector(`[data-coop-answer][name="${CSS.escape(activeCoopField)}"]`);
+      textarea?.focus();
+      textarea?.setSelectionRange(coopCursor, coopCursor);
     }
   });
   socket.on("removed", ({ message }) => { localStorage.removeItem(`storyShowdownStudent:${session?.code}`); session = null; joinScreen(message); });

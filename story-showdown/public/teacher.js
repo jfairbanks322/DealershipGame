@@ -1,14 +1,17 @@
 (function () {
   const { escapeHtml: esc, avatarMarkup, toast, emit, formatTime, remainingSeconds, setStateProvider, categoryIcon } = window.StoryCommon;
+  const { COOP_SECTIONS } = window.StoryCoop;
   const app = document.getElementById("app");
   const socket = io({ transports: ["websocket", "polling"] });
   let state = null;
   let credentials = null;
+  let coopSpinAnimation = null;
 
   const phaseNames = {
     lobby: "Lobby", team_reveal: "Team reveal", pre_round: "Prompt lab", writing: "Writing",
     review: "Private review", presentation: "Presentation", voting: "Voting", tie: "Tie decision",
-    results: "Round results", leaderboard: "Leaderboard", final: "Final results"
+    results: "Round results", leaderboard: "Leaderboard", final: "Final results",
+    coop_writing: "Story ingredients", coop_spin: "Story Machine", coop_final: "Our class story"
   };
 
   setStateProvider(() => state || { mode: "teacher setup" });
@@ -61,19 +64,31 @@
           <h1>Start a new showdown</h1>
           <p class="muted">Choose the class structure now. You can fine-tune the prompt and timer before every round.</p>
           <form id="create-form" class="form-grid">
-            <div class="field"><label for="team-count">Teams</label><select id="team-count" name="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
-            <div class="field"><label for="round-count">Rounds</label><select id="round-count" name="totalRounds"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
-            <div class="field"><label for="default-time">Default writing time</label><select id="default-time" name="defaultDuration"><option value="120">Short · 2 minutes</option><option value="240" selected>Medium · 4 minutes</option><option value="360">Long · 6 minutes</option></select></div>
-            <div class="field"><label for="prompt-mode">Prompt selection</label><select id="prompt-mode" name="promptMode"><option value="random">Random prompt bank</option><option value="manual">Teacher chooses</option></select></div>
-            <label class="check-row full"><input type="checkbox" name="revealNames" checked><span>Reveal student names after voting closes</span></label>
+            <div class="field full"><label for="game-mode">Game mode</label><select id="game-mode" name="gameMode"><option value="competitive">Competitive · Story Showdown</option><option value="cooperative">Cooperative · Story Machine</option></select></div>
+            <div class="mode-explainer full" id="coop-mode-explainer" hidden><b>One class. One wonderfully unpredictable story.</b><span>Students write eight one-sentence ingredients for five minutes. You spin the Story Machine to assemble them—no teams, scores, or voting.</span></div>
+            <div class="field" data-competitive-setting><label for="team-count">Teams</label><select id="team-count" name="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
+            <div class="field" data-competitive-setting><label for="round-count">Rounds</label><select id="round-count" name="totalRounds"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
+            <div class="field" data-competitive-setting><label for="default-time">Default writing time</label><select id="default-time" name="defaultDuration"><option value="120">Short · 2 minutes</option><option value="240" selected>Medium · 4 minutes</option><option value="360">Long · 6 minutes</option></select></div>
+            <div class="field" data-competitive-setting><label for="prompt-mode">Prompt selection</label><select id="prompt-mode" name="promptMode"><option value="random">Random prompt bank</option><option value="manual">Teacher chooses</option></select></div>
+            <label class="check-row full" data-competitive-setting><input type="checkbox" name="revealNames" checked><span>Reveal student names after voting closes</span></label>
             <div class="field full"><button class="button large full" type="submit">Create game</button></div>
           </form>
           <p class="fine-print">Supports up to 30 students. They join with a temporary classroom name; no account, email, camera, or microphone is used.</p>
         </section>
       </div>`;
+    syncCreateMode();
+  }
+
+  function syncCreateMode() {
+    const form = document.getElementById("create-form");
+    if (!form) return;
+    const cooperative = form.elements.gameMode.value === "cooperative";
+    form.querySelectorAll("[data-competitive-setting]").forEach((element) => { element.hidden = cooperative; });
+    document.getElementById("coop-mode-explainer").hidden = !cooperative;
   }
 
   function scoreStrip() {
+    if (state.settings.gameMode === "cooperative") return "";
     return `<div class="score-strip">${state.teams.map((team) => `
       <div class="score-chip" style="--team-color:${esc(team.color)}">
         <b>${esc(team.name)}</b><strong>${team.score.toLocaleString()}</strong>
@@ -82,9 +97,11 @@
   }
 
   function gameHeader() {
+    const cooperative = state.settings.gameMode === "cooperative";
+    const progressPill = cooperative ? '<span class="phase-pill">Co-op story</span>' : `<span class="phase-pill">Round ${state.roundNumber}/${state.totalRounds}</span>`;
     return `<div class="game-header">
       <div><p class="section-kicker">Teacher control room</p><h1>${state.phase === "final" ? "The final page" : phaseNames[state.phase] || "Story Showdown"}</h1></div>
-      <div class="game-meta"><button class="button tiny ghost" type="button" data-action="new-game">＋ New game</button><span class="code-pill">${esc(state.code)}</span><span class="status-pill online">${state.connectedCount}/${state.playerCount} online</span><span class="phase-pill">Round ${state.roundNumber}/${state.totalRounds}</span></div>
+      <div class="game-meta"><button class="button tiny ghost" type="button" data-action="new-game">＋ New game</button><span class="code-pill">${esc(state.code)}</span><span class="status-pill online">${state.connectedCount}/${state.playerCount} online</span>${progressPill}</div>
     </div>
     <div class="notice-bar">${esc(state.notice || "Live game ready.")}</div>
     ${scoreStrip()}`;
@@ -101,18 +118,22 @@
   }
 
   function settingsForm() {
+    const cooperative = state.settings.gameMode === "cooperative";
     return `<form id="settings-form" class="form-grid">
+      <div class="field full"><label>Game mode</label><select name="gameMode"><option value="competitive" ${!cooperative ? "selected" : ""}>Competitive · Story Showdown</option><option value="cooperative" ${cooperative ? "selected" : ""}>Cooperative · Story Machine</option></select></div>
+      ${cooperative ? `<div class="mode-explainer full"><b>Cooperative Story Machine</b><span>Eight guided ingredients · five minutes · no teams, scores, or voting.</span></div>` : `
       <div class="field"><label>Teams</label><select name="teamCount">${[2,3,4,5,6,7,8].map((value) => `<option ${value === state.settings.teamCount ? "selected" : ""}>${value}</option>`).join("")}</select></div>
       <div class="field"><label>Rounds</label><select name="totalRounds">${[1,2,3,4,5,6,7,8,9,10].map((value) => `<option ${value === state.settings.totalRounds ? "selected" : ""}>${value}</option>`).join("")}</select></div>
       <div class="field"><label>Default time</label><select name="defaultDuration">${[[120,"2 minutes"],[240,"4 minutes"],[360,"6 minutes"]].map(([value,label]) => `<option value="${value}" ${value === state.settings.defaultDuration ? "selected" : ""}>${label}</option>`).join("")}</select></div>
       <div class="field"><label>Prompt choice</label><select name="promptMode"><option value="random" ${state.settings.promptMode === "random" ? "selected" : ""}>Random</option><option value="manual" ${state.settings.promptMode === "manual" ? "selected" : ""}>Manual</option></select></div>
       <label class="check-row full"><input type="checkbox" name="revealNames" ${state.settings.revealNames ? "checked" : ""}><span>Reveal writers after voting</span></label>
-      <p class="fine-print full" role="status">${state.teams.length} team${state.teams.length === 1 ? "" : "s"} ready · Changes save automatically.</p>
+      <p class="fine-print full" role="status">${state.teams.length} team${state.teams.length === 1 ? "" : "s"} ready · Changes save automatically.</p>`}
       <button class="button soft full" type="submit">Save settings now</button>
     </form>`;
   }
 
   function lobbyView() {
+    const cooperative = state.settings.gameMode === "cooperative";
     const maxPlayers = state.maxPlayers || 30;
     const spotsRemaining = Math.max(0, maxPlayers - state.playerCount);
     const capacityNote = state.playerCount < 2
@@ -121,7 +142,7 @@
         ? `${spotsRemaining} of ${maxPlayers} spots still open.`
         : `Classroom full · ${maxPlayers} writers.`;
     return `<div class="dashboard-grid">
-      <section class="panel"><div class="panel-head"><div><p class="section-kicker">Live roster</p><h2>${state.playerCount} of ${maxPlayers} writers joined</h2></div><button class="button tiny ${state.settings.joiningLocked ? "gold" : "ghost"}" data-action="toggle-lock">${state.settings.joiningLocked ? "Unlock joining" : "Lock joining"}</button></div><div class="panel-body">${rosterMarkup(false)}<div class="button-row"><button class="button large" data-action="start-game" ${state.playerCount < 2 ? "disabled" : ""}>Assign teams & start</button><span class="fine-print">${capacityNote}</span></div></div></section>
+      <section class="panel"><div class="panel-head"><div><p class="section-kicker">Live roster</p><h2>${state.playerCount} of ${maxPlayers} writers joined</h2></div><button class="button tiny ${state.settings.joiningLocked ? "gold" : "ghost"}" data-action="toggle-lock">${state.settings.joiningLocked ? "Unlock joining" : "Lock joining"}</button></div><div class="panel-body">${rosterMarkup(false)}<div class="button-row"><button class="button large ${cooperative ? "teal" : ""}" data-action="start-game" ${state.playerCount < 2 ? "disabled" : ""}>${cooperative ? "Start 5-minute story lab" : "Assign teams & start"}</button><span class="fine-print">${capacityNote}</span></div></div></section>
       <aside><section class="panel"><div class="panel-head"><h2>Game setup</h2></div><div class="panel-body">${settingsForm()}</div></section><section class="panel"><div class="panel-head"><h2>Student join</h2></div><div class="panel-body"><p>Send students to</p><p><b>${esc(location.origin)}/student.html</b></p><p>and display code</p><div class="code-pill" style="display:inline-block;font-size:22px">${esc(state.code)}</div></div></section></aside>
     </div>`;
   }
@@ -209,6 +230,71 @@
     return `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><div><p class="section-kicker">Round ${state.roundNumber} complete</p><h2>Team standings</h2></div></div><div class="panel-body">${leaderboardMarkup(true)}<div class="button-row"><button class="button large" data-action="next-prompt">Choose round ${state.roundNumber + 1} prompt</button><button class="button danger ghost" data-action="end-game">End game now</button></div></div></section><aside><section class="panel"><div class="panel-head"><h2>Round winners</h2></div><div class="panel-body">${(state.round.results || []).map((result) => `<p class="round-winner-line">${avatarMarkup(result.avatar)}<span><b>${result.placement}. ${esc(result.studentName)}</b><br><span class="muted">${esc(result.teamName)} · +${result.points}</span></span></p>`).join("")}</div></section></aside></div>${writerLeaderboardPanel()}`;
   }
 
+  function coopWritingView() {
+    const coop = state.coop;
+    const submittedPercent = state.playerCount ? Math.round(coop.submissionCount / state.playerCount * 100) : 0;
+    return `<section class="projector-stage coop-monitor"><div><p class="section-kicker">Cooperative story lab</p><div class="timer-display timer-live">${formatTime(remainingSeconds(coop))}</div><h2 class="projector-copy">Eight ideas. One shared story.</h2><p class="muted">Students are writing complete sentences on their own screens. Drafts save as they type.</p><div class="writing-status">${coop.submissionCount} of ${state.playerCount} writers submitted</div><div class="progress-track"><span style="width:${submittedPercent}%"></span></div></div></section>
+      <div class="stage-controls"><button class="button ghost" data-action="${coop.pausedRemainingMs !== null ? "coop-resume-timer" : "coop-pause-timer"}">${coop.pausedRemainingMs !== null ? "Resume timer" : "Pause timer"}</button><button class="button soft" data-action="coop-add-time" data-seconds="30">+30 seconds</button><button class="button danger" data-action="coop-end-writing">Collect ideas now</button></div>`;
+  }
+
+  function coopSelectionMarkup() {
+    if (!state.coop.selections.length) return "";
+    return `<section class="panel coop-picked-panel"><div class="panel-head"><div><p class="section-kicker">Story so far</p><h2>Locked ingredients</h2></div></div><div class="panel-body coop-picked-list">${state.coop.storyParts.map((part) => {
+      const selection = state.coop.selections.find((item) => item.sectionId === part.sectionId);
+      return `<article class="coop-picked-card"><span class="coop-part-icon">${esc(part.icon)}</span><div><b>${esc(part.label)}</b><p><em>${esc(part.bridge)}</em> ${esc(part.text)}</p><small>${avatarMarkup(selection?.avatar, "avatar-bubble small")} Contributed by ${esc(selection?.studentName || "the class")}</small></div><button class="button tiny ghost" data-action="coop-spin" data-section-id="${esc(part.sectionId)}">Re-spin</button></article>`;
+    }).join("")}</div></section>`;
+  }
+
+  function coopSpinView() {
+    const coop = state.coop;
+    const section = coopSpinAnimation?.section || coop.currentSection;
+    const displayedSectionIndex = Math.max(0, COOP_SECTIONS.findIndex((item) => item.id === section?.id));
+    const candidates = section ? (coop.candidatesBySection?.[section.id] || []) : [];
+    const slotCopy = coopSpinAnimation?.preview || (section ? "Pull the lever to choose a class idea." : "Every ingredient is locked in.");
+    if (!section && coop.complete) {
+      return `<section class="projector-stage coop-complete-stage"><div><p class="section-kicker">All ${coop.sectionCount} spins complete</p><div class="state-icon">✦</div><h2 class="projector-copy">Our story is ready to read.</h2><p class="muted">The transitions and sentence polish are already in place.</p><button class="button large gold" data-action="coop-finish">Reveal the complete story</button></div></section>${coopSelectionMarkup()}`;
+    }
+    return `<section class="slot-stage"><div class="slot-topline"><span>Spin ${Math.min(displayedSectionIndex + 1, coop.sectionCount)} of ${coop.sectionCount}</span><span>${candidates.length} possible idea${candidates.length === 1 ? "" : "s"}</span></div><div class="slot-section-icon">${esc(section?.icon || "✦")}</div><p class="section-kicker">${esc(section?.label || "Story ingredient")}</p><h2>${esc(section?.prompt || "Our story is ready.")}</h2><div class="slot-machine ${coopSpinAnimation ? "is-spinning" : ""}"><div class="slot-light-row" aria-hidden="true">${"<i></i>".repeat(11)}</div><div class="slot-window"><p id="slot-copy">${esc(slotCopy)}</p></div><div class="slot-light-row" aria-hidden="true">${"<i></i>".repeat(11)}</div></div><p class="slot-guidance">${esc(section?.guidance || "")}</p><button class="button large gold slot-lever" data-action="coop-spin" data-section-id="${esc(section?.id || "")}" ${coopSpinAnimation ? "disabled" : ""}>${coopSpinAnimation ? "Spinning…" : coop.selections.some((item) => item.sectionId === section?.id) ? "Spin this section again" : "Spin the Story Machine"}</button></section>${coopSelectionMarkup()}`;
+  }
+
+  function coopFinalView() {
+    document.body.classList.add("celebrating");
+    return `<section class="final-banner coop-final-banner"><p class="section-kicker" style="color:#ffd47d">Created together</p><h2 class="winner-name">Our impossible story</h2><p>${state.playerCount} writers · ${state.coop.sectionCount} spins · one shared result</p><div class="button-row"><button class="button large gold" type="button" data-action="new-game">Start another game</button></div></section><section class="panel coop-story-panel"><div class="panel-head"><div><p class="section-kicker">Read it aloud</p><h2>The class story</h2></div></div><div class="panel-body coop-final-story">${state.coop.storyParts.map((part) => {
+      const selection = state.coop.selections.find((item) => item.sectionId === part.sectionId);
+      return `<article><span>${esc(part.icon)}</span><div><p class="coop-bridge">${esc(part.bridge)}</p><p class="coop-prose">${esc(part.text)}</p><small>${avatarMarkup(selection?.avatar, "avatar-bubble small")} ${esc(selection?.studentName || "The class")}</small></div></article>`;
+    }).join("")}</div></section>`;
+  }
+
+  async function runCoopSpin(sectionId) {
+    const section = COOP_SECTIONS.find((item) => item.id === sectionId);
+    const candidates = state.coop.candidatesBySection?.[sectionId] || [];
+    if (!section || !candidates.length) throw new Error("No ideas are available for this story section.");
+    coopSpinAnimation = { section, preview: candidates[0].text };
+    render();
+    let previewIndex = 0;
+    const ticker = setInterval(() => {
+      previewIndex = (previewIndex + 1) % candidates.length;
+      const copy = document.getElementById("slot-copy");
+      if (copy) copy.textContent = candidates[previewIndex].text;
+    }, 90);
+    try {
+      const response = await teacherAction("teacher:coop-spin", { sectionId });
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      clearInterval(ticker);
+      const copy = document.getElementById("slot-copy");
+      if (copy) copy.textContent = response.selection.text;
+      document.querySelector(".slot-machine")?.classList.add("is-locked");
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      coopSpinAnimation = null;
+      render();
+    } catch (error) {
+      clearInterval(ticker);
+      coopSpinAnimation = null;
+      render();
+      throw error;
+    }
+  }
+
   function finalView() {
     const winner = state.teams[0];
     const allResults = state.roundHistory.flatMap((round) => round.results.map((result) => ({ ...result, round: round.number })));
@@ -230,7 +316,7 @@
 
   function render() {
     if (!state) return createScreen();
-    document.body.classList.toggle("celebrating", state.phase === "final");
+    document.body.classList.toggle("celebrating", ["final", "coop_final"].includes(state.phase));
     const views = {
       lobby: lobbyView,
       team_reveal: teamRevealView,
@@ -242,7 +328,10 @@
       tie: tieView,
       results: resultsView,
       leaderboard: leaderboardView,
-      final: finalView
+      final: finalView,
+      coop_writing: coopWritingView,
+      coop_spin: coopSpinView,
+      coop_final: coopFinalView
     };
     app.innerHTML = `${gameHeader()}${(views[state.phase] || lobbyView)()}`;
     updateTimers();
@@ -250,8 +339,9 @@
 
   function updateTimers() {
     document.querySelectorAll(".timer-live").forEach((element) => {
-      const remaining = remainingSeconds(state?.round);
-      element.textContent = state?.round?.pausedRemainingMs !== null ? `${formatTime(remaining)} PAUSED` : formatTime(remaining);
+      const timerSource = state?.phase === "coop_writing" ? state.coop : state?.round;
+      const remaining = remainingSeconds(timerSource);
+      element.textContent = timerSource?.pausedRemainingMs !== null ? `${formatTime(remaining)} PAUSED` : formatTime(remaining);
       element.classList.toggle("warning", remaining <= 60 && remaining > 10);
       element.classList.toggle("urgent", remaining <= 10);
     });
@@ -268,12 +358,15 @@
 
   function settingsPayload(form) {
     const data = new FormData(form);
+    const fallback = state?.settings || { gameMode: "competitive", teamCount: 4, totalRounds: 3, defaultDuration: 240, promptMode: "random", revealNames: true };
+    const revealControl = form.elements.namedItem("revealNames");
     return {
-      teamCount: Number(data.get("teamCount")),
-      totalRounds: Number(data.get("totalRounds")),
-      defaultDuration: Number(data.get("defaultDuration")),
-      promptMode: data.get("promptMode"),
-      revealNames: data.get("revealNames") === "on"
+      gameMode: data.get("gameMode") || fallback.gameMode,
+      teamCount: Number(data.get("teamCount")) || fallback.teamCount,
+      totalRounds: Number(data.get("totalRounds")) || fallback.totalRounds,
+      defaultDuration: Number(data.get("defaultDuration")) || fallback.defaultDuration,
+      promptMode: data.get("promptMode") || fallback.promptMode,
+      revealNames: revealControl ? revealControl.checked : fallback.revealNames
     };
   }
 
@@ -282,7 +375,7 @@
     if (!form) return null;
     const settings = settingsPayload(form);
     await teacherAction("teacher:update-settings", { settings });
-    if (showToast) toast(`${settings.teamCount} teams ready. Settings saved.`, "success");
+    if (showToast) toast(settings.gameMode === "cooperative" ? "Cooperative Story Machine ready." : `${settings.teamCount} teams ready. Settings saved.`, "success");
     return settings;
   }
 
@@ -290,10 +383,7 @@
     event.preventDefault();
     try {
       if (event.target.id === "create-form") {
-        const data = new FormData(event.target);
-        const response = await emit(socket, "game:create", { settings: {
-          teamCount: Number(data.get("teamCount")), totalRounds: Number(data.get("totalRounds")), defaultDuration: Number(data.get("defaultDuration")), promptMode: data.get("promptMode"), revealNames: data.get("revealNames") === "on"
-        }});
+        const response = await emit(socket, "game:create", { settings: settingsPayload(event.target) });
         saveCredentials({ code: response.code, teacherToken: response.teacherToken });
         state = response.state;
         render();
@@ -308,7 +398,8 @@
 
   app.addEventListener("change", async (event) => {
     try {
-      if (event.target.form?.id === "settings-form") await saveLobbySettings();
+      if (event.target.form?.id === "create-form" && event.target.name === "gameMode") syncCreateMode();
+      else if (event.target.form?.id === "settings-form") await saveLobbySettings();
       else if (event.target.dataset.action === "reassign") await teacherAction("teacher:reassign-player", { playerId: event.target.dataset.playerId, teamId: event.target.value });
     }
     catch (error) { toast(error.message); }
@@ -343,6 +434,12 @@
       else if (action === "resume-timer") await teacherAction("teacher:resume-timer");
       else if (action === "add-time") await teacherAction("teacher:add-time", { seconds: Number(button.dataset.seconds) });
       else if (action === "end-writing") { if (!confirm("End writing and submit all unfinished responses?")) { button.disabled = false; return; } await teacherAction("teacher:end-writing"); }
+      else if (action === "coop-pause-timer") await teacherAction("teacher:coop-pause-timer");
+      else if (action === "coop-resume-timer") await teacherAction("teacher:coop-resume-timer");
+      else if (action === "coop-add-time") await teacherAction("teacher:coop-add-time", { seconds: Number(button.dataset.seconds) });
+      else if (action === "coop-end-writing") { if (!confirm("Collect the class ideas now? Saved drafts will be submitted automatically.")) { button.disabled = false; return; } await teacherAction("teacher:coop-end-writing"); }
+      else if (action === "coop-spin") await runCoopSpin(button.dataset.sectionId);
+      else if (action === "coop-finish") await teacherAction("teacher:coop-finish");
       else if (action === "restart-round") { if (!confirm("Restart this round? Current writing and votes will be cleared.")) { button.disabled = false; return; } await teacherAction("teacher:restart-round"); }
       else if (action === "edit-submission") { await teacherAction("teacher:moderate", { action: "edit", submissionId: button.dataset.id, text: document.getElementById(`submission-${button.dataset.id}`).value }); toast("Typo edit saved.", "success"); }
       else if (action === "hide-submission") await teacherAction("teacher:moderate", { action: "hide", submissionId: button.dataset.id, value: button.dataset.value === "true" });
@@ -362,7 +459,12 @@
     } catch (error) { toast(error.message); button.disabled = false; }
   });
 
-  socket.on("state", (nextState) => { state = nextState; render(); });
+  socket.on("state", (nextState) => {
+    const phaseChanged = Boolean(state?.phase && state.phase !== nextState.phase);
+    state = nextState;
+    render();
+    if (phaseChanged) window.scrollTo({ top: 0, behavior: "auto" });
+  });
   socket.on("disconnect", () => { document.getElementById("connection-banner").hidden = false; });
   socket.on("connect", async () => {
     document.getElementById("connection-banner").hidden = true;

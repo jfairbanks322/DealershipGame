@@ -1,8 +1,10 @@
 # Story Showdown
 
-Story Showdown is a teacher-led, real-time creative-writing competition for high-school classrooms. A teacher hosts from a projected dashboard; students join from any modern browser with a five-character code and a temporary display name.
+Story Showdown is a teacher-led, real-time creative-writing game for high-school classrooms. A teacher hosts from a projected dashboard; students join from any modern browser with a five-character code and a temporary display name.
 
-The core loop is fully functional for classrooms of up to 30 students with 144 prompts across 16 categories—including rhyming poetry, free verse, suspense, comedy, fantasy, finish-the-story, and connect-the-start-and-end challenges. It includes student-selected preset avatars, fixed random teams, server-authoritative writing timers, draft recovery, automatic submission, private moderation, randomized anonymous presentation, one-vote ballots, own-response blocking, tie resolution, team scoring, podium reveals, running writer rankings by total and per-round average podium points, score corrections, final standings, CSV export, and a printable Save-as-PDF report.
+The competitive mode is fully functional for classrooms of up to 30 students with 144 prompts across 16 categories—including rhyming poetry, free verse, suspense, comedy, fantasy, finish-the-story, and connect-the-start-and-end challenges. It includes student-selected preset avatars, fixed random teams, server-authoritative writing timers, draft recovery, automatic submission, private moderation, randomized anonymous presentation, one-vote ballots, own-response blocking, tie resolution, team scoring, podium reveals, running writer rankings by total and per-round average podium points, score corrections, final standings, CSV export, and a printable Save-as-PDF report.
+
+The cooperative Story Machine mode removes teams, scores, and voting. Students have five minutes to write eight guided one-sentence ingredients; the teacher then uses an animated slot-machine reveal to choose a character, setting, goal, comic action, complication, group reaction, bold choice, and ending. Teachers can re-spin any selected section. Grammar guidance, sentence cleanup, and fixed transition lines turn the independently written ideas into one connected read-aloud story.
 
 ## Technology and architecture
 
@@ -61,7 +63,7 @@ npm test
 npm run smoke
 ```
 
-`npm test` validates all 144 prompts and the 16-category structure. `npm run smoke` runs both the detailed six-student, two-round rehearsal and a complete 30-student capacity round. The capacity rehearsal also confirms a full room still permits valid reconnects and rejects a 31st student.
+`npm test` validates all 144 competitive prompts, the 16-category structure, and the cooperative story scaffold. `npm run smoke` runs the detailed six-student competitive rehearsal, the complete cooperative Story Machine flow, and a 30-student capacity round. The capacity rehearsal also confirms a full room still permits valid reconnects and rejects a 31st student.
 
 ## Classroom operation notes
 

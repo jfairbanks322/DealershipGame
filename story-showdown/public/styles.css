@@ -38,6 +38,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { min-height: 100%; background: var(--bg); }
 body {
   margin: 0;
@@ -215,6 +216,19 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .join-code-input { text-transform: uppercase; letter-spacing: .28em; text-align: center; font-size: 24px; font-weight: 800; }
 .check-row { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); font-size: 14px; }
 .check-row input { width: 18px; height: 18px; accent-color: var(--purple); }
+.mode-explainer {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  padding: 15px 17px;
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--line));
+  border-left: 6px solid var(--teal);
+  border-radius: 14px;
+  background: linear-gradient(110deg, color-mix(in srgb, var(--teal) 11%, var(--surface)), color-mix(in srgb, var(--purple) 7%, var(--surface)));
+}
+.mode-explainer[hidden] { display: none; }
+.mode-explainer b { font: 800 19px/1.15 "League Spartan", sans-serif; }
+.mode-explainer span { color: var(--muted); font-size: 13px; }
 
 .button-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 18px; }
 .button {
@@ -392,6 +406,131 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .student-timer.warning { background: #9a6513; color: white; }
 .student-timer.urgent { background: #a62f3d; color: white; animation: pulse 1s ease-in-out infinite; }
 
+/* Cooperative Story Machine */
+.coop-monitor {
+  background:
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--teal) 19%, transparent), transparent 30%),
+    radial-gradient(circle at 85% 88%, color-mix(in srgb, var(--gold) 15%, transparent), transparent 27%),
+    linear-gradient(145deg, var(--surface-2), var(--surface));
+}
+.coop-monitor .writing-status { font-size: clamp(18px, 2.2vw, 25px); color: var(--ink); }
+.coop-monitor .progress-track span { background: linear-gradient(90deg, var(--teal), var(--sky), var(--purple)); }
+.coop-intro { border-left-color: var(--teal); }
+.coop-intro h2 { max-width: 760px; }
+.coop-prompt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.coop-prompt-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-top: 4px solid color-mix(in srgb, var(--teal) 75%, var(--sky));
+  border-radius: 18px;
+  background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--teal) 4%, var(--surface-2)));
+  box-shadow: var(--shadow-small);
+}
+.coop-step, .coop-part-icon { display: grid; place-items: center; flex: 0 0 auto; }
+.coop-step { width: 27px; height: 27px; border-radius: 9px; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 900; }
+.coop-part-icon { width: 39px; height: 39px; border-radius: 12px; background: linear-gradient(135deg, var(--teal), var(--sky)); color: white; font-size: 20px; box-shadow: 0 7px 16px color-mix(in srgb, var(--teal) 20%, transparent); }
+.coop-prompt-card > span:nth-child(3) { min-width: 0; }
+.coop-prompt-card b, .coop-prompt-card strong, .coop-prompt-card small { display: block; }
+.coop-prompt-card b { margin-bottom: 3px; color: var(--teal); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+.coop-prompt-card strong { font-size: 15px; line-height: 1.25; }
+.coop-prompt-card small { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.35; }
+.coop-prompt-card textarea { grid-column: 1 / -1; min-height: 110px; font-size: 15px; }
+.coop-prompt-card > i { grid-column: 1 / -1; justify-self: end; color: var(--muted); font-size: 11px; font-style: normal; font-weight: 800; }
+.coop-submit-bar {
+  position: sticky;
+  z-index: 5;
+  bottom: 14px;
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--teal) 35%, var(--line));
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: 0 13px 36px color-mix(in srgb, var(--ink) 14%, transparent);
+  backdrop-filter: blur(16px);
+}
+.coop-submit-bar span { color: var(--muted); font-size: 13px; font-weight: 800; }
+
+.slot-stage {
+  position: relative;
+  isolation: isolate;
+  min-height: min(68vh, 670px);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  padding: clamp(25px, 4.5vw, 58px);
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--line));
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 10% 14%, rgba(255, 198, 82, .16), transparent 23rem),
+    radial-gradient(circle at 91% 84%, rgba(53, 212, 189, .14), transparent 24rem),
+    linear-gradient(145deg, #171428, #282044 62%, #152a35);
+  color: #fffaf0;
+  box-shadow: 0 28px 75px rgba(20, 14, 44, .32);
+  overflow: hidden;
+  text-align: center;
+}
+.slot-stage::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: .17;
+  background-image: linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.14) 1px, transparent 1px);
+  background-size: 29px 29px;
+  mask-image: radial-gradient(circle, black, transparent 77%);
+}
+.slot-topline { position: absolute; inset: 19px 22px auto; display: flex; justify-content: space-between; gap: 12px; color: rgba(255,255,255,.68); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.slot-section-icon { display: grid; place-items: center; width: 70px; height: 70px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,.32); border-radius: 22px; background: linear-gradient(135deg, var(--teal), var(--sky), var(--purple)); box-shadow: 0 13px 32px rgba(0,0,0,.3); font-size: 34px; transform: rotate(-3deg); }
+.slot-stage .section-kicker { margin-bottom: 5px; color: #ffd47d; }
+.slot-stage > h2 { max-width: 920px; margin: 4px 0 21px; font: 800 clamp(25px, 3.3vw, 46px)/1 "League Spartan", sans-serif; letter-spacing: -.025em; }
+.slot-machine { width: min(900px, 100%); border: 2px solid #e7a530; border-radius: 23px; background: linear-gradient(#5f431c, #bb7921 16%, #422c17); box-shadow: 0 18px 45px rgba(0,0,0,.38), inset 0 0 0 5px rgba(255,218,133,.2); overflow: hidden; }
+.slot-light-row { display: flex; justify-content: space-around; padding: 8px 13px; }
+.slot-light-row i { width: 8px; height: 8px; border-radius: 50%; background: #ffd77b; box-shadow: 0 0 8px #ffbd3f; }
+.slot-window { min-height: clamp(120px, 17vh, 175px); display: grid; place-items: center; padding: 25px clamp(20px, 4vw, 55px); border-block: 3px solid rgba(255,255,255,.3); background: linear-gradient(#fdf9ef, #e9eef2 48%, #fff8e6); color: #171526; box-shadow: inset 0 15px 26px rgba(31,25,50,.15), inset 0 -15px 26px rgba(31,25,50,.12); overflow: hidden; }
+.slot-window p { margin: 0; font: 800 clamp(23px, 3.2vw, 43px)/1.15 "League Spartan", sans-serif; letter-spacing: -.025em; }
+.slot-machine.is-spinning { animation: slot-rattle .13s linear infinite; }
+.slot-machine.is-spinning .slot-window p { animation: slot-blur .18s ease-in-out infinite alternate; }
+.slot-machine.is-spinning .slot-light-row i:nth-child(even) { opacity: .25; }
+.slot-machine.is-spinning .slot-light-row i:nth-child(odd) { box-shadow: 0 0 16px #fff2b8; }
+.slot-machine.is-locked { animation: slot-lock .55s ease-out; }
+.slot-machine.is-locked .slot-window { box-shadow: inset 0 0 35px color-mix(in srgb, var(--teal) 25%, transparent), 0 0 26px color-mix(in srgb, var(--teal) 30%, transparent); }
+@keyframes slot-rattle { 25% { transform: translateX(-2px) rotate(-.12deg); } 75% { transform: translateX(2px) rotate(.12deg); } }
+@keyframes slot-blur { to { transform: translateY(3px) scale(.99); filter: blur(1.2px); opacity: .78; } }
+@keyframes slot-lock { 45% { transform: scale(1.018); } }
+.slot-guidance { max-width: 740px; margin: 15px auto 17px; color: rgba(255,255,255,.69); font-size: 13px; }
+.slot-lever { min-width: min(340px, 100%); }
+
+.coop-picked-panel, .coop-story-panel { margin-top: 18px; }
+.coop-picked-list { display: grid; gap: 11px; }
+.coop-picked-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: color-mix(in srgb, var(--surface-2) 45%, var(--surface)); }
+.coop-picked-card > div { min-width: 0; }
+.coop-picked-card b { color: var(--teal); font-size: 11px; text-transform: uppercase; letter-spacing: .09em; }
+.coop-picked-card p { margin: 3px 0 6px; }
+.coop-picked-card em { color: var(--muted); font-style: normal; font-weight: 800; }
+.coop-picked-card small, .coop-final-story small { display: flex; align-items: center; gap: 7px; color: var(--muted); font-weight: 700; }
+.avatar-bubble { display: inline-grid; place-items: center; flex: 0 0 auto; overflow: hidden; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+.avatar-bubble.small { width: 26px; height: 26px; border-radius: 8px; }
+.avatar-bubble img { width: 100%; height: 100%; object-fit: cover; }
+.coop-final-story { display: grid; gap: 0; padding-block: 27px; }
+.coop-final-story article { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 17px; padding: 18px 8px; border-bottom: 1px solid var(--line); }
+.coop-final-story article:last-child { border-bottom: 0; }
+.coop-final-story article > span { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; background: linear-gradient(135deg, var(--teal), var(--sky)); color: white; font-size: 24px; box-shadow: 0 8px 18px color-mix(in srgb, var(--teal) 18%, transparent); }
+.coop-bridge { margin: 0 0 5px; color: var(--purple); font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.coop-prose { margin: 0 0 11px; font: 700 clamp(20px, 2.4vw, 30px)/1.3 "League Spartan", sans-serif; }
+.coop-final-banner { background: radial-gradient(circle at 12% 12%, rgba(255,255,255,.18), transparent 25%), linear-gradient(135deg, #143f4d, #34316b 55%, #863c65); }
+.coop-watch { border-top: 5px solid var(--teal); }
+.coop-complete-stage { background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--gold) 18%, transparent), transparent 38%), linear-gradient(145deg, var(--surface-2), var(--surface)); }
+
 .final-banner { position: relative; padding: 42px; border: 1px solid color-mix(in srgb, white 25%, transparent); border-radius: 27px; background: radial-gradient(circle at 18% 15%, rgba(255,255,255,.2), transparent 23%), linear-gradient(135deg, var(--purple-dark), #a33480 63%, #d76543); color: white; text-align: center; box-shadow: 0 25px 70px color-mix(in srgb, var(--purple) 27%, transparent); overflow: hidden; }
 .final-banner h2 { margin: 0; font: 800 clamp(45px, 8vw, 82px)/.9 "League Spartan", sans-serif; }
 .final-banner p { margin-bottom: 0; opacity: .84; }
@@ -413,6 +552,7 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
   .dashboard-aside { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .dashboard-aside .panel { margin: 0; }
   .prompt-filters { grid-template-columns: 1fr 1fr; }
+  .coop-prompt-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
@@ -440,6 +580,12 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
   .vote-card .button { grid-column: 1 / -1; }
   .site-header { min-height: 62px; }
   .app-root { padding-top: 18px; }
+  .coop-submit-bar { position: static; align-items: stretch; flex-direction: column; }
+  .coop-picked-card { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .coop-picked-card .button { grid-column: 1 / -1; }
+  .slot-stage { min-height: 560px; padding-inline: 16px; }
+  .slot-topline { position: static; width: 100%; margin-bottom: 16px; }
+  .coop-final-story article { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
