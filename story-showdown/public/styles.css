@@ -255,6 +255,8 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .button.ghost { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
 .button.soft { background: linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--purple) 13%, var(--surface))); color: var(--purple); box-shadow: none; }
 .button.tiny { min-height: 34px; padding: 6px 10px; border-radius: 9px; font-size: 12px; }
+.student-leave-button { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, var(--line)); }
+.student-leave-button:hover:not(:disabled) { border-color: var(--red); background: color-mix(in srgb, var(--red) 9%, var(--surface)); }
 .button.full { width: 100%; }
 .text-button { border: 0; background: none; color: var(--purple); font-weight: 800; padding: 4px; }
 

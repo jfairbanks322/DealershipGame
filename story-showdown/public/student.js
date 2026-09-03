@@ -35,6 +35,25 @@
     history.replaceState(null, "", `/student.html?code=${encodeURIComponent(value.code)}`);
   }
 
+  function leaveGame() {
+    const previousSession = session;
+    clearTimeout(draftTimer);
+    session = null;
+    state = null;
+    lastWarning = null;
+    if (previousSession?.code) localStorage.removeItem(`storyShowdownStudent:${previousSession.code}`);
+    try {
+      const recent = JSON.parse(localStorage.getItem("storyShowdownStudentRecent"));
+      if (!recent || recent.code === previousSession?.code) localStorage.removeItem("storyShowdownStudentRecent");
+    } catch (_) { localStorage.removeItem("storyShowdownStudentRecent"); }
+    history.replaceState(null, "", "/student.html");
+    socket.disconnect();
+    socket.connect();
+    joinScreen("You left the previous game. Enter the new classroom code when you’re ready.");
+    window.scrollTo({ top: 0, behavior: "auto" });
+    requestAnimationFrame(() => document.getElementById("game-code")?.focus());
+  }
+
   function joinScreen(message = "") {
     state = null;
     document.body.classList.remove("celebrating");
@@ -48,7 +67,7 @@
   }
   function shell(content) {
     const cooperative = state.settings.gameMode === "cooperative";
-    return `<div class="game-header"><div class="student-profile-title">${avatarMarkup(state.me.avatar, "profile-avatar", true)}<div><p class="section-kicker">${cooperative ? "Cooperative Story Machine" : `Round ${state.roundNumber}/${state.totalRounds}`}</p><h1>${esc(state.me.name)}’s desk</h1></div></div><div class="game-meta"><span class="code-pill">${esc(state.code)}</span>${cooperative ? '<span class="phase-pill">One class · one story</span>' : teamBadge()}</div></div><div class="notice-bar">${esc(state.notice || "Connected to the game.")}</div>${content}`;
+    return `<div class="game-header"><div class="student-profile-title">${avatarMarkup(state.me.avatar, "profile-avatar", true)}<div><p class="section-kicker">${cooperative ? "Cooperative Story Machine" : `Round ${state.roundNumber}/${state.totalRounds}`}</p><h1>${esc(state.me.name)}’s desk</h1></div></div><div class="game-meta"><button class="button tiny ghost student-leave-button" type="button" data-action="leave-game">Leave & join another</button><span class="code-pill">${esc(state.code)}</span>${cooperative ? '<span class="phase-pill">One class · one story</span>' : teamBadge()}</div></div><div class="notice-bar">${esc(state.notice || "Connected to the game.")}</div>${content}`;
   }
 
   function waitState(icon, kicker, title, copy, extra = "") {
@@ -225,7 +244,10 @@
     if (!button || button.disabled) return;
     try {
       button.disabled = true;
-      if (button.dataset.action === "submit-response") {
+      if (button.dataset.action === "leave-game") {
+        if (!confirm("Leave this game and return to the code screen? Unsubmitted writing will not move to the next game.")) { button.disabled = false; return; }
+        leaveGame();
+      } else if (button.dataset.action === "submit-response") {
         const text = document.getElementById("response-draft").value;
         if (!text.trim() && !confirm("Submit an empty response?")) { button.disabled = false; return; }
         await emit(socket, "student:submit", { text });

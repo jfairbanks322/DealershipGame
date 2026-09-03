@@ -62,3 +62,11 @@ test("cooperative prompts create a polished, connected eight-part story", () => 
   assert.equal(coopStoryText(selections).split("\n\n").length, 8);
   assert.match(coopStoryText(selections), new RegExp(COOP_SECTIONS[0].bridge));
 });
+
+test("student game screens always expose a saved-session exit", () => {
+  const studentClient = fs.readFileSync(path.join(__dirname, "..", "public", "student.js"), "utf8");
+  assert.match(studentClient, /data-action="leave-game"/);
+  assert.match(studentClient, /localStorage\.removeItem\(`storyShowdownStudent:\$\{previousSession\.code\}`\)/);
+  assert.match(studentClient, /history\.replaceState\(null, "", "\/student\.html"\)/);
+  assert.match(studentClient, /socket\.disconnect\(\);\s*socket\.connect\(\);/);
+});
