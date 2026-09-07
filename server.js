@@ -4,7 +4,7 @@ const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
 const topics = require("./topics");
-const { generateFakeAnswers, normalizedWords } = require("./fake-answer-service");
+const { generateFakeAnswers, normalizeAnswer } = require("./fake-answer-service");
 
 const PORT = Number(process.env.PORT) || 3040;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -123,8 +123,8 @@ io.on("connection", (socket) => {
     if (room.status !== "ANSWERING" || player.finishedAnswerPhase) {
       return sendError(socket, "There isn't a topic waiting for an answer.");
     }
-    const answer = String(payload.answer || "").trim().replace(/\s+/g, " ").slice(0, 100);
-    if (normalizedWords(answer).length !== 3) {
+    const answer = normalizeAnswer(String(payload.answer || "").slice(0, 100));
+    if (!answer) {
       return sendError(socket, "Exactly three words. Don't overthink it.", "answer");
     }
 

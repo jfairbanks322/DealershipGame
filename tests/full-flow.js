@@ -2,6 +2,13 @@ const assert = require("assert/strict");
 const { fork } = require("child_process");
 const path = require("path");
 const { io } = require("socket.io-client");
+const topics = require("../topics");
+const {
+  getPoolSizes,
+  normalizeAnswer,
+  normalizedWords,
+  pickLocalFakes
+} = require("../fake-answer-service");
 
 const PORT = 3042;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -18,6 +25,7 @@ const sockets = [];
 const states = new WeakMap();
 
 async function main() {
+  const answerSystem = verifyAnswerSystem();
   await waitForServer();
   const one = connect();
   const two = connect();
@@ -68,13 +76,17 @@ async function main() {
 
   const oneTopics = [];
   const twoTopics = [];
-  const oneAnswers = Array.from({ length: 10 }, (_, index) => `Alpha answer ${index}`);
-  const twoAnswers = Array.from({ length: 10 }, (_, index) => `Bravo answer ${index}`);
+  const oneAnswers = Array.from({ length: 10 }, (_, index) => index === 0 ? "Alpha answer zero" : `Alpha answer ${index}`);
+  const twoAnswers = Array.from({ length: 10 }, (_, index) => index === 0 ? "I'm easy-going honestly" : `Bravo answer ${index}`);
+  const oneSubmissions = [...oneAnswers];
+  const twoSubmissions = [...twoAnswers];
+  oneSubmissions[0] = "  ALPHA, ANSWER, ZERO!!! ";
+  twoSubmissions[0] = "I’M easy‑going, honestly!!!";
 
   for (let index = 0; index < 10; index += 1) {
     oneState = states.get(one);
     oneTopics.push(oneState.answerPhase.currentTopic.id);
-    one.emit("submitAnswer", { answer: oneAnswers[index] });
+    one.emit("submitAnswer", { answer: oneSubmissions[index] });
     await waitState(one, (state) => state.self.answerProgress === index + 1);
   }
   assert.ok(oneTopics.filter((id) => id.startsWith("adult-")).length <= 1, "adult topics should remain occasional for player one");
@@ -86,7 +98,7 @@ async function main() {
   for (let index = 0; index < 10; index += 1) {
     twoState = states.get(two);
     twoTopics.push(twoState.answerPhase.currentTopic.id);
-    two.emit("submitAnswer", { answer: twoAnswers[index] });
+    two.emit("submitAnswer", { answer: twoSubmissions[index] });
     await waitState(two, (state) => state.self.answerProgress === index + 1);
   }
   assert.ok(twoTopics.filter((id) => id.startsWith("adult-")).length <= 1, "adult topics should remain occasional for player two");
@@ -106,6 +118,7 @@ async function main() {
     oneState = states.get(one);
     const oneOptions = oneState.guessPhase.current.options;
     assert.equal(oneOptions.some((option) => Object.hasOwn(option, "correct")), false, "guess options must not identify the real answer");
+    assert.equal(oneOptions.every((option) => option.text === normalizeAnswer(option.text)), true, "all options should share normalized formatting");
     if (index < 9) assert.equal(JSON.stringify(oneState).includes(twoAnswers[index + 1]), false, "future answers must not be preloaded");
     const oneReal = oneOptions.find((option) => option.text === twoAnswers[index]);
     assert.ok(oneReal, "the current real answer should be one of three anonymous options");
@@ -165,8 +178,32 @@ async function main() {
     scores: oneResults.results.scores.map(({ name, score }) => ({ name, score })),
     privacy: "phase-one and future answers withheld",
     reconnect: "restored",
-    rematch: "new topics assigned"
+    rematch: "new topics assigned",
+    answerNormalization: "punctuation, case, apostrophes, and hyphens standardized",
+    fallbackAnswerPools: answerSystem.poolSizes,
+    uniqueFallbackAnswersObserved: answerSystem.uniqueAnswers
   }, null, 2));
+}
+
+function verifyAnswerSystem() {
+  assert.equal(normalizeAnswer("fun, LOUD, chaotic!!!"), "Fun loud chaotic");
+  assert.equal(normalizeAnswer("I’M easy‑going, honestly."), "I'm easy-going honestly");
+  assert.equal(normalizeAnswer("  TRUST   comes FIRST  "), "Trust comes first");
+  assert.equal(normalizeAnswer("really really very fun"), null);
+
+  const poolSizes = getPoolSizes();
+  assert.equal(Object.values(poolSizes).every((size) => size >= 40), true, "every category needs at least 40 valid fallback answers");
+  const uniqueAnswers = new Set();
+  for (const topic of topics) {
+    const fakes = pickLocalFakes(topic, "Scary but beautiful");
+    assert.equal(fakes.length, 2, `two fallback answers required for ${topic.text}`);
+    assert.equal(new Set(fakes.map((answer) => answer.toLocaleLowerCase("en-US"))).size, 2, `fallback answers must differ for ${topic.text}`);
+    assert.equal(fakes.every((answer) => normalizedWords(answer).length === 3), true, `fallback answers must use three words for ${topic.text}`);
+    assert.equal(fakes.every((answer) => answer === normalizeAnswer(answer)), true, `fallback formatting must match for ${topic.text}`);
+    fakes.forEach((answer) => uniqueAnswers.add(answer));
+  }
+  assert.ok(uniqueAnswers.size >= 150, `fallback selection should be varied; observed ${uniqueAnswers.size} unique answers`);
+  return { poolSizes, uniqueAnswers: uniqueAnswers.size };
 }
 
 function connect() {
