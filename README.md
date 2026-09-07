@@ -1,100 +1,67 @@
-# County Fair Frenzy
+# THREE WORDS
 
-County Fair Frenzy is a classroom business simulation where students run competing county fair booths under pressure. The teacher launches one shared event for the class, and each team works through a 5-step decision chain that changes revenue, fairgoer confidence, crew morale, trust, and the long-term condition of the booth.
+THREE WORDS is a private, real-time game for two people who are getting to know each other. Each player answers ten unpredictable topics using exactly three words, then guesses which responses their partner actually wrote.
 
-## What The Live App Includes
+## Run locally
 
-- teacher-controlled class session open/close flow
-- student accounts with saved progress
-- 8 county fair crew members with individual morale and trust
-- 12 authored County Fair Frenzy event chains
-- persistent booth state between events:
-  - guest confidence
-  - kitchen stability
-  - staff burnout
-  - supply control
-  - brand heat
-- lingering effects that carry from one event into the next
-- three class leaderboards:
-  - overall
-  - revenue
-  - culture
-- timing analytics for the teacher dashboard
-- printable end-of-game awards report
-
-## Core Loop
-
-1. The teacher opens the class session.
-2. The teacher launches a global Feast Haven event for the whole class.
-3. Students choose which staff member to consult and work through a 5-step event chain.
-4. Each choice affects the current case and the restaurant's future condition.
-5. When the case resolves, the leaderboard updates and the next event starts from the new restaurant state.
-
-## Local Run
+Requirements: Node.js 18 or newer.
 
 ```bash
+npm install
 npm start
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3040`, create a room, and share its invite link with the second player.
 
-## Default Teacher Login
+## What is included
 
-- Username: `teacher`
-- Password: `showroom`
+- Exactly two players per private room
+- Six-character room codes and shareable invite URLs
+- 240 broad topics across funny, nostalgic, personal, relationship, meaningful, and occasional tasteful adult categories
+- Exact three-word validation with punctuation-aware counting
+- Unlimited topic passes with no penalty
+- Server-side private answers during phase one
+- Current-question-only answer choices during phase two
+- Category-aware local fake-answer generation, with an optional external generator hook
+- Independent scoring, complete answer review, and coordinated rematches
+- Browser refresh and brief-disconnect recovery using anonymous session tokens
+- Responsive phone, tablet, and desktop layouts
 
-Change that after first deploy from the teacher settings panel.
+## Privacy model
 
-## Data And Persistence
+Answers stay on the server during the answer phase. During guessing, a browser receives only its current topic and three unlabeled choices. Future answers and correctness flags are not preloaded into client-side JavaScript.
 
-- SQLite data is stored at [data/dealership-manager.db](/Users/josh/Documents/New project/data/dealership-manager.db) by default.
-  The filename is still legacy under the hood so existing saves stay intact.
-- You can override the storage directory with `DATA_DIR`.
-- On Railway, the app automatically uses `/app/data` if a volume is mounted there.
+## Railway deployment
 
-## Deploy To Railway
+The repository root is the deployable THREE WORDS service. Railway can use the included `railway.json` configuration:
 
-This project is already configured for Railway.
+- Build from the repository root.
+- Start with `npm start` or `node server.js`.
+- Health check: `/health`
+- Keep one replica. Active rooms are currently stored in server memory.
 
-### Included setup
+Railway supplies `PORT` automatically. The server binds to `0.0.0.0` by default.
 
-- [railway.json](/Users/josh/Documents/New project/railway.json)
-  - starts the app with `node server.js`
-  - uses `/health` as the healthcheck path
-  - expects persistent storage at `/app/data`
-- [server.js](/Users/josh/Documents/New project/server.js)
-  - respects `PORT`
-  - respects `DATA_DIR` or `RAILWAY_VOLUME_MOUNT_PATH`
-  - exposes `GET /health`
-  - shuts down cleanly on `SIGTERM`
+Rooms survive browser refreshes but not a Railway restart or redeploy. Persistent rooms and multiple replicas would require moving the existing room model to Supabase/Redis and adding shared Socket.IO pub/sub.
 
-### Railway steps
+## Optional fake-answer service
 
-1. Push this repo to GitHub.
-2. Create a Railway project from the repo.
-3. Add a Volume to the web service.
-4. Mount that Volume at `/app/data`.
-5. Deploy.
-6. Open the generated Railway URL.
+The built-in generator requires no API or paid service. To connect a compatible external generator later, set:
 
-### Important deployment note
+- `FAKE_ANSWER_API_URL`
+- `FAKE_ANSWER_API_KEY` (optional)
 
-This app uses SQLite. If you do not mount a persistent Railway Volume, student accounts and class progress will be lost on redeploy.
+If the external service fails or returns invalid answers, the local generator is used automatically.
 
-## Teacher-Facing Notes
+## Verify
 
-- Event chains are currently authored from the preset library in [event-templates.js](/Users/josh/Documents/New project/event-templates.js).
-- Each completed case stores the full chain of decisions, not just the final click.
-- Low morale or trust can still create future penalties.
-- Students can lose the game if an employee's morale or trust collapses far enough.
+```bash
+npm run check
+npm test
+```
 
-## Extra Routes
+The full-flow test covers room creation, two-player limits, ready/start flow, three-word validation, passing, answer privacy, all twenty answers and guesses, scoring, review, reconnect, and rematch topic replacement.
 
-- [public/student-cheat-sheet.html](/Users/josh/Documents/New project/public/student-cheat-sheet.html) is a print-friendly Feast Haven student quick-start guide.
-- [public/awards-report.html](/Users/josh/Documents/New project/public/awards-report.html) is the teacher-facing printable awards report.
-- [public/prediction-market.html](/Users/josh/Documents/New project/public/prediction-market.html) is a separate side lesson prototype and is not required for the Feast Haven launch.
-- [public/wrestlepad.html](/Users/josh/Documents/New project/public/wrestlepad.html) is a standalone professional-wrestling stat-grid prototype inspired by the daily lineup format of StatPad-style games.
-  - WrestlePad now loads its numbers from [public/wrestlepad-stats.snapshot.js](/Users/josh/Documents/New project/public/wrestlepad-stats.snapshot.js), which is generated from [data/wrestlepad-stats-source.json](/Users/josh/Documents/New project/data/wrestlepad-stats-source.json).
-  - Rebuild that browser snapshot with `npm run build:wrestlepad-stats` after updating the source file.
-  - WrestlePad also loads a local portrait manifest from [public/wrestlepad-portraits.snapshot.js](/Users/josh/Documents/New project/public/wrestlepad-portraits.snapshot.js), with images cached under [public/assets/wrestlers](/Users/josh/Documents/New project/public/assets/wrestlers).
-  - Refresh those cached profile images with `npm run fetch:wrestlepad-portraits` after updating the `wikimedia` mappings in [data/wrestlepad-stats-source.json](/Users/josh/Documents/New project/data/wrestlepad-stats-source.json).
+## Story Showdown
+
+The existing classroom creative-writing game is preserved in [`story-showdown/`](story-showdown/README.md). It remains independently runnable and deployable by setting a Railway service's Root Directory to `/story-showdown`.

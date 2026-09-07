@@ -1,15 +1,22 @@
 {
-  "name": "what-in-the-word",
+  "name": "three-words-game",
   "version": "1.0.0",
-  "description": "A two-player secret word guessing game built with Express and Socket.IO.",
+  "private": true,
+  "description": "A private, real-time two-player conversation game.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "test": "node tests/full-flow.js",
+    "check": "node --check server.js && node --check fake-answer-service.js && node --check topics.js && node --check public/app.js"
   },
   "dependencies": {
     "express": "^4.19.2",
+    "qs": "^6.16.0",
     "socket.io": "^4.7.5"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.4",

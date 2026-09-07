@@ -1,148 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What In The Word</title>
-    <link rel="stylesheet" href="/style.css" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0911" />
+    <meta name="description" content="THREE WORDS — a private two-player conversation game." />
+    <title>THREE WORDS</title>
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar">
-        <img class="top-logo" src="/assets/what-in-the-word-logo.png" alt="What In The Word" />
-        <div id="connectionStatus" class="status-pill">Connecting...</div>
-      </header>
-
-      <section id="welcomeScreen" class="screen active">
-        <div class="hero-panel">
-          <div class="hero-copy">
-            <p class="eyebrow">Guess Gap</p>
-            <h2>Pick a secret word. Guess your opponent's. Follow the alphabet clues.</h2>
-            <p>
-              Each round has one topic and one approved answer bank. Lock your secret word, then use UP,
-              DOWN, distance, and temperature clues to close the gap.
-            </p>
-          </div>
-
-          <div class="join-grid">
-            <article class="card">
-              <h3>Create Room</h3>
-              <label>
-                Player name
-                <input id="createName" maxlength="24" placeholder="Player 1" autocomplete="off" />
-              </label>
-              <button id="createRoomButton">Create Room</button>
-            </article>
-
-            <article class="card">
-              <h3>Join Room</h3>
-              <label>
-                Player name
-                <input id="joinName" maxlength="24" placeholder="Player 2" autocomplete="off" />
-              </label>
-              <label>
-                Room code
-                <input id="roomCodeInput" maxlength="5" placeholder="ABCDE" autocomplete="off" />
-              </label>
-              <button id="joinRoomButton">Join Room</button>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="gameScreen" class="screen">
-        <div class="dashboard-grid">
-          <article class="card room-card">
-            <div class="card-head">
-              <span class="eyebrow">Room</span>
-              <strong id="roomCodeDisplay">-----</strong>
-            </div>
-            <div id="phaseDisplay" class="phase-display">Welcome</div>
-            <p id="statusMessage" class="muted">Create or join a room to begin.</p>
-          </article>
-
-          <article class="card topic-card">
-            <div class="card-head">
-              <span class="eyebrow">Round <span id="roundNumber">0</span></span>
-              <strong id="topicName">Waiting...</strong>
-            </div>
-            <p id="answerCount" class="muted">Answer bank appears when the round starts.</p>
-          </article>
-
-          <article class="card scoreboard-card">
-            <div class="card-head">
-              <span class="eyebrow">Scoreboard</span>
-              <strong id="overallLeader">Waiting for players</strong>
-            </div>
-            <div id="scoreboard" class="scoreboard"></div>
-          </article>
-        </div>
-
-        <div class="players-grid">
-          <article class="card player-card">
-            <span class="eyebrow">You</span>
-            <h3 id="youName">Player</h3>
-            <p id="youStatus" class="muted">Not ready</p>
-          </article>
-          <article class="card player-card">
-            <span class="eyebrow">Opponent</span>
-            <h3 id="opponentName">Waiting...</h3>
-            <p id="opponentStatus" class="muted">Waiting for second player...</p>
-          </article>
-        </div>
-
-        <div class="play-grid">
-          <article id="secretPanel" class="card action-card">
-            <div class="card-head">
-              <span class="eyebrow">Secret Word</span>
-              <strong>Lock your answer</strong>
-            </div>
-            <label>
-              Choose from this topic
-              <input id="secretInput" list="answerBank" placeholder="Start typing..." autocomplete="off" />
-            </label>
-            <button id="secretButton">Lock Secret Word</button>
-            <p id="secretHelp" class="muted">Your opponent will not see this until the round is over.</p>
-          </article>
-
-          <article id="guessPanel" class="card action-card">
-            <div class="card-head">
-              <span class="eyebrow">Guess</span>
-              <strong>Find their word</strong>
-            </div>
-            <label>
-              Guess from the answer bank
-              <input id="guessInput" list="answerBank" placeholder="Pick a valid guess..." autocomplete="off" />
-            </label>
-            <button id="guessButton">Submit Guess</button>
-            <div id="latestResult" class="latest-result">No guesses yet.</div>
-          </article>
-
-          <article class="card log-card">
-            <div class="card-head">
-              <span class="eyebrow">Private Log</span>
-              <strong>Your guesses</strong>
-            </div>
-            <ol id="guessLog" class="guess-log"></ol>
-          </article>
-
-          <article id="summaryPanel" class="card summary-card">
-            <div class="card-head">
-              <span class="eyebrow">Round Summary</span>
-              <strong>Results</strong>
-            </div>
-            <div id="roundSummary" class="summary-body"></div>
-            <button id="nextRoundButton" class="secondary">Next Round</button>
-          </article>
-        </div>
-
-        <datalist id="answerBank"></datalist>
-      </section>
-    </main>
-
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
+    <canvas id="confettiCanvas" aria-hidden="true"></canvas>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <header class="site-header">
+      <button class="brand" data-action="home" aria-label="Three Words home">
+        <span class="brand-mark"><i></i><i></i><i></i></span>
+        <span>THREE WORDS</span>
+      </button>
+      <div class="header-actions">
+        <span id="connectionPill" class="connection-pill"><i></i> Connecting</span>
+        <button class="icon-button" data-action="fullscreen" aria-label="Toggle fullscreen" title="Fullscreen (F)">↗</button>
+      </div>
+    </header>
+    <main id="app" class="app" aria-live="polite"></main>
+    <div id="toast" class="toast" role="status" aria-live="assertive"></div>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/client.js"></script>
+    <script src="/app.js"></script>
   </body>
 </html>

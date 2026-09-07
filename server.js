@@ -1,444 +1,616 @@
+const crypto = require("crypto");
 const express = require("express");
 const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
 const topics = require("./topics");
+const { generateFakeAnswers, normalizedWords } = require("./fake-answer-service");
 
-const PORT = process.env.PORT || 3000;
-const ROOM_CODE_LENGTH = 5;
+const PORT = Number(process.env.PORT) || 3040;
+const HOST = process.env.HOST || "0.0.0.0";
+const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
+const ANSWERS_PER_GAME = 10;
 const rooms = new Map();
+const sessions = new Map();
+const topicById = new Map(topics.map((topic) => [topic.id, topic]));
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { serveClient: true });
 
 app.use(express.static(path.join(__dirname, "public")));
-
-app.get("/health", (req, res) => {
-  res.json({ ok: true, rooms: rooms.size });
+app.get("/health", (_request, response) => {
+  response.json({ ok: true, rooms: rooms.size, topics: topics.length });
 });
 
 io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  socket.on("createRoom", (payload = {}) => {
+    const name = cleanName(payload.name);
+    if (!name) return sendError(socket, "Enter a display name first.");
 
-  socket.on("createRoom", (playerName) => {
-    const name = cleanName(playerName);
-    if (!name) return sendError(socket, "Enter a player name first.");
-
+    detachCurrentPlayer(socket);
     const roomCode = createRoomCode();
-    const room = createRoom(roomCode, socket.id, name);
+    const room = {
+      roomCode,
+      status: "WAITING_FOR_PLAYER",
+      hostPlayerId: null,
+      players: [],
+      gameNumber: 0,
+      usedTopicIds: new Set(),
+      previousTopicIds: new Set(),
+      createdAt: Date.now(),
+      lastActivity: Date.now()
+    };
+    const player = createPlayer(name, 1, socket.id);
+    room.hostPlayerId = player.id;
+    room.players.push(player);
     rooms.set(roomCode, room);
-    socket.join(roomCode);
-
-    console.log(`Room ${roomCode} created by ${name}`);
-    socket.emit("roomCreated", roomCode, getPlayerInfo(room, socket.id));
-    socket.emit("waitingForPlayer", roomCode);
+    attachSession(socket, room, player);
     emitRoomState(room);
   });
 
-  socket.on("joinRoom", (roomCodeInput, playerName) => {
-    const roomCode = String(roomCodeInput || "").trim().toUpperCase();
-    const name = cleanName(playerName);
+  socket.on("joinRoom", (payload = {}) => {
+    const roomCode = String(payload.roomCode || "").trim().toUpperCase();
+    const name = cleanName(payload.name);
     const room = rooms.get(roomCode);
-
-    if (!name) return sendError(socket, "Enter a player name first.");
-    if (!room) return sendError(socket, "That room code does not exist.");
-    if (room.players.length >= 2 && !room.players.some((player) => player.id === socket.id)) {
-      return sendError(socket, "That room already has two players.");
+    if (!name) return sendError(socket, "Enter a display name first.");
+    if (!room) return sendError(socket, "That room code doesn't exist.");
+    if (room.players.length >= 2) return sendError(socket, "That room already has two players.");
+    if (room.status !== "WAITING_FOR_PLAYER") return sendError(socket, "That game has already started.");
+    if (room.players.some((player) => player.name.toLowerCase() === name.toLowerCase())) {
+      return sendError(socket, "Choose a different display name.");
     }
 
-    if (!room.players.some((player) => player.id === socket.id)) {
-      room.players.push(createPlayer(socket.id, name, 2));
+    detachCurrentPlayer(socket);
+    const player = createPlayer(name, 2, socket.id);
+    room.players.push(player);
+    room.status = "READY";
+    touch(room);
+    attachSession(socket, room, player);
+    emitRoomState(room);
+  });
+
+  socket.on("restoreSession", (payload = {}) => {
+    const token = String(payload.sessionToken || "");
+    const session = sessions.get(token);
+    const room = session ? rooms.get(session.roomCode) : null;
+    const player = room?.players.find((candidate) => candidate.id === session.playerId);
+    if (!room || !player) {
+      if (token) sessions.delete(token);
+      return socket.emit("sessionInvalid");
     }
 
-    socket.join(roomCode);
-    console.log(`${name} joined room ${roomCode}`);
-    socket.emit("roomJoined", buildStateForPlayer(room, socket.id));
+    player.socketId = socket.id;
+    player.connected = true;
+    player.disconnectedAt = null;
+    socket.data.sessionToken = token;
+    socket.data.roomCode = room.roomCode;
+    socket.data.playerId = player.id;
+    socket.join(room.roomCode);
+    touch(room);
+    socket.emit("sessionEstablished", sessionPayload(room, player, token));
+    emitRoomState(room);
+  });
 
-    if (room.players.length === 2 && room.phase === "waiting") {
-      startRound(room);
+  socket.on("setReady", () => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Create or join a room first.");
+    const { room, player } = context;
+    if (room.status !== "READY") return sendError(socket, "The room isn't taking ready checks right now.");
+    player.ready = !player.ready;
+    touch(room);
+    emitRoomState(room);
+  });
+
+  socket.on("startGame", () => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Create or join a room first.");
+    const { room, player } = context;
+    if (room.hostPlayerId !== player.id) return sendError(socket, "Only the room creator can start.");
+    if (room.players.length !== 2 || !room.players.every((candidate) => candidate.ready)) {
+      return sendError(socket, "Both players need to be ready.");
+    }
+    if (room.status !== "READY") return sendError(socket, "This game has already started.");
+
+    startGame(room);
+    emitRoomState(room);
+  });
+
+  socket.on("submitAnswer", (payload = {}) => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    if (room.status !== "ANSWERING" || player.finishedAnswerPhase) {
+      return sendError(socket, "There isn't a topic waiting for an answer.");
+    }
+    const answer = String(payload.answer || "").trim().replace(/\s+/g, " ").slice(0, 100);
+    if (normalizedWords(answer).length !== 3) {
+      return sendError(socket, "Exactly three words. Don't overthink it.", "answer");
+    }
+
+    const topicId = player.topicQueue[player.answers.length];
+    const topic = topicById.get(topicId);
+    if (!topic) return sendError(socket, "That topic is no longer available.");
+    player.answers.push({ topicId, topicText: topic.text, category: topic.category, answer });
+    player.finishedAnswerPhase = player.answers.length === ANSWERS_PER_GAME;
+    touch(room);
+    socket.emit("answerLocked", { completed: player.answers.length });
+
+    if (room.players.every((candidate) => candidate.finishedAnswerPhase)) {
+      room.status = "GUESSING";
+      room.players.forEach((candidate) => {
+        candidate.guessStarted = false;
+        candidate.guessIndex = 0;
+        candidate.currentGuess = null;
+        candidate.guessReveal = null;
+      });
+    }
+    emitRoomState(room);
+  });
+
+  socket.on("passTopic", () => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    if (room.status !== "ANSWERING" || player.finishedAnswerPhase) {
+      return sendError(socket, "There isn't a topic to pass right now.");
+    }
+
+    const index = player.answers.length;
+    const passedTopicId = player.topicQueue[index];
+    player.passedTopicIds.push(passedTopicId);
+    const replacement = pickUnusedTopic(room);
+    if (!replacement) return sendError(socket, "No replacement topics are available.");
+    player.topicQueue[index] = replacement.id;
+    room.usedTopicIds.add(replacement.id);
+    touch(room);
+    socket.emit("topicPassed");
+    emitRoomState(room);
+  });
+
+  socket.on("startGuessing", async () => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    if (room.status !== "GUESSING") return sendError(socket, "Round two isn't ready yet.");
+    if (player.finishedGuessPhase) return;
+    player.guessStarted = true;
+    if (!player.currentGuess) await prepareCurrentGuess(room, player);
+    touch(room);
+    emitRoomState(room);
+  });
+
+  socket.on("lockGuess", (payload = {}) => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    const current = player.currentGuess;
+    if (room.status !== "GUESSING" || !player.guessStarted || !current || player.guessReveal) {
+      return sendError(socket, "There isn't an answer to lock right now.");
+    }
+    const selected = current.options.find((option) => option.id === payload.optionId);
+    if (!selected) return sendError(socket, "Select an answer first.");
+    const real = current.options.find((option) => option.id === current.correctOptionId);
+    const correct = selected.id === current.correctOptionId;
+    const result = {
+      topicId: current.topicId,
+      topicText: current.topicText,
+      selectedAnswer: selected.text,
+      realAnswer: real.text,
+      correct
+    };
+    player.guesses.push(result);
+    if (correct) player.score += 1;
+    player.guessReveal = result;
+    touch(room);
+    emitRoomState(room);
+  });
+
+  socket.on("nextGuess", async () => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    if (room.status !== "GUESSING" || !player.guessReveal) {
+      return sendError(socket, "Lock in your answer before moving on.");
+    }
+    player.guessIndex += 1;
+    player.currentGuess = null;
+    player.guessReveal = null;
+
+    if (player.guessIndex >= ANSWERS_PER_GAME) {
+      player.finishedGuessPhase = true;
     } else {
-      emitRoomState(room);
+      await prepareCurrentGuess(room, player);
     }
-  });
-
-  socket.on("submitSecretWord", (word) => {
-    const room = findRoomBySocket(socket.id);
-    if (!room) return sendError(socket, "Create or join a room first.");
-    if (room.phase !== "secret") return sendError(socket, "Secret words can only be locked before guessing starts.");
-
-    const player = getPlayer(room, socket.id);
-    const answerMatch = normalizeAnswer(room, word);
-    if (!answerMatch) return sendError(socket, "Choose a secret word from the current topic list.");
-
-    player.secretWord = answerMatch.answer;
-    console.log(`${player.name} locked a secret word in room ${room.roomCode}`);
-
-    if (room.players.every((roomPlayer) => roomPlayer.secretWord)) {
-      room.phase = "guessing";
-    }
-
+    if (room.players.every((candidate) => candidate.finishedGuessPhase)) room.status = "RESULTS";
+    touch(room);
     emitRoomState(room);
   });
 
-  socket.on("submitGuess", (word) => {
-    const room = findRoomBySocket(socket.id);
-    if (!room) return sendError(socket, "Create or join a room first.");
-    if (room.phase !== "guessing") return sendError(socket, "Wait until both players have locked secret words.");
-
-    const player = getPlayer(room, socket.id);
-    const opponent = getOpponent(room, socket.id);
-    if (!player || !opponent) return sendError(socket, "Both players are required to guess.");
-    if (player.solved) return sendError(socket, "You already solved this round.");
-
-    const answerMatch = normalizeAnswer(room, word);
-    if (!answerMatch) return sendError(socket, "Guesses must come from the current topic list.");
-    if (player.guessLog.some((entry) => entry.word === answerMatch.answer)) {
-      return sendError(socket, "You already guessed that word this round.");
-    }
-
-    const result = scoreGuess(room, player, opponent, answerMatch);
-    socket.emit("guessResult", result);
-    io.to(room.roomCode).emit("scoreboardUpdate", buildScores(room));
-
-    if (room.players.every((roomPlayer) => roomPlayer.solved)) {
-      finishRound(room);
-    }
-
-    emitRoomState(room);
+  socket.on("requestReview", () => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    if (context.room.status !== "RESULTS") return sendError(socket, "Finish the game before reviewing answers.");
+    socket.emit("reviewData", buildReview(context.room));
   });
 
-  socket.on("nextRound", () => {
-    const room = findRoomBySocket(socket.id);
-    if (!room) return sendError(socket, "Create or join a room first.");
-    if (room.phase !== "roundComplete") return sendError(socket, "Finish the current round before starting another.");
+  socket.on("requestRematch", (payload = {}) => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    if (room.status !== "RESULTS") return sendError(socket, "Finish this game before starting another.");
+    player.rematchReady = true;
+    player.rematchMode = payload.mode === "newTopics" ? "newTopics" : "playAgain";
+    touch(room);
 
-    console.log(`Next round requested in room ${room.roomCode}`);
-    startRound(room);
+    if (room.players.every((candidate) => candidate.rematchReady)) {
+      startGame(room);
+    }
+    emitRoomState(room);
   });
 
   socket.on("disconnect", () => {
-    const room = findRoomBySocket(socket.id);
-    console.log(`Socket disconnected: ${socket.id}`);
-    if (!room) return;
-
-    const player = getPlayer(room, socket.id);
-    if (player) player.connected = false;
-
-    const connectedPlayers = room.players.filter((roomPlayer) => roomPlayer.connected);
-    if (connectedPlayers.length === 0) {
-      rooms.delete(room.roomCode);
-      console.log(`Room ${room.roomCode} cleaned up after all players disconnected`);
-      return;
-    }
-
+    const room = rooms.get(socket.data.roomCode);
+    const player = room?.players.find((candidate) => candidate.id === socket.data.playerId);
+    if (!room || !player || player.socketId !== socket.id) return;
+    player.connected = false;
+    player.disconnectedAt = Date.now();
+    touch(room);
     emitRoomState(room);
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`What In The Word is running on port ${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`THREE WORDS is running at http://${HOST}:${PORT}`);
 });
 
-function createRoom(roomCode, socketId, playerName) {
-  return {
-    roomCode,
-    players: [createPlayer(socketId, playerName, 1)],
-    phase: "waiting",
-    roundNumber: 0,
-    topic: null,
-    answers: [],
-    lastTopicName: null,
-    roundSummary: null
-  };
-}
+const cleanupTimer = setInterval(() => {
+  const cutoff = Date.now() - ROOM_TTL_MS;
+  for (const [roomCode, room] of rooms) {
+    if (room.lastActivity >= cutoff) continue;
+    rooms.delete(roomCode);
+    for (const [token, session] of sessions) {
+      if (session.roomCode === roomCode) sessions.delete(token);
+    }
+  }
+}, 60 * 60 * 1000);
+cleanupTimer.unref();
 
-function createPlayer(id, name, number) {
+function createPlayer(name, number, socketId) {
   return {
-    id,
+    id: crypto.randomUUID(),
     name,
     number,
+    socketId,
+    connected: true,
+    disconnectedAt: null,
+    ready: false,
+    answers: [],
+    topicQueue: [],
+    passedTopicIds: [],
+    finishedAnswerPhase: false,
+    guessStarted: false,
+    guessIndex: 0,
+    currentGuess: null,
+    guessReveal: null,
+    guesses: [],
+    finishedGuessPhase: false,
     score: 0,
-    secretWord: "",
-    guessLog: [],
-    guessCount: 0,
-    solved: false,
-    pointsEarned: 0,
-    connected: true
+    rematchReady: false,
+    rematchMode: null
   };
 }
 
-function startRound(room) {
-  const topic = pickTopic(room.lastTopicName);
-  room.roundNumber += 1;
-  room.phase = "secret";
-  room.topic = topic.name;
-  room.answers = topic.answers;
-  room.lastTopicName = topic.name;
-  room.roundSummary = null;
+function attachSession(socket, room, player) {
+  const token = crypto.randomBytes(24).toString("base64url");
+  sessions.set(token, { roomCode: room.roomCode, playerId: player.id });
+  socket.data.sessionToken = token;
+  socket.data.roomCode = room.roomCode;
+  socket.data.playerId = player.id;
+  socket.join(room.roomCode);
+  socket.emit("sessionEstablished", sessionPayload(room, player, token));
+}
 
-  room.players.forEach((player) => {
-    player.secretWord = "";
-    player.guessLog = [];
-    player.guessCount = 0;
-    player.solved = false;
-    player.pointsEarned = 0;
+function sessionPayload(room, player, token) {
+  return {
+    sessionToken: token,
+    roomCode: room.roomCode,
+    playerId: player.id,
+    playerNumber: player.number
+  };
+}
+
+function detachCurrentPlayer(socket) {
+  const room = rooms.get(socket.data.roomCode);
+  const player = room?.players.find((candidate) => candidate.id === socket.data.playerId);
+  if (player && player.socketId === socket.id) {
+    player.connected = false;
+    player.disconnectedAt = Date.now();
+    emitRoomState(room);
+  }
+  socket.data.roomCode = null;
+  socket.data.playerId = null;
+  socket.data.sessionToken = null;
+}
+
+function startGame(room) {
+  room.previousTopicIds = new Set(room.usedTopicIds);
+  room.usedTopicIds = new Set();
+  room.gameNumber += 1;
+  room.status = "ANSWERING";
+  const selected = selectInitialTopics(room.previousTopicIds);
+
+  room.players.forEach((player, playerIndex) => {
+    player.ready = false;
+    player.answers = [];
+    player.topicQueue = selected
+      .slice(playerIndex * ANSWERS_PER_GAME, (playerIndex + 1) * ANSWERS_PER_GAME)
+      .map((topic) => topic.id);
+    player.topicQueue.forEach((topicId) => room.usedTopicIds.add(topicId));
+    player.passedTopicIds = [];
+    player.finishedAnswerPhase = false;
+    player.guessStarted = false;
+    player.guessIndex = 0;
+    player.currentGuess = null;
+    player.guessReveal = null;
+    player.guesses = [];
+    player.finishedGuessPhase = false;
+    player.score = 0;
+    player.rematchReady = false;
+    player.rematchMode = null;
   });
-
-  console.log(`Round ${room.roundNumber} started in ${room.roomCode}: ${room.topic}`);
-  io.to(room.roomCode).emit("roundStarted", room.topic, room.answers);
-  emitRoomState(room);
+  touch(room);
 }
 
-function finishRound(room) {
-  room.phase = "roundComplete";
-  const [playerOne, playerTwo] = room.players;
-  const winner = getRoundWinner(playerOne, playerTwo);
+function selectInitialTopics(excludedIds) {
+  const available = topics.filter((topic) => !excludedIds.has(topic.id));
+  const nonAdult = shuffle(available.filter((topic) => !topic.adultTopic));
+  const adult = shuffle(available.filter((topic) => topic.adultTopic));
+  const selected = [];
 
-  room.roundSummary = {
-    topic: room.topic,
-    playerOne: summarizeRoundPlayer(playerOne, playerTwo.secretWord),
-    playerTwo: summarizeRoundPlayer(playerTwo, playerOne.secretWord),
-    winner,
-    overallLeader: getOverallLeader(room)
-  };
-
-  console.log(`Round ${room.roundNumber} complete in ${room.roomCode}: ${winner}`);
-  io.to(room.roomCode).emit("roundComplete", room.roundSummary);
-}
-
-function scoreGuess(room, player, opponent, answerMatch) {
-  const answer = answerMatch.answer;
-  const guessIndex = room.answers.indexOf(answer);
-  const secretIndex = room.answers.indexOf(opponent.secretWord);
-  // Distance is based on the sorted answer-bank index, not raw dictionary spelling.
-  const distance = Math.abs(secretIndex - guessIndex);
-  const correct = distance === 0;
-  const direction = correct ? "Correct" : guessIndex < secretIndex ? "Go UP" : "Go DOWN";
-  const temperature = getTemperature(distance);
-
-  player.guessCount += 1;
-
-  const entry = {
-    number: player.guessCount,
-    word: answer,
-    direction,
-    distance,
-    temperature,
-    correct,
-    points: 0,
-    correctedFrom: answerMatch.correctedFrom
-  };
-
-  if (correct) {
-    const points = getPointsForGuessCount(player.guessCount);
-    player.solved = true;
-    player.pointsEarned = points;
-    player.score += points;
-    entry.points = points;
+  for (let playerIndex = 0; playerIndex < 2; playerIndex += 1) {
+    const includeAdult = adult.length > 0 && crypto.randomInt(100) < 55;
+    const group = nonAdult.splice(0, ANSWERS_PER_GAME - (includeAdult ? 1 : 0));
+    if (includeAdult) group.push(adult.pop());
+    selected.push(...shuffle(group));
   }
 
-  player.guessLog.push(entry);
-  return entry;
+  if (selected.length === ANSWERS_PER_GAME * 2) return selected;
+  return shuffle(topics).slice(0, ANSWERS_PER_GAME * 2);
 }
 
-function getPointsForGuessCount(count) {
-  if (count === 1) return 10;
-  if (count === 2) return 8;
-  if (count === 3) return 6;
-  if (count === 4) return 4;
-  return 2;
-}
-
-function getTemperature(distance) {
-  if (distance === 0) return "Correct";
-  if (distance === 1) return "Burning";
-  if (distance <= 4) return "Hot";
-  if (distance <= 9) return "Warm";
-  if (distance <= 19) return "Cold";
-  return "Ice Cold";
-}
-
-function getRoundWinner(playerOne, playerTwo) {
-  if (playerOne.pointsEarned > playerTwo.pointsEarned) return `${playerOne.name} wins the round`;
-  if (playerTwo.pointsEarned > playerOne.pointsEarned) return `${playerTwo.name} wins the round`;
-  if (playerOne.guessCount < playerTwo.guessCount) return `${playerOne.name} wins the round`;
-  if (playerTwo.guessCount < playerOne.guessCount) return `${playerTwo.name} wins the round`;
-  return "The round is a tie";
-}
-
-function getOverallLeader(room) {
-  const [playerOne, playerTwo] = room.players;
-  if (!playerOne || !playerTwo) return "Waiting for players";
-  if (playerOne.score > playerTwo.score) return `${playerOne.name} leads overall`;
-  if (playerTwo.score > playerOne.score) return `${playerTwo.name} leads overall`;
-  return "Overall score is tied";
-}
-
-function summarizeRoundPlayer(player, guessedSecretWord) {
-  return {
-    name: player.name,
-    number: player.number,
-    guesses: player.guessCount,
-    points: player.pointsEarned,
-    secretWord: guessedSecretWord
-  };
-}
-
-function buildStateForPlayer(room, socketId) {
-  const currentPlayer = getPlayer(room, socketId);
-  const opponent = getOpponent(room, socketId);
-  // Fairness boundary: opponents never receive each other's secret words until the round is complete.
-  const revealSecrets = room.phase === "roundComplete";
-
-  return {
-    roomCode: room.roomCode,
-    phase: room.phase,
-    roundNumber: room.roundNumber,
-    topic: room.topic,
-    answers: room.answers,
-    scores: buildScores(room),
-    overallLeader: getOverallLeader(room),
-    roundSummary: room.roundSummary,
-    you: currentPlayer ? serializePlayer(currentPlayer, true, revealSecrets) : null,
-    opponent: opponent ? serializePlayer(opponent, false, revealSecrets) : null,
-    players: room.players.map((player) => serializePlayer(player, player.id === socketId, revealSecrets))
-  };
-}
-
-function serializePlayer(player, isYou, revealSecret) {
-  return {
-    name: player.name,
-    number: player.number,
-    score: player.score,
-    isYou,
-    connected: player.connected,
-    hasSecret: Boolean(player.secretWord),
-    secretWord: isYou || revealSecret ? player.secretWord : "",
-    guessLog: isYou ? player.guessLog : [],
-    guessCount: player.guessCount,
-    solved: player.solved,
-    pointsEarned: player.pointsEarned
-  };
-}
-
-function buildScores(room) {
-  return room.players.map((player) => ({
-    name: player.name,
-    number: player.number,
-    score: player.score,
-    solved: player.solved,
-    pointsEarned: player.pointsEarned
+async function prepareCurrentGuess(room, player) {
+  const opponent = room.players.find((candidate) => candidate.id !== player.id);
+  const source = opponent?.answers[player.guessIndex];
+  if (!opponent || !source) return;
+  const topic = topicById.get(source.topicId);
+  const fakeAnswers = await generateFakeAnswers(topic, source.answer);
+  const candidates = shuffle([source.answer, ...fakeAnswers]).map((text) => ({
+    id: crypto.randomBytes(10).toString("base64url"),
+    text
   }));
+  const realOption = candidates.find((option) => option.text === source.answer);
+  player.currentGuess = {
+    topicId: source.topicId,
+    topicText: source.topicText,
+    options: candidates,
+    correctOptionId: realOption.id
+  };
+}
+
+function pickUnusedTopic(room) {
+  const candidates = topics.filter((topic) =>
+    !room.usedTopicIds.has(topic.id) && !room.previousTopicIds.has(topic.id)
+  );
+  const fallback = topics.filter((topic) => !room.usedTopicIds.has(topic.id));
+  return shuffle(candidates.length ? candidates : fallback)[0] || null;
+}
+
+function buildStateForPlayer(room, player) {
+  const opponent = room.players.find((candidate) => candidate.id !== player.id) || null;
+  const state = {
+    roomCode: room.roomCode,
+    status: room.status,
+    gameNumber: room.gameNumber,
+    isHost: room.hostPlayerId === player.id,
+    players: room.players.map((candidate) => ({
+      id: candidate.id,
+      name: candidate.name,
+      number: candidate.number,
+      connected: candidate.connected,
+      ready: candidate.ready,
+      answerProgress: candidate.answers.length,
+      finishedAnswerPhase: candidate.finishedAnswerPhase,
+      guessProgress: candidate.guesses.length,
+      finishedGuessPhase: candidate.finishedGuessPhase,
+      score: room.status === "RESULTS" ? candidate.score : null,
+      rematchReady: candidate.rematchReady
+    })),
+    self: {
+      id: player.id,
+      name: player.name,
+      number: player.number,
+      ready: player.ready,
+      answerProgress: player.answers.length,
+      finishedAnswerPhase: player.finishedAnswerPhase,
+      guessStarted: player.guessStarted,
+      guessProgress: player.guesses.length,
+      finishedGuessPhase: player.finishedGuessPhase,
+      score: player.score,
+      rematchReady: player.rematchReady
+    },
+    opponent: opponent ? {
+      id: opponent.id,
+      name: opponent.name,
+      connected: opponent.connected,
+      answerProgress: opponent.answers.length,
+      finishedAnswerPhase: opponent.finishedAnswerPhase,
+      guessProgress: opponent.guesses.length,
+      finishedGuessPhase: opponent.finishedGuessPhase,
+      rematchReady: opponent.rematchReady
+    } : null
+  };
+
+  if (room.status === "ANSWERING" && !player.finishedAnswerPhase) {
+    const topic = topicById.get(player.topicQueue[player.answers.length]);
+    state.answerPhase = {
+      currentTopic: topic ? { id: topic.id, text: topic.text, category: topic.category } : null,
+      completed: player.answers.length,
+      total: ANSWERS_PER_GAME
+    };
+  }
+
+  if (room.status === "GUESSING" && player.guessStarted && !player.finishedGuessPhase) {
+    state.guessPhase = {
+      current: player.currentGuess ? {
+        topicId: player.currentGuess.topicId,
+        topicText: player.currentGuess.topicText,
+        options: player.currentGuess.options
+      } : null,
+      reveal: player.guessReveal,
+      completed: player.guesses.length,
+      total: ANSWERS_PER_GAME
+    };
+  }
+
+  if (room.status === "RESULTS") {
+    state.results = {
+      scores: room.players.map((candidate) => ({
+        playerId: candidate.id,
+        name: candidate.name,
+        opponentName: room.players.find((other) => other.id !== candidate.id)?.name || "their partner",
+        score: candidate.score
+      })),
+      summary: scoreSummary(Math.round(room.players.reduce((sum, candidate) => sum + candidate.score, 0) / 2))
+    };
+  }
+  return state;
+}
+
+function buildReview(room) {
+  return room.players.map((answeringPlayer) => {
+    const guessingPlayer = room.players.find((candidate) => candidate.id !== answeringPlayer.id);
+    return {
+      answeringPlayer: answeringPlayer.name,
+      guessingPlayer: guessingPlayer.name,
+      entries: answeringPlayer.answers.map((answer, index) => {
+        const guess = guessingPlayer.guesses[index];
+        return {
+          topic: answer.topicText,
+          answer: answer.answer,
+          guessed: guess?.selectedAnswer || "No guess",
+          correct: Boolean(guess?.correct)
+        };
+      })
+    };
+  });
 }
 
 function emitRoomState(room) {
-  room.players.forEach((player) => {
-    io.to(player.id).emit("gameStateUpdate", buildStateForPlayer(room, player.id));
-  });
-}
-
-function normalizeAnswer(room, rawWord) {
-  const submitted = String(rawWord || "").trim();
-  // Server-side validation is authoritative; client autocomplete is only a spelling helper.
-  const exact = room.answers.find((answer) => answer.toLowerCase() === submitted.toLowerCase());
-  if (exact) return { answer: exact, correctedFrom: null };
-
-  const simplifiedSubmitted = simplifyAnswer(submitted);
-  const simplifiedExact = room.answers.find((answer) => simplifyAnswer(answer) === simplifiedSubmitted);
-  if (simplifiedExact) return { answer: simplifiedExact, correctedFrom: submitted };
-
-  if (simplifiedSubmitted.length < 5) return null;
-
-  const maxDistance = simplifiedSubmitted.length >= 8 ? 2 : 1;
-  const matches = room.answers
-    .map((answer) => ({
-      answer,
-      distance: getEditDistance(simplifiedSubmitted, simplifyAnswer(answer), maxDistance)
-    }))
-    .filter((match) => match.distance > 0 && match.distance <= maxDistance)
-    .sort((a, b) => a.distance - b.distance || a.answer.localeCompare(b.answer));
-
-  if (!matches.length) return null;
-  if (matches[1] && matches[1].distance === matches[0].distance) return null;
-
-  return { answer: matches[0].answer, correctedFrom: submitted };
-}
-
-function simplifyAnswer(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "");
-}
-
-function getEditDistance(left, right, maxDistance) {
-  if (Math.abs(left.length - right.length) > maxDistance) return maxDistance + 1;
-
-  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-    const current = [leftIndex];
-    let rowMinimum = current[0];
-
-    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
-      const cost = Math.min(
-        previous[rightIndex] + 1,
-        current[rightIndex - 1] + 1,
-        previous[rightIndex - 1] + substitutionCost
-      );
-      current[rightIndex] = cost;
-      rowMinimum = Math.min(rowMinimum, cost);
-    }
-
-    if (rowMinimum > maxDistance) return maxDistance + 1;
-    previous = current;
+  for (const player of room.players) {
+    if (!player.connected || !player.socketId) continue;
+    io.to(player.socketId).emit("roomState", buildStateForPlayer(room, player));
   }
-
-  return previous[right.length];
 }
 
-function cleanName(rawName) {
-  return String(rawName || "").trim().replace(/\s+/g, " ").slice(0, 24);
+function getSocketContext(socket) {
+  const room = rooms.get(socket.data.roomCode);
+  const player = room?.players.find((candidate) => candidate.id === socket.data.playerId);
+  return room && player ? { room, player } : null;
 }
 
-function getPlayer(room, socketId) {
-  return room.players.find((player) => player.id === socketId);
-}
-
-function getOpponent(room, socketId) {
-  return room.players.find((player) => player.id !== socketId);
-}
-
-function findRoomBySocket(socketId) {
-  for (const room of rooms.values()) {
-    if (room.players.some((player) => player.id === socketId)) return room;
-  }
-  return null;
-}
-
-function pickTopic(lastTopicName) {
-  const candidates = topics.filter((topic) => topic.name !== lastTopicName);
-  return candidates[Math.floor(Math.random() * candidates.length)];
+function cleanName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 24);
 }
 
 function createRoomCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   do {
-    code = Array.from({ length: ROOM_CODE_LENGTH }, () =>
-      "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]
-    ).join("");
+    code = Array.from({ length: 6 }, () => alphabet[crypto.randomInt(alphabet.length)]).join("");
   } while (rooms.has(code));
   return code;
 }
 
-function getPlayerInfo(room, socketId) {
-  const player = getPlayer(room, socketId);
-  return player ? { name: player.name, number: player.number } : null;
+function shuffle(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = crypto.randomInt(index + 1);
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
 }
 
-function sendError(socket, message) {
-  socket.emit("errorMessage", message);
+function scoreSummary(score) {
+  if (score <= 2) return "You two have some homework to do.";
+  if (score <= 5) return "You're getting there.";
+  if (score <= 7) return "Okay, you definitely pay attention.";
+  if (score <= 9) return "That's suspiciously impressive.";
+  return "Either soulmates or excellent spies.";
 }
+
+function sendError(socket, message, field = null) {
+  socket.emit("gameError", { message, field });
+}
+
+function touch(room) {
+  room.lastActivity = Date.now();
+}
+
+function emitRoomState(room) {
+  for (const player of room.players) {
+    if (!player.socketId || !player.connected) continue;
+    io.to(player.socketId).emit("roomState", buildStateForPlayer(room, player));
+  }
+}
+
+function getSocketContext(socket) {
+  const room = rooms.get(socket.data.roomCode);
+  const player = room?.players.find((candidate) => candidate.id === socket.data.playerId);
+  return room && player ? { room, player } : null;
+}
+
+function buildReview(room) {
+  return room.players.map((answeringPlayer) => {
+    const guessingPlayer = room.players.find((candidate) => candidate.id !== answeringPlayer.id);
+    return {
+      answeringPlayer: answeringPlayer.name,
+      guessingPlayer: guessingPlayer.name,
+      entries: answeringPlayer.answers.map((answer, index) => {
+        const guess = guessingPlayer.guesses[index];
+        return {
+          topic: answer.topicText,
+          answer: answer.answer,
+          guessed: guess?.selectedAnswer || "No guess",
+          correct: Boolean(guess?.correct)
+        };
+      })
+    };
+  });
+}
+
+function createRoomCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    let code = "";
+    const bytes = crypto.randomBytes(6);
+    for (const byte of bytes) code += alphabet[byte % alphabet.length];
+    if (!rooms.has(code)) return code;
+  }
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+function cleanName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 24);
+}
+
+function shuffle(items) {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapIndex = crypto.randomInt(index + 1);
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
+module.exports = { app, server };
