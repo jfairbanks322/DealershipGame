@@ -5,6 +5,7 @@ const connectionPill = document.getElementById("connectionPill");
 const confettiCanvas = document.getElementById("confettiCanvas");
 const confettiContext = confettiCanvas.getContext("2d");
 const SESSION_KEY = "threeWordsSession";
+const ANSWER_DRAFTS_KEY = "threeWordsAnswerDrafts";
 
 const state = {
   game: null,
@@ -12,6 +13,8 @@ const state = {
   pendingOptionId: null,
   review: null,
   session: readSession(),
+  answerDrafts: readAnswerDrafts(),
+  discardedAnswerDraftKey: null,
   confetti: [],
   toastTimer: null
 };
@@ -46,10 +49,16 @@ socket.on("sessionInvalid", () => {
 });
 
 socket.on("roomState", (game) => {
+  captureVisibleAnswerDraft();
+  const previousGame = state.game;
   const previousStatus = state.game?.status;
   state.game = game;
+  if (state.discardedAnswerDraftKey && answerDraftKey(game) !== state.discardedAnswerDraftKey) {
+    state.discardedAnswerDraftKey = null;
+  }
   if (state.pendingOptionId && game.guessPhase?.reveal) state.pendingOptionId = null;
   if (previousStatus && previousStatus !== "RESULTS" && game.status === "RESULTS") burstConfetti(100);
+  if (canKeepActiveAnswerForm(previousGame, game)) return;
   render();
 });
 
@@ -59,11 +68,15 @@ socket.on("gameError", ({ message, field }) => {
 });
 
 socket.on("answerLocked", () => {
+  clearCurrentAnswerDraft();
   showToast("LOCKED IN.");
   burstConfetti(18);
 });
 
-socket.on("topicPassed", () => showToast("New topic. No penalty."));
+socket.on("topicPassed", () => {
+  clearCurrentAnswerDraft();
+  showToast("New topic. No penalty.");
+});
 socket.on("reviewData", (review) => { state.review = review; render(); });
 
 root.addEventListener("click", async (event) => {
@@ -116,6 +129,7 @@ root.addEventListener("submit", (event) => {
 
 root.addEventListener("input", (event) => {
   if (event.target.id !== "answerInput") return;
+  saveCurrentAnswerDraft(event.target.value);
   const count = countWords(event.target.value);
   const counter = document.getElementById("wordCounter");
   if (!counter) return;
@@ -230,6 +244,8 @@ function lobbyTemplate(game) {
 function answerTemplate(game) {
   const phase = game.answerPhase;
   const topic = phase.currentTopic;
+  const draft = getAnswerDraft(game, topic.id);
+  const draftWordCount = countWords(draft);
   return `
     <section class="screen topic-shell">
       <div class="game-meta"><span>Topic ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
@@ -240,8 +256,8 @@ function answerTemplate(game) {
       </article>
       <form id="answerForm" class="answer-form">
         <div class="answer-input-wrap">
-          <input id="answerInput" class="text-input answer-input" maxlength="100" placeholder="Three words only…" autocomplete="off" aria-label="Your three word answer" autofocus />
-          <span id="wordCounter" class="word-counter">0 / 3 words</span>
+          <input id="answerInput" class="text-input answer-input" maxlength="100" placeholder="Three words only…" autocomplete="off" aria-label="Your three word answer" value="${escapeHtml(draft)}" autofocus />
+          <span id="wordCounter" class="word-counter ${draftWordCount === 3 ? "valid" : ""}">${draftWordCount} / 3 words</span>
         </div>
         <div class="answer-actions">
           <button type="submit" class="button">Submit answer →</button>
@@ -406,10 +422,73 @@ function readSession() {
   catch { return null; }
 }
 
+function readAnswerDrafts() {
+  try {
+    const drafts = JSON.parse(sessionStorage.getItem(ANSWER_DRAFTS_KEY) || "{}");
+    return drafts && typeof drafts === "object" && !Array.isArray(drafts) ? drafts : {};
+  } catch {
+    return {};
+  }
+}
+
+function answerDraftKey(game = state.game, topicId = game?.answerPhase?.currentTopic?.id) {
+  if (!game?.roomCode || !game?.self?.id || !topicId) return null;
+  return `${game.roomCode}:${game.gameNumber}:${game.self.id}:${topicId}`;
+}
+
+function getAnswerDraft(game, topicId) {
+  const key = answerDraftKey(game, topicId);
+  return key ? state.answerDrafts[key] || "" : "";
+}
+
+function saveCurrentAnswerDraft(value) {
+  const key = answerDraftKey();
+  if (!key || key === state.discardedAnswerDraftKey) return;
+  state.answerDrafts[key] = String(value || "");
+  persistAnswerDrafts();
+}
+
+function captureVisibleAnswerDraft() {
+  const input = document.getElementById("answerInput");
+  if (input) saveCurrentAnswerDraft(input.value);
+}
+
+function clearCurrentAnswerDraft() {
+  const key = answerDraftKey();
+  if (!key) return;
+  delete state.answerDrafts[key];
+  state.discardedAnswerDraftKey = key;
+  persistAnswerDrafts();
+}
+
+function persistAnswerDrafts() {
+  try {
+    sessionStorage.setItem(ANSWER_DRAFTS_KEY, JSON.stringify(state.answerDrafts));
+  } catch {
+    // Drafts still remain in memory when browser storage is unavailable.
+  }
+}
+
+function canKeepActiveAnswerForm(previousGame, nextGame) {
+  const previousTopicId = previousGame?.answerPhase?.currentTopic?.id;
+  const nextTopicId = nextGame?.answerPhase?.currentTopic?.id;
+  return Boolean(
+    document.getElementById("answerInput") &&
+    previousGame?.status === "ANSWERING" &&
+    nextGame?.status === "ANSWERING" &&
+    previousTopicId &&
+    previousTopicId === nextTopicId &&
+    previousGame.self.answerProgress === nextGame.self.answerProgress
+  );
+}
+
 function clearSession() {
   state.session = null;
   state.game = null;
+  state.answerDrafts = {};
+  state.discardedAnswerDraftKey = null;
   localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(ANSWER_DRAFTS_KEY);
 }
 
 function toggleFullscreen() {
@@ -473,6 +552,8 @@ window.render_game_to_text = () => JSON.stringify({
     guessProgress: state.game.opponent.guessProgress
   } : null,
   currentTopic: state.game?.answerPhase?.currentTopic?.text || state.game?.guessPhase?.current?.topicText || null,
+  currentAnswerDraft: document.getElementById("answerInput")?.value || null,
+  currentAnswerWordCount: document.getElementById("answerInput") ? countWords(document.getElementById("answerInput").value) : null,
   visibleAnswerOptions: state.game?.guessPhase?.current?.options?.map((option) => option.text) || [],
   revealedAnswer: state.game?.guessPhase?.reveal?.realAnswer || null,
   selectedOptionId: state.pendingOptionId,
