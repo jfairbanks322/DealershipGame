@@ -4,6 +4,7 @@ const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
 const topics = require("./topics");
+const wouldYouRatherQuestions = require("./would-you-rather");
 const { generateFakeAnswers, normalizeAnswer, normalizedWords } = require("./fake-answer-service");
 
 const PORT = Number(process.env.PORT) || 3040;
@@ -23,9 +24,18 @@ const GAME_MODES = {
     answerCount: 20,
     sharedTopics: true,
     compatibilityReport: true
+  },
+  wouldYouRather: {
+    id: "would-you-rather",
+    label: "Would You Rather",
+    answerCount: 20,
+    sharedTopics: true,
+    compatibilityReport: false,
+    choiceGame: true
   }
 };
 const DEFAULT_GAME_MODE = GAME_MODES.classic;
+const WOULD_YOU_RATHER_COUNTS = new Set([10, 20, 30, 50]);
 const TOPIC_TONES = {
   mixed: {
     id: "mixed",
@@ -67,6 +77,7 @@ const DEFAULT_TOPIC_TONE = TOPIC_TONES.mixed;
 const rooms = new Map();
 const sessions = new Map();
 const topicById = new Map(topics.map((topic) => [topic.id, topic]));
+const wouldYouRatherById = new Map(wouldYouRatherQuestions.map((question) => [question.id, question]));
 
 const app = express();
 const server = http.createServer(app);
@@ -74,7 +85,7 @@ const io = new Server(server, { serveClient: true });
 
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/health", (_request, response) => {
-  response.json({ ok: true, rooms: rooms.size, topics: topics.length });
+  response.json({ ok: true, rooms: rooms.size, topics: topics.length, wouldYouRatherQuestions: wouldYouRatherQuestions.length });
 });
 
 io.on("connection", (socket) => {
@@ -93,10 +104,13 @@ io.on("connection", (socket) => {
       players: [],
       modeId: mode.id,
       topicToneId: topicTone.id,
-      answerTarget: mode.answerCount,
+      answerTarget: mode.choiceGame ? getWouldYouRatherCount(payload.questionCount) : mode.answerCount,
       gameNumber: 0,
       usedTopicIds: new Set(),
       previousTopicIds: new Set(),
+      wouldYouRatherQueue: [],
+      usedWouldYouRatherIds: new Set(),
+      previousWouldYouRatherIds: new Set(),
       createdAt: Date.now(),
       lastActivity: Date.now()
     };
@@ -204,6 +218,34 @@ io.on("connection", (socket) => {
         candidate.guessReveal = null;
       });
     }
+    emitRoomState(room);
+  });
+
+  socket.on("submitPreference", (payload = {}) => {
+    const context = getSocketContext(socket);
+    if (!context) return sendError(socket, "Your game session couldn't be found.");
+    const { room, player } = context;
+    if (room.status !== "CHOOSING" || player.finishedPreferencePhase) {
+      return sendError(socket, "There isn't a choice waiting right now.");
+    }
+
+    const questionId = room.wouldYouRatherQueue[player.preferences.length];
+    if (payload.questionId !== questionId) return sendError(socket, "That choice has already moved on.");
+    const question = wouldYouRatherById.get(questionId);
+    const option = question?.options.find((candidate) => candidate.id === payload.optionId);
+    if (!question || !option) return sendError(socket, "Choose one of the four options.");
+
+    player.preferences.push({
+      questionId: question.id,
+      category: question.category,
+      prompt: question.prompt,
+      optionId: option.id,
+      optionText: option.text
+    });
+    player.finishedPreferencePhase = player.preferences.length === room.answerTarget;
+    if (room.players.every((candidate) => candidate.finishedPreferencePhase)) room.status = "RESULTS";
+    touch(room);
+    socket.emit("preferenceLocked", { completed: player.preferences.length });
     emitRoomState(room);
   });
 
@@ -354,6 +396,8 @@ function createPlayer(name, number, socketId) {
     guessReveal: null,
     guesses: [],
     finishedGuessPhase: false,
+    preferences: [],
+    finishedPreferencePhase: false,
     score: 0,
     rematchReady: false,
     rematchMode: null
@@ -393,30 +437,75 @@ function detachCurrentPlayer(socket) {
 }
 
 function startGame(room) {
+  room.gameNumber += 1;
+  if (getGameMode(room.modeId).choiceGame) {
+    startWouldYouRatherGame(room);
+    touch(room);
+    return;
+  }
+
   room.previousTopicIds = new Set(room.usedTopicIds);
   room.usedTopicIds = new Set();
-  room.gameNumber += 1;
   room.status = "ANSWERING";
   const selectedQueues = selectTopicQueues(room);
-
   room.players.forEach((player, playerIndex) => {
-    player.ready = false;
-    player.answers = [];
+    resetPlayerForRound(player);
     player.topicQueue = selectedQueues[playerIndex].map((topic) => topic.id);
     player.topicQueue.forEach((topicId) => room.usedTopicIds.add(topicId));
-    player.passedTopicIds = [];
-    player.finishedAnswerPhase = false;
-    player.guessStarted = false;
-    player.guessIndex = 0;
-    player.currentGuess = null;
-    player.guessReveal = null;
-    player.guesses = [];
-    player.finishedGuessPhase = false;
-    player.score = 0;
-    player.rematchReady = false;
-    player.rematchMode = null;
   });
   touch(room);
+}
+
+function startWouldYouRatherGame(room) {
+  room.previousWouldYouRatherIds = new Set(room.usedWouldYouRatherIds);
+  room.usedWouldYouRatherIds = new Set();
+  const questions = selectWouldYouRatherQuestions(room.previousWouldYouRatherIds, room.answerTarget);
+  room.wouldYouRatherQueue = questions.map((question) => question.id);
+  room.wouldYouRatherQueue.forEach((questionId) => room.usedWouldYouRatherIds.add(questionId));
+  room.status = "CHOOSING";
+  room.players.forEach((player) => resetPlayerForRound(player));
+}
+
+function resetPlayerForRound(player) {
+  player.ready = false;
+  player.answers = [];
+  player.topicQueue = [];
+  player.passedTopicIds = [];
+  player.finishedAnswerPhase = false;
+  player.guessStarted = false;
+  player.guessIndex = 0;
+  player.currentGuess = null;
+  player.guessReveal = null;
+  player.guesses = [];
+  player.finishedGuessPhase = false;
+  player.preferences = [];
+  player.finishedPreferencePhase = false;
+  player.score = 0;
+  player.rematchReady = false;
+  player.rematchMode = null;
+}
+
+function selectWouldYouRatherQuestions(excludedIds, count) {
+  const categoryOrder = ["play", "everyday", "adventure", "connection", "future"];
+  const perCategory = count / categoryOrder.length;
+  const selected = [];
+
+  for (const category of categoryOrder) {
+    const available = shuffle(wouldYouRatherQuestions.filter((question) =>
+      question.category === category && !excludedIds.has(question.id)
+    ));
+    const categorySelection = available.slice(0, perCategory);
+    if (categorySelection.length < perCategory) {
+      const selectedIds = new Set(categorySelection.map((question) => question.id));
+      const refill = shuffle(wouldYouRatherQuestions.filter((question) =>
+        question.category === category && !selectedIds.has(question.id)
+      ));
+      categorySelection.push(...refill.slice(0, perCategory - categorySelection.length));
+    }
+    selected.push(...categorySelection);
+  }
+
+  return shuffle(selected);
 }
 
 function selectTopicQueues(room) {
@@ -538,6 +627,8 @@ function buildStateForPlayer(room, player) {
       finishedAnswerPhase: candidate.finishedAnswerPhase,
       guessProgress: candidate.guesses.length,
       finishedGuessPhase: candidate.finishedGuessPhase,
+      choiceProgress: candidate.preferences.length,
+      finishedPreferencePhase: candidate.finishedPreferencePhase,
       score: room.status === "RESULTS" ? candidate.score : null,
       rematchReady: candidate.rematchReady
     })),
@@ -551,6 +642,8 @@ function buildStateForPlayer(room, player) {
       guessStarted: player.guessStarted,
       guessProgress: player.guesses.length,
       finishedGuessPhase: player.finishedGuessPhase,
+      choiceProgress: player.preferences.length,
+      finishedPreferencePhase: player.finishedPreferencePhase,
       score: player.score,
       rematchReady: player.rematchReady
     },
@@ -562,6 +655,8 @@ function buildStateForPlayer(room, player) {
       finishedAnswerPhase: opponent.finishedAnswerPhase,
       guessProgress: opponent.guesses.length,
       finishedGuessPhase: opponent.finishedGuessPhase,
+      choiceProgress: opponent.preferences.length,
+      finishedPreferencePhase: opponent.finishedPreferencePhase,
       rematchReady: opponent.rematchReady
     } : null
   };
@@ -588,21 +683,37 @@ function buildStateForPlayer(room, player) {
     };
   }
 
-  if (room.status === "RESULTS") {
-    state.results = {
-      scores: room.players.map((candidate) => ({
-        playerId: candidate.id,
-        name: candidate.name,
-        opponentName: room.players.find((other) => other.id !== candidate.id)?.name || "their partner",
-        score: candidate.score
-      })),
-      total: room.answerTarget,
-      summary: scoreSummary(
-        Math.round(room.players.reduce((sum, candidate) => sum + candidate.score, 0) / 2),
-        room.answerTarget
-      ),
-      compatibility: mode.compatibilityReport ? buildCompatibilityReport(room) : null
+  if (room.status === "CHOOSING" && !player.finishedPreferencePhase) {
+    const question = wouldYouRatherById.get(room.wouldYouRatherQueue[player.preferences.length]);
+    state.choicePhase = {
+      current: question ? {
+        id: question.id,
+        prompt: question.prompt,
+        category: question.category,
+        options: question.options
+      } : null,
+      completed: player.preferences.length,
+      total: room.answerTarget
     };
+  }
+
+  if (room.status === "RESULTS") {
+    state.results = mode.choiceGame
+      ? { total: room.answerTarget, wouldYouRather: buildWouldYouRatherReport(room) }
+      : {
+          scores: room.players.map((candidate) => ({
+            playerId: candidate.id,
+            name: candidate.name,
+            opponentName: room.players.find((other) => other.id !== candidate.id)?.name || "their partner",
+            score: candidate.score
+          })),
+          total: room.answerTarget,
+          summary: scoreSummary(
+            Math.round(room.players.reduce((sum, candidate) => sum + candidate.score, 0) / 2),
+            room.answerTarget
+          ),
+          compatibility: mode.compatibilityReport ? buildCompatibilityReport(room) : null
+        };
   }
   return state;
 }
@@ -702,6 +813,95 @@ function buildCompatibilityReport(room) {
   };
 }
 
+function buildWouldYouRatherReport(room) {
+  const [first, second] = room.players;
+  if (!first || !second) return null;
+  const secondPreferences = new Map(second.preferences.map((preference) => [preference.questionId, preference]));
+  const entries = first.preferences.flatMap((firstPreference) => {
+    const secondPreference = secondPreferences.get(firstPreference.questionId);
+    if (!secondPreference) return [];
+    return [{
+      questionId: firstPreference.questionId,
+      prompt: firstPreference.prompt,
+      category: firstPreference.category,
+      matched: firstPreference.optionId === secondPreference.optionId,
+      choices: [
+        { playerId: first.id, name: first.name, optionId: firstPreference.optionId, text: firstPreference.optionText },
+        { playerId: second.id, name: second.name, optionId: secondPreference.optionId, text: secondPreference.optionText }
+      ]
+    }];
+  });
+  const matchCount = entries.filter((entry) => entry.matched).length;
+  const matchPercent = Math.round(matchCount / Math.max(1, entries.length) * 100);
+  const categoryOrder = ["play", "everyday", "adventure", "connection", "future"];
+  const categories = categoryOrder.flatMap((category) => {
+    const categoryEntries = entries.filter((entry) => entry.category === category);
+    if (!categoryEntries.length) return [];
+    const categoryMatchCount = categoryEntries.filter((entry) => entry.matched).length;
+    return [{
+      id: category,
+      label: wouldYouRatherCategoryLabel(category),
+      matchCount: categoryMatchCount,
+      questionCount: categoryEntries.length,
+      score: Math.round(categoryMatchCount / categoryEntries.length * 100),
+      entries: categoryEntries
+    }];
+  });
+  const strongest = [...categories].sort((a, b) => b.score - a.score || b.matchCount - a.matchCount)[0];
+  const firstMatch = entries.find((entry) => entry.matched);
+  const firstDifference = entries.find((entry) => !entry.matched);
+  const tier = wouldYouRatherTier(matchPercent);
+
+  return {
+    matchCount,
+    differenceCount: entries.length - matchCount,
+    matchPercent,
+    totalQuestions: entries.length,
+    tier: tier.title,
+    summary: tier.summary,
+    players: [
+      { playerId: first.id, name: first.name },
+      { playerId: second.id, name: second.name }
+    ],
+    highlights: [
+      {
+        kicker: "Your sweet spot",
+        value: strongest?.label || "Still unfolding",
+        copy: strongest ? `${strongest.matchCount} of ${strongest.questionCount} picks matched here.` : "Another round will reveal it."
+      },
+      {
+        kicker: "Same exact pick",
+        value: firstMatch?.choices[0].text || "Perfectly original",
+        copy: firstMatch ? `You both chose this for “${firstMatch.prompt}”` : "You made every choice differently this time."
+      },
+      {
+        kicker: "Talk about this one",
+        value: firstDifference?.prompt || "Total agreement",
+        copy: firstDifference ? "Your different answers might make a great conversation." : "You matched on every single question."
+      }
+    ],
+    categories
+  };
+}
+
+function wouldYouRatherTier(score) {
+  if (score === 100) return { title: "Same brain, four choices", summary: "Every pick matched. Frankly, this is getting suspicious." };
+  if (score >= 75) return { title: "Pick-perfect pair", summary: "Your instincts land in the same place more often than not." };
+  if (score >= 55) return { title: "Same-page energy", summary: "Plenty of shared instincts, with a few excellent plot twists." };
+  if (score >= 35) return { title: "A lively mix", summary: "You overlap where it counts and keep the choices interesting." };
+  return { title: "Beautifully unpredictable", summary: "Your different instincts give you plenty to talk about." };
+}
+
+function wouldYouRatherCategoryLabel(category) {
+  return ({
+    play: "Play style",
+    everyday: "Everyday rhythm",
+    adventure: "Adventure mode",
+    connection: "Connection style",
+    future: "Future vision"
+  })[category] || category;
+}
+
 function answerSimilarity(firstAnswer, secondAnswer) {
   const firstText = String(firstAnswer || "").toLocaleLowerCase("en-US");
   const secondText = String(secondAnswer || "").toLocaleLowerCase("en-US");
@@ -776,7 +976,12 @@ function categoryLabel(category) {
 }
 
 function getGameMode(value) {
-  return value === GAME_MODES.compatibility.id ? GAME_MODES.compatibility : DEFAULT_GAME_MODE;
+  return Object.values(GAME_MODES).find((mode) => mode.id === value) || DEFAULT_GAME_MODE;
+}
+
+function getWouldYouRatherCount(value) {
+  const count = Number(value);
+  return WOULD_YOU_RATHER_COUNTS.has(count) ? count : GAME_MODES.wouldYouRather.answerCount;
 }
 
 function getTopicTone(value) {

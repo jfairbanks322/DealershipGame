@@ -12,7 +12,9 @@ const state = {
   entryMode: "home",
   createMode: "classic",
   createTone: "mixed",
+  createQuestionCount: 20,
   pendingOptionId: null,
+  pendingPreferenceId: null,
   review: null,
   session: readSession(),
   answerDrafts: readAnswerDrafts(),
@@ -63,6 +65,7 @@ socket.on("roomState", (game) => {
   if (previousStatus && previousStatus !== "RESULTS" && game.status === "RESULTS") burstConfetti(100);
   if (canKeepActiveAnswerForm(previousGame, game)) return;
   if (canKeepActiveGuessView(previousGame, game)) return;
+  if (canKeepActivePreferenceView(previousGame, game)) return;
   if (canKeepWaitingScreen(previousGame, game)) {
     updateWaitingProgress(game);
     return;
@@ -83,6 +86,11 @@ socket.on("gameError", ({ message, field }) => {
     nextButton.textContent = "Next →";
     nextButton.disabled = false;
   }
+  const preferenceButton = root.querySelector('[data-action="lock-preference"]');
+  if (preferenceButton) {
+    preferenceButton.textContent = "Choose this one →";
+    preferenceButton.disabled = !state.pendingPreferenceId;
+  }
 });
 
 socket.on("answerLocked", () => {
@@ -95,6 +103,11 @@ socket.on("topicPassed", () => {
   clearCurrentAnswerDraft();
   showToast("New topic. No penalty.");
 });
+socket.on("preferenceLocked", () => {
+  state.pendingPreferenceId = null;
+  showToast("PICK LOCKED.");
+  burstConfetti(10);
+});
 socket.on("reviewData", (review) => { state.review = review; render(); });
 
 root.addEventListener("click", async (event) => {
@@ -102,8 +115,9 @@ root.addEventListener("click", async (event) => {
   if (!target) return;
   const action = target.dataset.action;
 
-  if (action === "choose-create") { state.createMode = "classic"; state.createTone = "mixed"; state.entryMode = "create"; render(); }
-  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.createTone = "mixed"; state.entryMode = "create"; render(); }
+  if (action === "choose-create") { state.createMode = "classic"; state.createTone = "mixed"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
+  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.createTone = "mixed"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
+  if (action === "choose-would-you-rather") { state.createMode = "would-you-rather"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
   if (action === "choose-join") { state.entryMode = "join"; render(); }
   if (action === "back-home") { state.entryMode = "home"; render(); }
   if (action === "copy-invite") await copyInvite();
@@ -124,6 +138,15 @@ root.addEventListener("click", async (event) => {
     target.textContent = "Next…";
     socket.emit("nextGuess");
   }
+  if (action === "select-preference") selectPreferenceOption(target.dataset.optionId);
+  if (action === "lock-preference" && state.pendingPreferenceId) {
+    target.disabled = true;
+    target.textContent = "Locking…";
+    socket.emit("submitPreference", {
+      questionId: state.game?.choicePhase?.current?.id,
+      optionId: state.pendingPreferenceId
+    });
+  }
   if (action === "review") socket.emit("requestReview");
   if (action === "close-review") { state.review = null; render(); }
   if (action === "play-again") socket.emit("requestRematch", { mode: "playAgain" });
@@ -140,7 +163,8 @@ root.addEventListener("submit", (event) => {
     socket.emit("createRoom", {
       name: document.getElementById("createName").value,
       mode: document.querySelector('input[name="gameMode"]:checked')?.value || state.createMode,
-      tone: document.querySelector('input[name="topicTone"]:checked')?.value || state.createTone
+      tone: document.querySelector('input[name="topicTone"]:checked')?.value || state.createTone,
+      questionCount: Number(document.querySelector('input[name="questionCount"]:checked')?.value || state.createQuestionCount)
     });
   }
   if (event.target.id === "joinForm") {
@@ -163,6 +187,15 @@ root.addEventListener("input", (event) => {
   if (!counter) return;
   counter.textContent = `${count} / 3 words`;
   counter.classList.toggle("valid", count === 3);
+});
+
+root.addEventListener("change", (event) => {
+  if (event.target.matches('input[name="gameMode"]')) {
+    state.createMode = event.target.value;
+    syncCreateOptions();
+  }
+  if (event.target.matches('input[name="topicTone"]')) state.createTone = event.target.value;
+  if (event.target.matches('input[name="questionCount"]')) state.createQuestionCount = Number(event.target.value);
 });
 
 document.body.addEventListener("click", (event) => {
@@ -195,6 +228,7 @@ function render() {
     else if (!game.self.guessStarted) root.innerHTML = roundTwoTemplate(game);
     else root.innerHTML = guessingTemplate(game);
   }
+  if (game.status === "CHOOSING") root.innerHTML = game.self.finishedPreferencePhase ? preferenceWaitingTemplate(game) : wouldYouRatherTemplate(game);
   if (game.status === "RESULTS") root.innerHTML = resultsTemplate(game);
   if (state.review) root.insertAdjacentHTML("beforeend", reviewTemplate(state.review));
   focusAnswerInput();
@@ -208,6 +242,14 @@ function focusAnswerInput() {
   input.setSelectionRange(cursorPosition, cursorPosition);
 }
 
+function syncCreateOptions() {
+  const wouldYouRatherMode = state.createMode === "would-you-rather";
+  const tonePicker = document.getElementById("topicTonePicker");
+  const questionCountPicker = document.getElementById("questionCountPicker");
+  if (tonePicker) tonePicker.hidden = wouldYouRatherMode;
+  if (questionCountPicker) questionCountPicker.hidden = !wouldYouRatherMode;
+}
+
 function homeTemplate() {
   return `
     <section class="screen hero">
@@ -218,20 +260,31 @@ function homeTemplate() {
         <button class="button" data-action="choose-create">Create game <b>＋</b></button>
         <button class="button secondary" data-action="choose-join">Join game <b>→</b></button>
       </div>
-      <article class="compatibility-invite">
-        <div class="compatibility-invite-art" aria-hidden="true"><span>20</span><i></i><i></i><i></i></div>
-        <div>
-          <p class="eyebrow">New mode</p>
-          <h2>Get your compatibility report.</h2>
-          <p>Answer the same 20 prompts, read each other's minds, and unlock a playful breakdown of where you click.</p>
-        </div>
-        <button class="button small" data-action="choose-compatibility">Try compatibility →</button>
-      </article>
+      <div class="game-invites">
+        <article class="compatibility-invite">
+          <div class="compatibility-invite-art" aria-hidden="true"><span>20</span><i></i><i></i><i></i></div>
+          <div>
+            <p class="eyebrow">Writing compatibility</p>
+            <h2>Get your compatibility report.</h2>
+            <p>Answer the same prompts in three words, read each other's minds, and see where you click.</p>
+          </div>
+          <button class="button small" data-action="choose-compatibility">Play with words →</button>
+        </article>
+        <article class="compatibility-invite wyr-invite">
+          <div class="compatibility-invite-art wyr-art" aria-hidden="true"><span>A</span><b>B</b><em>C</em><strong>D</strong></div>
+          <div>
+            <p class="eyebrow">Four-choice compatibility</p>
+            <h2>Would you rather?</h2>
+            <p>Make 10, 20, 30, or 50 private picks, then reveal exactly where your instincts match.</p>
+          </div>
+          <button class="button small" data-action="choose-would-you-rather">Choose your length →</button>
+        </article>
+      </div>
       <div class="how-grid" aria-label="How it works">
-        ${howCard(1, "Choose a quick 10 or compatibility 20 game.")}
-        ${howCard(2, "Answer each topic using exactly three words.")}
-        ${howCard(3, "Guess which answers they actually wrote.")}
-        ${howCard(4, "Unlock scores, insights, and conversation starters.")}
+        ${howCard(1, "Choose your game, tone, and question length.")}
+        ${howCard(2, "Answer privately with three words or one of four picks.")}
+        ${howCard(3, "Finish without seeing your partner's choices.")}
+        ${howCard(4, "Unlock matches, insights, and conversation starters.")}
       </div>
     </section>`;
 }
@@ -252,7 +305,7 @@ function entryTemplate(mode) {
             <label for="${creating ? "createName" : "joinName"}">Display name</label>
             <input class="text-input" id="${creating ? "createName" : "joinName"}" maxlength="24" autocomplete="name" placeholder="Your name" autofocus />
           </div>
-          ${creating ? `${modePickerTemplate()}${tonePickerTemplate()}` : ""}
+          ${creating ? `${modePickerTemplate()}${tonePickerTemplate()}${questionCountPickerTemplate()}` : ""}
           ${creating ? "" : `<div class="field"><label for="joinCode">Room code</label><input class="text-input code-input" id="joinCode" maxlength="6" autocomplete="off" value="${escapeHtml(inviteCode)}" placeholder="ABC123" /></div>`}
           <div class="form-actions">
             <button class="button" type="submit">${creating ? "Create game" : "Join game"}</button>
@@ -279,6 +332,12 @@ function modePickerTemplate() {
         <span><strong>Compatibility</strong><small>Shared prompts · full report</small></span>
         <i>New</i>
       </label>
+      <label class="mode-choice wyr-mode-choice">
+        <input type="radio" name="gameMode" value="would-you-rather" ${state.createMode === "would-you-rather" ? "checked" : ""} />
+        <span class="mode-choice-icon">4×</span>
+        <span><strong>Would You Rather</strong><small>Four choices · instant match report</small></span>
+        <i>New</i>
+      </label>
     </fieldset>`;
 }
 
@@ -291,7 +350,7 @@ function tonePickerTemplate() {
     { id: "nostalgic", icon: "◷", label: "Nostalgic", copy: "Memories and firsts" }
   ];
   return `
-    <fieldset class="tone-picker">
+    <fieldset id="topicTonePicker" class="tone-picker" ${state.createMode === "would-you-rather" ? "hidden" : ""}>
       <legend>Pick a topic tone</legend>
       <div class="tone-options">
         ${tones.map((tone) => `
@@ -303,10 +362,31 @@ function tonePickerTemplate() {
     </fieldset>`;
 }
 
+function questionCountPickerTemplate() {
+  return `
+    <fieldset id="questionCountPicker" class="question-count-picker" ${state.createMode === "would-you-rather" ? "" : "hidden"}>
+      <legend>How many questions?</legend>
+      <div class="question-count-options">
+        ${[10, 20, 30, 50].map((count) => `
+          <label class="question-count-choice">
+            <input type="radio" name="questionCount" value="${count}" ${state.createQuestionCount === count ? "checked" : ""} />
+            <strong>${count}</strong><small>${count === 10 ? "Quick" : count === 20 ? "Classic" : count === 30 ? "Long" : "Deep dive"}</small>
+          </label>`).join("")}
+      </div>
+      <p class="picker-note">Both players get the same questions. Picks stay private until the final reveal.</p>
+    </fieldset>`;
+}
+
 function lobbyTemplate(game) {
   const opponent = game.opponent;
   const allReady = game.players.length === 2 && game.players.every((player) => player.ready);
   const compatibilityMode = game.mode?.id === "compatibility";
+  const wouldYouRatherMode = game.mode?.id === "would-you-rather";
+  const modeBadge = wouldYouRatherMode
+    ? `◇ Would You Rather · ${game.totalQuestions} shared choices`
+    : compatibilityMode
+      ? "✦ Compatibility · 20 shared prompts"
+      : "Classic · 10 prompts each";
   return `
     <section class="screen narrow">
       <div class="panel">
@@ -316,8 +396,8 @@ function lobbyTemplate(game) {
         </div>
         <div class="lobby-center">
           <div class="lobby-badges">
-            <div class="mode-badge ${compatibilityMode ? "compatibility" : ""}">${compatibilityMode ? "✦ Compatibility · 20 shared prompts" : "Classic · 10 prompts each"}</div>
-            <div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>
+            <div class="mode-badge ${compatibilityMode || wouldYouRatherMode ? "compatibility" : ""}">${modeBadge}</div>
+            ${wouldYouRatherMode ? "" : `<div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>`}
           </div>
           <div class="waiting-orb"></div>
           <p class="eyebrow">${opponent ? "The room is full" : "Invite sent. Good vibes pending."}</p>
@@ -372,6 +452,43 @@ function answerWaitingTemplate(game) {
       <h1>YOU'RE<br>DONE!</h1>
       <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish their topics…</p>
       <div class="mini-progress">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
+    </section>`;
+}
+
+function wouldYouRatherTemplate(game) {
+  const phase = game.choicePhase;
+  const question = phase?.current;
+  if (!question) return `<section class="screen waiting-screen"><div class="waiting-orb"></div><h1>Finding your next choice…</h1></section>`;
+  return `
+    <section class="screen choice-shell">
+      <div class="game-meta"><span>Question ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
+      <header class="choice-heading">
+        <p class="eyebrow">${wouldYouRatherCategoryName(question.category)}</p>
+        <h1>WOULD YOU<br><span>RATHER?</span></h1>
+        <p>${escapeHtml(question.prompt)}</p>
+      </header>
+      <div class="preference-options" role="group" aria-label="Choose your preferred option">
+        ${question.options.map((option, index) => `
+          <button class="preference-option ${state.pendingPreferenceId === option.id ? "selected" : ""}" data-action="select-preference" data-option-id="${option.id}">
+            <span>${String.fromCharCode(65 + index)}</span><strong>${escapeHtml(option.text)}</strong><i></i>
+          </button>`).join("")}
+      </div>
+      <button class="button full preference-lock" data-action="lock-preference" ${state.pendingPreferenceId ? "" : "disabled"}>Choose this one →</button>
+      <p class="choice-privacy">Your pick stays hidden until you both finish.</p>
+      ${progress(phase.completed, phase.total)}
+    </section>`;
+}
+
+function preferenceWaitingTemplate(game) {
+  const completed = game.opponent?.choiceProgress || 0;
+  const total = game.totalQuestions || 20;
+  return `
+    <section class="screen waiting-screen">
+      <div class="done-burst">✓</div>
+      <p class="eyebrow">${total} choices locked</p>
+      <h1>PICKS<br>ARE IN!</h1>
+      <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish choosing…</p>
+      <div class="mini-progress compact">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
     </section>`;
 }
 
@@ -439,6 +556,7 @@ function guessWaitingTemplate(game) {
 }
 
 function resultsTemplate(game) {
+  if (game.results.wouldYouRather) return wouldYouRatherReportTemplate(game);
   if (game.results.compatibility) return compatibilityReportTemplate(game);
   const rematchCount = game.players.filter((player) => player.rematchReady).length;
   const total = game.results.total || game.totalQuestions || 10;
@@ -459,6 +577,108 @@ function resultsTemplate(game) {
       </div>
       ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next game…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
     </section>`;
+}
+
+function wouldYouRatherReportTemplate(game) {
+  const report = game.results.wouldYouRather;
+  const rematchCount = game.players.filter((player) => player.rematchReady).length;
+  return `
+    <section class="screen compatibility-report choice-report">
+      <header class="report-heading">
+        <p class="eyebrow">Your Would You Rather results</p>
+        <div class="report-names"><span>${escapeHtml(report.players[0].name)}</span><i>＋</i><span>${escapeHtml(report.players[1].name)}</span></div>
+        <h1>${escapeHtml(report.tier)}</h1>
+      </header>
+
+      <section class="report-hero-card choice-report-hero">
+        <div class="compatibility-orbit" style="--score:${report.matchPercent}">
+          <svg viewBox="0 0 160 160" aria-hidden="true">
+            <defs><linearGradient id="reportGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#66d8ff"/><stop offset=".52" stop-color="#a66cff"/><stop offset="1" stop-color="#ff7fb7"/></linearGradient></defs>
+            <circle class="orbit-track" cx="80" cy="80" r="68" pathLength="100" />
+            <circle class="orbit-value" cx="80" cy="80" r="68" pathLength="100" />
+          </svg>
+          <div><strong>${report.matchPercent}<small>%</small></strong><span>exact pick match</span></div>
+          <i class="orbit-spark spark-one">◇</i><i class="orbit-spark spark-two">✦</i>
+        </div>
+        <div class="report-verdict">
+          <p class="eyebrow">The big reveal</p>
+          <h2>${escapeHtml(report.summary)}</h2>
+          <p>You chose the exact same option on <strong>${report.matchCount} of ${report.totalQuestions}</strong> questions. Different picks are not bad news—they are the interesting part.</p>
+          <div class="report-formula"><span>${report.matchCount} same picks</span><b>＋</b><span>${report.differenceCount} conversation starters</span></div>
+        </div>
+      </section>
+
+      <section class="choice-summary-grid" aria-label="Would You Rather result summary">
+        <article><span>◎</span><strong>${report.matchCount}</strong><small>Exact matches</small></article>
+        <article><span>↗</span><strong>${report.differenceCount}</strong><small>Different picks</small></article>
+        <article><span>□</span><strong>${report.totalQuestions}</strong><small>Total questions</small></article>
+      </section>
+
+      <section class="category-report">
+        <div class="section-heading">
+          <div><p class="eyebrow">Your match map</p><h2>Where instincts align.</h2></div>
+          <p>Each category shows the percentage of questions where you made the exact same choice.</p>
+        </div>
+        <div class="category-visuals">
+          ${compatibilityRadar(report.categories, "Match map")}
+          <div class="category-bars">
+            ${report.categories.map((category, index) => `
+              <div class="category-bar" style="--delay:${index * 90}ms">
+                <div><span>${escapeHtml(category.label)}</span><strong>${category.matchCount}/${category.questionCount} · ${category.score}%</strong></div>
+                <i><b style="--value:${category.score}"></b></i>
+              </div>`).join("")}
+          </div>
+        </div>
+      </section>
+
+      <section class="report-highlights choice-highlights">
+        ${report.highlights.map((highlight, index) => `
+          <article style="--delay:${index * 90}ms">
+            <small>${escapeHtml(highlight.kicker)}</small>
+            <h3>${escapeHtml(highlight.value)}</h3>
+            <p>${escapeHtml(highlight.copy)}</p>
+          </article>`).join("")}
+      </section>
+
+      <section class="report-deep-dive">
+        <div class="section-heading">
+          <div><p class="eyebrow">Every answer revealed</p><h2>Compare your picks.</h2></div>
+          <p>Open a category to see exactly what each person chose on every question.</p>
+        </div>
+        <div class="category-accordions">
+          ${report.categories.map((category) => wouldYouRatherCategoryAccordion(category)).join("")}
+        </div>
+      </section>
+
+      <p class="report-disclaimer">For fun, not science. A different pick is a conversation starter—not a compatibility verdict.</p>
+      <div class="results-actions report-actions">
+        <button class="button" data-action="play-again" ${game.self.rematchReady ? "disabled" : ""}>Play again</button>
+        <button class="button secondary" data-action="new-topics" ${game.self.rematchReady ? "disabled" : ""}>New questions</button>
+      </div>
+      ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next set…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
+    </section>`;
+}
+
+function wouldYouRatherCategoryAccordion(category) {
+  return `
+    <details class="category-accordion choice-accordion">
+      <summary>
+        <span class="category-symbol">${wouldYouRatherCategoryIcon(category.id)}</span>
+        <span><strong>${escapeHtml(category.label)}</strong><small>${category.matchCount} of ${category.questionCount} matched</small></span>
+        <b>${category.score}%</b><i>＋</i>
+      </summary>
+      <div class="category-detail">
+        <div class="compatibility-answers">
+          ${category.entries.map((entry) => `
+            <article class="preference-result ${entry.matched ? "matched" : "different"}">
+              <div class="compatibility-topic"><span>${escapeHtml(entry.prompt)}</span><b>${entry.matched ? "✓ Same pick" : "↗ Different picks"}</b></div>
+              <div class="answer-comparison">
+                ${entry.choices.map((choice) => `<p><small>${escapeHtml(choice.name)}</small><strong>${escapeHtml(choice.text)}</strong></p>`).join("")}
+              </div>
+            </article>`).join("")}
+        </div>
+      </div>
+    </details>`;
 }
 
 function compatibilityReportTemplate(game) {
@@ -553,7 +773,7 @@ function reportMetric(label, value, copy, icon) {
     </article>`;
 }
 
-function compatibilityRadar(categories) {
+function compatibilityRadar(categories, chartLabel = "Connection map") {
   if (categories.length === 1) {
     const category = categories[0];
     return `
@@ -582,7 +802,7 @@ function compatibilityRadar(categories) {
     return `<line x1="${center}" y1="${center}" x2="${(center + Math.cos(angle) * radius).toFixed(1)}" y2="${(center + Math.sin(angle) * radius).toFixed(1)}" />`;
   }).join("");
   return `
-    <div class="radar-wrap" aria-label="Compatibility category radar chart">
+    <div class="radar-wrap" aria-label="${escapeHtml(chartLabel)} category radar chart">
       <div class="radar-glow"></div>
       <svg viewBox="0 0 220 220" role="img">
         <polygon class="radar-grid outer" points="${outerPoints}" />
@@ -591,7 +811,7 @@ function compatibilityRadar(categories) {
         <polygon class="radar-shape" points="${points}" />
         ${points.split(" ").map((point) => { const [x, y] = point.split(","); return `<circle cx="${x}" cy="${y}" r="4" />`; }).join("")}
       </svg>
-      <span>Connection map</span>
+      <span>${escapeHtml(chartLabel)}</span>
     </div>`;
 }
 
@@ -653,6 +873,14 @@ function progress(value, total) {
 
 function categoryName(category) {
   return ({ random: "Funny / random", nostalgia: "Nostalgia", life: "Personality / life", relationships: "Relationships", deep: "Deep / meaningful" })[category] || category;
+}
+
+function wouldYouRatherCategoryName(category) {
+  return ({ play: "Play style", everyday: "Everyday rhythm", adventure: "Adventure mode", connection: "Connection style", future: "Future vision" })[category] || category;
+}
+
+function wouldYouRatherCategoryIcon(category) {
+  return ({ play: "✦", everyday: "⌂", adventure: "↗", connection: "♡", future: "◇" })[category] || "•";
 }
 
 function countWords(value) {
@@ -768,6 +996,21 @@ function canKeepActiveGuessView(previousGame, nextGame) {
     JSON.stringify(previousPhase.reveal || null) === JSON.stringify(nextPhase.reveal || null);
 }
 
+function canKeepActivePreferenceView(previousGame, nextGame) {
+  if (previousGame?.status !== "CHOOSING" || nextGame?.status !== "CHOOSING") return false;
+  if (previousGame.self?.finishedPreferencePhase || nextGame.self?.finishedPreferencePhase) return false;
+  const previousQuestion = previousGame.choicePhase?.current;
+  const nextQuestion = nextGame.choicePhase?.current;
+  return Boolean(
+    document.querySelector(".preference-options") &&
+    previousQuestion &&
+    nextQuestion &&
+    previousGame.self.choiceProgress === nextGame.self.choiceProgress &&
+    previousQuestion.id === nextQuestion.id &&
+    JSON.stringify(previousQuestion.options) === JSON.stringify(nextQuestion.options)
+  );
+}
+
 function canKeepWaitingScreen(previousGame, nextGame) {
   if (!document.querySelector(".waiting-screen .mini-progress") || previousGame?.status !== nextGame?.status) return false;
   if (nextGame.status === "ANSWERING") {
@@ -776,11 +1019,18 @@ function canKeepWaitingScreen(previousGame, nextGame) {
   if (nextGame.status === "GUESSING") {
     return Boolean(previousGame.self?.finishedGuessPhase && nextGame.self?.finishedGuessPhase);
   }
+  if (nextGame.status === "CHOOSING") {
+    return Boolean(previousGame.self?.finishedPreferencePhase && nextGame.self?.finishedPreferencePhase);
+  }
   return false;
 }
 
 function updateWaitingProgress(game) {
-  const completed = game.status === "ANSWERING" ? game.opponent?.answerProgress : game.opponent?.guessProgress;
+  const completed = game.status === "ANSWERING"
+    ? game.opponent?.answerProgress
+    : game.status === "CHOOSING"
+      ? game.opponent?.choiceProgress
+      : game.opponent?.guessProgress;
   document.querySelectorAll(".waiting-screen .mini-progress i").forEach((dot, index) => {
     dot.classList.toggle("done", index < (completed || 0));
   });
@@ -795,9 +1045,20 @@ function selectGuessOption(optionId) {
   if (lockButton) lockButton.disabled = false;
 }
 
+function selectPreferenceOption(optionId) {
+  state.pendingPreferenceId = optionId;
+  root.querySelectorAll(".preference-option").forEach((option) => {
+    option.classList.toggle("selected", option.dataset.optionId === optionId);
+  });
+  const lockButton = root.querySelector('[data-action="lock-preference"]');
+  if (lockButton) lockButton.disabled = false;
+}
+
 function clearSession() {
   state.session = null;
   state.game = null;
+  state.pendingOptionId = null;
+  state.pendingPreferenceId = null;
   state.answerDrafts = {};
   state.discardedAnswerDraftKey = null;
   localStorage.removeItem(SESSION_KEY);
@@ -852,12 +1113,16 @@ window.render_game_to_text = () => JSON.stringify({
   screen: state.game?.status || state.entryMode,
   roomCode: state.game?.roomCode || null,
   gameMode: state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null),
-  topicTone: state.game?.tone?.id || (state.entryMode === "create" ? state.createTone : null),
+  topicTone: (state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null)) === "would-you-rather"
+    ? null
+    : state.game?.tone?.id || (state.entryMode === "create" ? state.createTone : null),
+  selectedQuestionCount: state.entryMode === "create" ? state.createQuestionCount : null,
   totalQuestions: state.game?.totalQuestions || null,
   self: state.game ? {
     name: state.game.self.name,
     answerProgress: state.game.self.answerProgress,
     guessProgress: state.game.self.guessProgress,
+    choiceProgress: state.game.self.choiceProgress,
     score: state.game.self.score,
     ready: state.game.self.ready
   } : null,
@@ -865,9 +1130,13 @@ window.render_game_to_text = () => JSON.stringify({
     name: state.game.opponent.name,
     connected: state.game.opponent.connected,
     answerProgress: state.game.opponent.answerProgress,
-    guessProgress: state.game.opponent.guessProgress
+    guessProgress: state.game.opponent.guessProgress,
+    choiceProgress: state.game.opponent.choiceProgress
   } : null,
   currentTopic: state.game?.answerPhase?.currentTopic?.text || state.game?.guessPhase?.current?.topicText || null,
+  currentChoiceQuestion: state.game?.choicePhase?.current?.prompt || null,
+  visiblePreferenceOptions: state.game?.choicePhase?.current?.options?.map((option) => option.text) || [],
+  selectedPreferenceId: state.pendingPreferenceId,
   currentAnswerDraft: document.getElementById("answerInput")?.value || null,
   currentAnswerWordCount: document.getElementById("answerInput") ? countWords(document.getElementById("answerInput").value) : null,
   activeElement: document.activeElement?.id || null,
@@ -882,6 +1151,13 @@ window.render_game_to_text = () => JSON.stringify({
     mutualKnowledge: state.game.results.compatibility.mutualKnowledge,
     balance: state.game.results.compatibility.balance,
     categories: state.game.results.compatibility.categories.map(({ label, score }) => ({ label, score }))
+  } : null,
+  wouldYouRatherReport: state.game?.results?.wouldYouRather ? {
+    matchPercent: state.game.results.wouldYouRather.matchPercent,
+    matchCount: state.game.results.wouldYouRather.matchCount,
+    differenceCount: state.game.results.wouldYouRather.differenceCount,
+    totalQuestions: state.game.results.wouldYouRather.totalQuestions,
+    categories: state.game.results.wouldYouRather.categories.map(({ label, score, matchCount, questionCount }) => ({ label, score, matchCount, questionCount }))
   } : null,
   renderCount: state.renderCount
 });
