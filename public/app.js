@@ -11,6 +11,7 @@ const state = {
   game: null,
   entryMode: "home",
   createMode: "classic",
+  createTone: "mixed",
   pendingOptionId: null,
   review: null,
   session: readSession(),
@@ -101,8 +102,8 @@ root.addEventListener("click", async (event) => {
   if (!target) return;
   const action = target.dataset.action;
 
-  if (action === "choose-create") { state.createMode = "classic"; state.entryMode = "create"; render(); }
-  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.entryMode = "create"; render(); }
+  if (action === "choose-create") { state.createMode = "classic"; state.createTone = "mixed"; state.entryMode = "create"; render(); }
+  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.createTone = "mixed"; state.entryMode = "create"; render(); }
   if (action === "choose-join") { state.entryMode = "join"; render(); }
   if (action === "back-home") { state.entryMode = "home"; render(); }
   if (action === "copy-invite") await copyInvite();
@@ -138,7 +139,8 @@ root.addEventListener("submit", (event) => {
   if (event.target.id === "createForm") {
     socket.emit("createRoom", {
       name: document.getElementById("createName").value,
-      mode: document.querySelector('input[name="gameMode"]:checked')?.value || state.createMode
+      mode: document.querySelector('input[name="gameMode"]:checked')?.value || state.createMode,
+      tone: document.querySelector('input[name="topicTone"]:checked')?.value || state.createTone
     });
   }
   if (event.target.id === "joinForm") {
@@ -181,6 +183,7 @@ function render() {
   state.renderCount += 1;
   if (!state.game) {
     root.innerHTML = state.entryMode === "home" ? homeTemplate() : entryTemplate(state.entryMode);
+    focusAnswerInput();
     return;
   }
 
@@ -194,6 +197,15 @@ function render() {
   }
   if (game.status === "RESULTS") root.innerHTML = resultsTemplate(game);
   if (state.review) root.insertAdjacentHTML("beforeend", reviewTemplate(state.review));
+  focusAnswerInput();
+}
+
+function focusAnswerInput() {
+  const input = document.getElementById("answerInput");
+  if (!input) return;
+  input.focus({ preventScroll: true });
+  const cursorPosition = input.value.length;
+  input.setSelectionRange(cursorPosition, cursorPosition);
 }
 
 function homeTemplate() {
@@ -240,7 +252,7 @@ function entryTemplate(mode) {
             <label for="${creating ? "createName" : "joinName"}">Display name</label>
             <input class="text-input" id="${creating ? "createName" : "joinName"}" maxlength="24" autocomplete="name" placeholder="Your name" autofocus />
           </div>
-          ${creating ? modePickerTemplate() : ""}
+          ${creating ? `${modePickerTemplate()}${tonePickerTemplate()}` : ""}
           ${creating ? "" : `<div class="field"><label for="joinCode">Room code</label><input class="text-input code-input" id="joinCode" maxlength="6" autocomplete="off" value="${escapeHtml(inviteCode)}" placeholder="ABC123" /></div>`}
           <div class="form-actions">
             <button class="button" type="submit">${creating ? "Create game" : "Join game"}</button>
@@ -270,6 +282,27 @@ function modePickerTemplate() {
     </fieldset>`;
 }
 
+function tonePickerTemplate() {
+  const tones = [
+    { id: "mixed", icon: "✦", label: "Mixed bag", copy: "A little of everything" },
+    { id: "silly", icon: "☻", label: "Silly", copy: "Light and ridiculous" },
+    { id: "relationship", icon: "♡", label: "Relationship", copy: "All about connection" },
+    { id: "deep", icon: "◇", label: "Deep", copy: "Values and vulnerability" },
+    { id: "nostalgic", icon: "◷", label: "Nostalgic", copy: "Memories and firsts" }
+  ];
+  return `
+    <fieldset class="tone-picker">
+      <legend>Pick a topic tone</legend>
+      <div class="tone-options">
+        ${tones.map((tone) => `
+          <label class="tone-choice">
+            <input type="radio" name="topicTone" value="${tone.id}" ${state.createTone === tone.id ? "checked" : ""} />
+            <span>${tone.icon}</span><strong>${tone.label}</strong><small>${tone.copy}</small>
+          </label>`).join("")}
+      </div>
+    </fieldset>`;
+}
+
 function lobbyTemplate(game) {
   const opponent = game.opponent;
   const allReady = game.players.length === 2 && game.players.every((player) => player.ready);
@@ -282,7 +315,10 @@ function lobbyTemplate(game) {
           <button class="button ghost small" data-action="leave-room">Leave</button>
         </div>
         <div class="lobby-center">
-          <div class="mode-badge ${compatibilityMode ? "compatibility" : ""}">${compatibilityMode ? "✦ Compatibility · 20 shared prompts" : "Classic · 10 prompts each"}</div>
+          <div class="lobby-badges">
+            <div class="mode-badge ${compatibilityMode ? "compatibility" : ""}">${compatibilityMode ? "✦ Compatibility · 20 shared prompts" : "Classic · 10 prompts each"}</div>
+            <div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>
+          </div>
           <div class="waiting-orb"></div>
           <p class="eyebrow">${opponent ? "The room is full" : "Invite sent. Good vibes pending."}</p>
           <h2>${opponent ? "Both players ready?" : "Waiting for player two…"}</h2>
@@ -308,7 +344,7 @@ function answerTemplate(game) {
     <section class="screen topic-shell">
       <div class="game-meta"><span>Topic ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
       <article class="topic-card" key="${topic.id}">
-        <div class="topic-label">${game.mode?.id === "compatibility" ? "Compatibility · " : ""}${topic.category === "adult" ? "Grown-up topic" : categoryName(topic.category)}</div>
+        <div class="topic-label">${game.mode?.id === "compatibility" ? "Compatibility · " : ""}${game.tone?.id !== "mixed" ? `${escapeHtml(game.tone?.label)} topics` : (topic.category === "adult" ? "Grown-up topic" : categoryName(topic.category))}</div>
         <h1>${escapeHtml(topic.text)}</h1>
         <p class="prompt">What's your immediate reaction?</p>
       </article>
@@ -428,10 +464,11 @@ function resultsTemplate(game) {
 function compatibilityReportTemplate(game) {
   const report = game.results.compatibility;
   const rematchCount = game.players.filter((player) => player.rematchReady).length;
+  const focusedReport = report.categories.length === 1;
   return `
     <section class="screen compatibility-report">
       <header class="report-heading">
-        <p class="eyebrow">Your compatibility report</p>
+        <p class="eyebrow">Your ${game.tone?.id !== "mixed" ? `${escapeHtml(game.tone?.label).toLowerCase()} ` : ""}compatibility report</p>
         <div class="report-names"><span>${escapeHtml(report.players[0].name)}</span><i>＋</i><span>${escapeHtml(report.players[1].name)}</span></div>
         <h1>${escapeHtml(report.tier)}</h1>
       </header>
@@ -463,7 +500,7 @@ function compatibilityReportTemplate(game) {
       <section class="category-report">
         <div class="section-heading">
           <div><p class="eyebrow">Your connection map</p><h2>Where you click.</h2></div>
-          <p>Every category blends answer similarity with how accurately you read each other.</p>
+          <p>${focusedReport ? "This category blends answer similarity with how accurately you read each other." : "Every category blends answer similarity with how accurately you read each other."}</p>
         </div>
         <div class="category-visuals">
           ${compatibilityRadar(report.categories)}
@@ -488,7 +525,7 @@ function compatibilityReportTemplate(game) {
 
       <section class="report-deep-dive">
         <div class="section-heading">
-          <div><p class="eyebrow">Go deeper</p><h2>Open up the categories.</h2></div>
+          <div><p class="eyebrow">Go deeper</p><h2>Open up the ${focusedReport ? "category" : "categories"}.</h2></div>
           <p>Compare what you each wrote and find the prompts worth talking about next.</p>
         </div>
         <div class="category-accordions">
@@ -517,6 +554,18 @@ function reportMetric(label, value, copy, icon) {
 }
 
 function compatibilityRadar(categories) {
+  if (categories.length === 1) {
+    const category = categories[0];
+    return `
+      <div class="radar-wrap focused" aria-label="${escapeHtml(category.label)} compatibility score: ${category.score} percent">
+        <div class="radar-glow"></div>
+        <svg viewBox="0 0 220 220" role="img">
+          <circle class="focus-radar-track" cx="110" cy="110" r="78" pathLength="100" />
+          <circle class="focus-radar-value" cx="110" cy="110" r="78" pathLength="100" style="--value:${category.score}" />
+        </svg>
+        <div class="focus-radar-score"><strong>${category.score}%</strong><span>${escapeHtml(category.label)}</span></div>
+      </div>`;
+  }
   const center = 110;
   const radius = 78;
   const points = categories.map((category, index) => {
@@ -803,6 +852,7 @@ window.render_game_to_text = () => JSON.stringify({
   screen: state.game?.status || state.entryMode,
   roomCode: state.game?.roomCode || null,
   gameMode: state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null),
+  topicTone: state.game?.tone?.id || (state.entryMode === "create" ? state.createTone : null),
   totalQuestions: state.game?.totalQuestions || null,
   self: state.game ? {
     name: state.game.self.name,
@@ -820,6 +870,7 @@ window.render_game_to_text = () => JSON.stringify({
   currentTopic: state.game?.answerPhase?.currentTopic?.text || state.game?.guessPhase?.current?.topicText || null,
   currentAnswerDraft: document.getElementById("answerInput")?.value || null,
   currentAnswerWordCount: document.getElementById("answerInput") ? countWords(document.getElementById("answerInput").value) : null,
+  activeElement: document.activeElement?.id || null,
   visibleAnswerOptions: state.game?.guessPhase?.current?.options?.map((option) => option.text) || [],
   revealedAnswer: state.game?.guessPhase?.reveal?.realAnswer || null,
   selectedOptionId: state.pendingOptionId,

@@ -24,10 +24,10 @@ async function main() {
   await Promise.all([once(one, "connect"), once(two, "connect")]);
 
   const oneSessionPromise = once(one, "sessionEstablished");
-  one.emit("createRoom", { name: "Avery", mode: "compatibility" });
+  one.emit("createRoom", { name: "Avery", mode: "compatibility", tone: "relationship" });
   const oneSession = await oneSessionPromise;
   const roomCode = oneSession.roomCode;
-  await waitState(one, (state) => state.mode?.id === "compatibility" && state.totalQuestions === 20);
+  await waitState(one, (state) => state.mode?.id === "compatibility" && state.tone?.id === "relationship" && state.totalQuestions === 20);
 
   const twoSessionPromise = once(two, "sessionEstablished");
   two.emit("joinRoom", { name: "Jordan", roomCode });
@@ -61,6 +61,7 @@ async function main() {
     const twoState = states.get(two);
     assert.equal(oneState.answerPhase.total, 20);
     assert.equal(twoState.answerPhase.currentTopic.id, oneState.answerPhase.currentTopic.id, "compatibility players should answer the same prompts");
+    assert.equal(oneState.answerPhase.currentTopic.category, "relationships", "relationship tone should stay relationship-only");
     sharedTopicIds.push(oneState.answerPhase.currentTopic.id);
     const [oneAnswer, twoAnswer] = answerPairs[index % answerPairs.length];
     oneAnswers.push(oneAnswer);
@@ -117,7 +118,8 @@ async function main() {
   assert.equal(oneResults.results.total, 20);
   assert.deepEqual(oneResults.results.scores.map((score) => score.score), [20, 10]);
   assert.equal(report.sharedQuestionCount, 20);
-  assert.equal(report.categories.length, 6);
+  assert.equal(report.categories.length, 1);
+  assert.equal(report.categories[0].label, "Relationship rhythm");
   assert.equal(report.categories.reduce((sum, category) => sum + category.questionCount, 0), 20);
   assert.equal(report.mutualKnowledge, 75);
   assert.ok(report.answerAlignment >= 0 && report.answerAlignment <= 100);

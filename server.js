@@ -26,6 +26,44 @@ const GAME_MODES = {
   }
 };
 const DEFAULT_GAME_MODE = GAME_MODES.classic;
+const TOPIC_TONES = {
+  mixed: {
+    id: "mixed",
+    label: "Mixed bag",
+    description: "A little playful, personal, nostalgic, and deep.",
+    icon: "✦",
+    categories: null
+  },
+  silly: {
+    id: "silly",
+    label: "Silly",
+    description: "Light, weird, and easy to laugh about.",
+    icon: "☻",
+    categories: ["random"]
+  },
+  relationship: {
+    id: "relationship",
+    label: "Relationship",
+    description: "Entirely about closeness, dating, and connection.",
+    icon: "♡",
+    categories: ["relationships"]
+  },
+  deep: {
+    id: "deep",
+    label: "Deep",
+    description: "Meaningful questions about values and vulnerability.",
+    icon: "◇",
+    categories: ["deep"]
+  },
+  nostalgic: {
+    id: "nostalgic",
+    label: "Nostalgic",
+    description: "Memories, firsts, and trips down memory lane.",
+    icon: "◷",
+    categories: ["nostalgia"]
+  }
+};
+const DEFAULT_TOPIC_TONE = TOPIC_TONES.mixed;
 const rooms = new Map();
 const sessions = new Map();
 const topicById = new Map(topics.map((topic) => [topic.id, topic]));
@@ -43,6 +81,7 @@ io.on("connection", (socket) => {
   socket.on("createRoom", (payload = {}) => {
     const name = cleanName(payload.name);
     const mode = getGameMode(payload.mode);
+    const topicTone = getTopicTone(payload.tone);
     if (!name) return sendError(socket, "Enter a display name first.");
 
     detachCurrentPlayer(socket);
@@ -53,6 +92,7 @@ io.on("connection", (socket) => {
       hostPlayerId: null,
       players: [],
       modeId: mode.id,
+      topicToneId: topicTone.id,
       answerTarget: mode.answerCount,
       gameNumber: 0,
       usedTopicIds: new Set(),
@@ -381,16 +421,19 @@ function startGame(room) {
 
 function selectTopicQueues(room) {
   if (room.modeId === GAME_MODES.compatibility.id) {
-    const sharedTopics = selectCompatibilityTopics(room.previousTopicIds, room.answerTarget);
+    const sharedTopics = selectCompatibilityTopics(room.previousTopicIds, room.answerTarget, room.topicToneId);
     return [sharedTopics, sharedTopics];
   }
 
-  const selected = selectClassicTopics(room.previousTopicIds, room.answerTarget);
+  const selected = selectClassicTopics(room.previousTopicIds, room.answerTarget, room.topicToneId);
   return [selected.slice(0, room.answerTarget), selected.slice(room.answerTarget)];
 }
 
-function selectClassicTopics(excludedIds, answerTarget) {
-  const available = topics.filter((topic) => !excludedIds.has(topic.id));
+function selectClassicTopics(excludedIds, answerTarget, toneId) {
+  const tone = getTopicTone(toneId);
+  const available = topicsForTone(tone.id, excludedIds);
+  if (tone.categories) return fillTopicSelection(available, tone.id, answerTarget * 2);
+
   const nonAdult = shuffle(available.filter((topic) => !topic.adultTopic));
   const adult = shuffle(available.filter((topic) => topic.adultTopic));
   const selected = [];
@@ -406,9 +449,12 @@ function selectClassicTopics(excludedIds, answerTarget) {
   return shuffle(topics).slice(0, answerTarget * 2);
 }
 
-function selectCompatibilityTopics(excludedIds, answerTarget) {
+function selectCompatibilityTopics(excludedIds, answerTarget, toneId) {
+  const tone = getTopicTone(toneId);
+  const available = topicsForTone(tone.id, excludedIds);
+  if (tone.categories) return shuffle(fillTopicSelection(available, tone.id, answerTarget));
+
   const categoryTargets = { random: 4, nostalgia: 4, life: 4, relationships: 4, deep: 3, adult: 1 };
-  const available = topics.filter((topic) => !excludedIds.has(topic.id));
   const selected = [];
 
   for (const [category, count] of Object.entries(categoryTargets)) {
@@ -424,6 +470,22 @@ function selectCompatibilityTopics(excludedIds, answerTarget) {
     selected.push(...shuffle(topics.filter((topic) => !fallbackIds.has(topic.id))).slice(0, answerTarget - selected.length));
   }
   return shuffle(selected.slice(0, answerTarget));
+}
+
+function fillTopicSelection(available, toneId, count) {
+  const selected = shuffle(available).slice(0, count);
+  if (selected.length >= count) return selected;
+  const selectedIds = new Set(selected.map((topic) => topic.id));
+  const refill = shuffle(topicsForTone(toneId).filter((topic) => !selectedIds.has(topic.id)));
+  selected.push(...refill.slice(0, count - selected.length));
+  return selected;
+}
+
+function topicsForTone(toneId, excludedIds = new Set()) {
+  const tone = getTopicTone(toneId);
+  return topics.filter((topic) =>
+    !excludedIds.has(topic.id) && (!tone.categories || tone.categories.includes(topic.category))
+  );
 }
 
 async function prepareCurrentGuess(room, player) {
@@ -446,21 +508,24 @@ async function prepareCurrentGuess(room, player) {
 }
 
 function pickUnusedTopic(room) {
-  const candidates = topics.filter((topic) =>
+  const available = topicsForTone(room.topicToneId);
+  const candidates = available.filter((topic) =>
     !room.usedTopicIds.has(topic.id) && !room.previousTopicIds.has(topic.id)
   );
-  const fallback = topics.filter((topic) => !room.usedTopicIds.has(topic.id));
+  const fallback = available.filter((topic) => !room.usedTopicIds.has(topic.id));
   return shuffle(candidates.length ? candidates : fallback)[0] || null;
 }
 
 function buildStateForPlayer(room, player) {
   const opponent = room.players.find((candidate) => candidate.id !== player.id) || null;
   const mode = getGameMode(room.modeId);
+  const tone = getTopicTone(room.topicToneId);
   const state = {
     roomCode: room.roomCode,
     status: room.status,
     gameNumber: room.gameNumber,
     mode,
+    tone,
     totalQuestions: room.answerTarget,
     isHost: room.hostPlayerId === player.id,
     players: room.players.map((candidate) => ({
@@ -712,6 +777,10 @@ function categoryLabel(category) {
 
 function getGameMode(value) {
   return value === GAME_MODES.compatibility.id ? GAME_MODES.compatibility : DEFAULT_GAME_MODE;
+}
+
+function getTopicTone(value) {
+  return TOPIC_TONES[value] || DEFAULT_TOPIC_TONE;
 }
 
 function buildReview(room) {

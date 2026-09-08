@@ -34,10 +34,11 @@ async function main() {
   await Promise.all([once(one, "connect"), once(two, "connect")]);
 
   const oneSessionPromise = once(one, "sessionEstablished");
-  one.emit("createRoom", { name: "Josh" });
+  one.emit("createRoom", { name: "Josh", tone: "silly" });
   const oneSession = await oneSessionPromise;
   const roomCode = oneSession.roomCode;
-  await waitState(one, (state) => state.status === "WAITING_FOR_PLAYER");
+  const createdState = await waitState(one, (state) => state.status === "WAITING_FOR_PLAYER");
+  assert.equal(createdState.tone?.id, "silly");
 
   const twoSessionPromise = once(two, "sessionEstablished");
   two.emit("joinRoom", { name: "Casandra", roomCode });
@@ -64,6 +65,8 @@ async function main() {
   let oneState = await waitState(one, (state) => state.status === "ANSWERING" && state.answerPhase?.currentTopic);
   let twoState = await waitState(two, (state) => state.status === "ANSWERING" && state.answerPhase?.currentTopic);
   assert.notEqual(oneState.answerPhase.currentTopic.id, twoState.answerPhase.currentTopic.id, "players should start with different topics");
+  assert.equal(oneState.answerPhase.currentTopic.category, "random");
+  assert.equal(twoState.answerPhase.currentTopic.category, "random");
 
   const firstTopic = oneState.answerPhase.currentTopic.id;
   const invalidError = once(one, "gameError");
@@ -75,6 +78,7 @@ async function main() {
   two.emit("passTopic");
   twoState = await waitState(two, (state) => state.answerPhase?.currentTopic?.id !== passedTopic);
   assert.equal(twoState.self.answerProgress, 0, "passing should not increment progress");
+  assert.equal(twoState.answerPhase.currentTopic.category, "random", "replacement topics should preserve the selected tone");
 
   const oneTopics = [];
   const twoTopics = [];
@@ -91,7 +95,7 @@ async function main() {
     one.emit("submitAnswer", { answer: oneSubmissions[index] });
     await waitState(one, (state) => state.self.answerProgress === index + 1);
   }
-  assert.ok(oneTopics.filter((id) => id.startsWith("adult-")).length <= 1, "adult topics should remain occasional for player one");
+  assert.equal(oneTopics.every((id) => id.startsWith("random-")), true, "silly games should only use playful random topics");
   oneState = states.get(one);
   assert.equal(oneState.self.finishedAnswerPhase, true);
   assert.equal(oneState.status, "ANSWERING", "first finisher should wait without advancing the other player");
@@ -103,7 +107,7 @@ async function main() {
     two.emit("submitAnswer", { answer: twoSubmissions[index] });
     await waitState(two, (state) => state.self.answerProgress === index + 1);
   }
-  assert.ok(twoTopics.filter((id) => id.startsWith("adult-")).length <= 1, "adult topics should remain occasional for player two");
+  assert.equal(twoTopics.every((id) => id.startsWith("random-")), true, "silly games should only use playful random topics");
 
   await Promise.all([
     waitState(one, (state) => state.status === "GUESSING" && !state.self.guessStarted),
@@ -172,6 +176,7 @@ async function main() {
   ]);
   const newTopicIds = [rematchOne.answerPhase.currentTopic.id, rematchTwo.answerPhase.currentTopic.id];
   assert.equal(newTopicIds.some((id) => oneTopics.includes(id) || twoTopics.includes(id)), false, "rematch should avoid immediately previous topics");
+  assert.equal(newTopicIds.every((id) => id.startsWith("random-")), true, "rematches should preserve the room tone");
   assert.equal(twoSession.roomCode, roomCode);
 
   console.log(JSON.stringify({
@@ -181,6 +186,7 @@ async function main() {
     privacy: "phase-one and future answers withheld",
     reconnect: "restored",
     rematch: "new topics assigned",
+    topicTone: "silly topics preserved through passes and rematch",
     answerNormalization: "punctuation, case, apostrophes, and hyphens standardized",
     fallbackAnswerPools: answerSystem.poolSizes,
     topicSpecificAnswerPools: answerSystem.topicPoolStats,
