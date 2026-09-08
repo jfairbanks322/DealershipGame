@@ -3,8 +3,10 @@ const { fork } = require("child_process");
 const path = require("path");
 const { io } = require("socket.io-client");
 const topics = require("../topics");
+const topicAnswerPools = require("../topic-answer-pools");
 const {
   getPoolSizes,
+  getTopicPoolStats,
   normalizeAnswer,
   normalizedWords,
   pickLocalFakes
@@ -181,6 +183,7 @@ async function main() {
     rematch: "new topics assigned",
     answerNormalization: "punctuation, case, apostrophes, and hyphens standardized",
     fallbackAnswerPools: answerSystem.poolSizes,
+    topicSpecificAnswerPools: answerSystem.topicPoolStats,
     uniqueFallbackAnswersObserved: answerSystem.uniqueAnswers
   }, null, 2));
 }
@@ -193,17 +196,27 @@ function verifyAnswerSystem() {
 
   const poolSizes = getPoolSizes();
   assert.equal(Object.values(poolSizes).every((size) => size >= 40), true, "every category needs at least 40 valid fallback answers");
+  const topicPoolStats = getTopicPoolStats();
+  assert.deepEqual(topicPoolStats, { topics: topics.length, answers: topics.length * 3, minimumPerTopic: 3 });
   const uniqueAnswers = new Set();
   for (const topic of topics) {
+    const topicalAnswers = (topicAnswerPools[topic.text] || []).map(normalizeAnswer).filter(Boolean);
+    assert.equal(topicalAnswers.length, 3, `three topical decoys required for ${topic.text}`);
     const fakes = pickLocalFakes(topic, "Scary but beautiful");
     assert.equal(fakes.length, 2, `two fallback answers required for ${topic.text}`);
     assert.equal(new Set(fakes.map((answer) => answer.toLocaleLowerCase("en-US"))).size, 2, `fallback answers must differ for ${topic.text}`);
     assert.equal(fakes.every((answer) => normalizedWords(answer).length === 3), true, `fallback answers must use three words for ${topic.text}`);
     assert.equal(fakes.every((answer) => answer === normalizeAnswer(answer)), true, `fallback formatting must match for ${topic.text}`);
+    assert.equal(fakes.every((answer) => topicalAnswers.includes(answer)), true, `fallback answers must be topic-specific for ${topic.text}`);
+    for (const topicalRealAnswer of topicalAnswers) {
+      const collisionFakes = pickLocalFakes(topic, topicalRealAnswer);
+      assert.equal(collisionFakes.length, 2, `two topical alternatives required when a player matches a decoy for ${topic.text}`);
+      assert.equal(collisionFakes.every((answer) => topicalAnswers.includes(answer) && answer !== topicalRealAnswer), true, `decoy collision fallback must stay topical for ${topic.text}`);
+    }
     fakes.forEach((answer) => uniqueAnswers.add(answer));
   }
   assert.ok(uniqueAnswers.size >= 150, `fallback selection should be varied; observed ${uniqueAnswers.size} unique answers`);
-  return { poolSizes, uniqueAnswers: uniqueAnswers.size };
+  return { poolSizes, topicPoolStats, uniqueAnswers: uniqueAnswers.size };
 }
 
 function connect() {

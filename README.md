@@ -26,7 +26,7 @@ Open `http://localhost:3040`, create a room, and share its invite link with the 
 - Unlimited topic passes with no penalty
 - Server-side private answers during phase one
 - Current-question-only answer choices during phase two
-- Category-aware local fake-answer generation, with an optional external generator hook
+- Three hand-authored, topic-specific decoys for every prompt, with a broader category fallback and optional external generator hook
 - Independent scoring, complete answer review, and coordinated rematches
 - Browser refresh and brief-disconnect recovery using anonymous session tokens
 - Responsive phone, tablet, and desktop layouts

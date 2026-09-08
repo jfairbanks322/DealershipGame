@@ -17,7 +17,8 @@ const state = {
   answerDrafts: readAnswerDrafts(),
   discardedAnswerDraftKey: null,
   confetti: [],
-  toastTimer: null
+  toastTimer: null,
+  renderCount: 0
 };
 
 const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase() || "";
@@ -60,12 +61,27 @@ socket.on("roomState", (game) => {
   if (state.pendingOptionId && game.guessPhase?.reveal) state.pendingOptionId = null;
   if (previousStatus && previousStatus !== "RESULTS" && game.status === "RESULTS") burstConfetti(100);
   if (canKeepActiveAnswerForm(previousGame, game)) return;
+  if (canKeepActiveGuessView(previousGame, game)) return;
+  if (canKeepWaitingScreen(previousGame, game)) {
+    updateWaitingProgress(game);
+    return;
+  }
   render();
 });
 
 socket.on("gameError", ({ message, field }) => {
   showToast(message, true);
   if (field === "answer") document.getElementById("answerInput")?.focus();
+  const lockButton = root.querySelector('[data-action="lock-guess"]');
+  if (lockButton) {
+    lockButton.textContent = "Lock in";
+    lockButton.disabled = !state.pendingOptionId;
+  }
+  const nextButton = root.querySelector('[data-action="next-guess"]');
+  if (nextButton) {
+    nextButton.textContent = "Next →";
+    nextButton.disabled = false;
+  }
 });
 
 socket.on("answerLocked", () => {
@@ -95,13 +111,18 @@ root.addEventListener("click", async (event) => {
   if (action === "pass") socket.emit("passTopic");
   if (action === "start-guessing") socket.emit("startGuessing");
   if (action === "select-answer" && !state.game?.guessPhase?.reveal) {
-    state.pendingOptionId = target.dataset.optionId;
-    render();
+    selectGuessOption(target.dataset.optionId);
   }
   if (action === "lock-guess" && state.pendingOptionId) {
+    target.disabled = true;
+    target.textContent = "Checking…";
     socket.emit("lockGuess", { optionId: state.pendingOptionId });
   }
-  if (action === "next-guess") socket.emit("nextGuess");
+  if (action === "next-guess") {
+    target.disabled = true;
+    target.textContent = "Next…";
+    socket.emit("nextGuess");
+  }
   if (action === "review") socket.emit("requestReview");
   if (action === "close-review") { state.review = null; render(); }
   if (action === "play-again") socket.emit("requestRematch", { mode: "playAgain" });
@@ -157,6 +178,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 function render() {
+  state.renderCount += 1;
   if (!state.game) {
     root.innerHTML = state.entryMode === "home" ? homeTemplate() : entryTemplate(state.entryMode);
     return;
@@ -677,6 +699,53 @@ function canKeepActiveAnswerForm(previousGame, nextGame) {
   );
 }
 
+function canKeepActiveGuessView(previousGame, nextGame) {
+  if (
+    previousGame?.status !== "GUESSING" ||
+    nextGame?.status !== "GUESSING" ||
+    !previousGame.self?.guessStarted ||
+    !nextGame.self?.guessStarted ||
+    previousGame.self.finishedGuessPhase ||
+    nextGame.self.finishedGuessPhase
+  ) return false;
+
+  const previousPhase = previousGame.guessPhase;
+  const nextPhase = nextGame.guessPhase;
+  if (!previousPhase?.current || !nextPhase?.current) return false;
+  return previousGame.self.guessProgress === nextGame.self.guessProgress &&
+    previousGame.self.score === nextGame.self.score &&
+    previousPhase.current.topicId === nextPhase.current.topicId &&
+    JSON.stringify(previousPhase.current.options) === JSON.stringify(nextPhase.current.options) &&
+    JSON.stringify(previousPhase.reveal || null) === JSON.stringify(nextPhase.reveal || null);
+}
+
+function canKeepWaitingScreen(previousGame, nextGame) {
+  if (!document.querySelector(".waiting-screen .mini-progress") || previousGame?.status !== nextGame?.status) return false;
+  if (nextGame.status === "ANSWERING") {
+    return Boolean(previousGame.self?.finishedAnswerPhase && nextGame.self?.finishedAnswerPhase);
+  }
+  if (nextGame.status === "GUESSING") {
+    return Boolean(previousGame.self?.finishedGuessPhase && nextGame.self?.finishedGuessPhase);
+  }
+  return false;
+}
+
+function updateWaitingProgress(game) {
+  const completed = game.status === "ANSWERING" ? game.opponent?.answerProgress : game.opponent?.guessProgress;
+  document.querySelectorAll(".waiting-screen .mini-progress i").forEach((dot, index) => {
+    dot.classList.toggle("done", index < (completed || 0));
+  });
+}
+
+function selectGuessOption(optionId) {
+  state.pendingOptionId = optionId;
+  root.querySelectorAll(".answer-option").forEach((option) => {
+    option.classList.toggle("selected", option.dataset.optionId === optionId);
+  });
+  const lockButton = root.querySelector('[data-action="lock-guess"]');
+  if (lockButton) lockButton.disabled = false;
+}
+
 function clearSession() {
   state.session = null;
   state.game = null;
@@ -762,7 +831,8 @@ window.render_game_to_text = () => JSON.stringify({
     mutualKnowledge: state.game.results.compatibility.mutualKnowledge,
     balance: state.game.results.compatibility.balance,
     categories: state.game.results.compatibility.categories.map(({ label, score }) => ({ label, score }))
-  } : null
+  } : null,
+  renderCount: state.renderCount
 });
 
 window.advanceTime = (milliseconds) => new Promise((resolve) => setTimeout(resolve, Math.min(milliseconds, 50)));

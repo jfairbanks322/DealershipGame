@@ -1,3 +1,5 @@
+const TOPIC_ANSWER_POOLS = require("./topic-answer-pools");
+
 const POOLS = {
   random: {
     positive: [
@@ -185,6 +187,12 @@ function flattenPool(category) {
   ).filter((entry) => entry.answer);
 }
 
+function topicPool(topic) {
+  return (TOPIC_ANSWER_POOLS[topic?.text] || [])
+    .map((answer) => normalizeAnswer(answer))
+    .filter(Boolean);
+}
+
 function hash(input) {
   let value = 2166136261;
   for (const char of input) {
@@ -203,19 +211,22 @@ function sharedWordCount(first, second) {
 
 function pickLocalFakes(topic, realAnswer) {
   const formattedRealAnswer = normalizeAnswer(realAnswer) || String(realAnswer || "").trim();
-  const ranked = flattenPool(topic.category)
+  const topicalCandidates = topicPool(topic).map((answer) => ({ answer, source: "topic" }));
+  const categoryCandidates = flattenPool(topic.category).map((entry) => ({ ...entry, source: "category" }));
+  const ranked = [...topicalCandidates, ...categoryCandidates]
     .filter((entry) => entry.answer.toLocaleLowerCase("en-US") !== formattedRealAnswer.toLocaleLowerCase("en-US"))
     .map((entry) => ({
       ...entry,
+      sourceRank: entry.source === "topic" ? 0 : 1,
       overlap: sharedWordCount(formattedRealAnswer, entry.answer),
       order: hash(`${topic.id}:${formattedRealAnswer}:${entry.answer}`)
     }))
-    .sort((first, second) => first.overlap - second.overlap || first.order - second.order);
+    .sort((first, second) => first.sourceRank - second.sourceRank || first.overlap - second.overlap || first.order - second.order);
 
   const first = ranked[0];
   const second = ranked.find((entry) =>
-    entry.tone !== first?.tone && sharedWordCount(first?.answer || "", entry.answer) === 0
-  ) || ranked.find((entry) => entry.tone !== first?.tone) || ranked[1];
+    entry.source === "topic" && entry.answer !== first?.answer && sharedWordCount(first?.answer || "", entry.answer) === 0
+  ) || ranked.find((entry) => entry.source === "topic" && entry.answer !== first?.answer) || ranked.find((entry) => entry.answer !== first?.answer);
 
   return [first?.answer, second?.answer].filter(Boolean);
 }
@@ -256,9 +267,19 @@ function getPoolSizes() {
   return Object.fromEntries(Object.keys(POOLS).map((category) => [category, flattenPool(category).length]));
 }
 
+function getTopicPoolStats() {
+  const entries = Object.values(TOPIC_ANSWER_POOLS);
+  return {
+    topics: entries.length,
+    answers: entries.reduce((sum, answers) => sum + answers.map(normalizeAnswer).filter(Boolean).length, 0),
+    minimumPerTopic: entries.length ? Math.min(...entries.map((answers) => answers.map(normalizeAnswer).filter(Boolean).length)) : 0
+  };
+}
+
 module.exports = {
   generateFakeAnswers,
   getPoolSizes,
+  getTopicPoolStats,
   normalizeAnswer,
   normalizedWords,
   pickLocalFakes
