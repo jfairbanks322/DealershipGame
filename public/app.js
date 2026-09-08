@@ -10,6 +10,7 @@ const ANSWER_DRAFTS_KEY = "threeWordsAnswerDrafts";
 const state = {
   game: null,
   entryMode: "home",
+  createMode: "classic",
   pendingOptionId: null,
   review: null,
   session: readSession(),
@@ -84,7 +85,8 @@ root.addEventListener("click", async (event) => {
   if (!target) return;
   const action = target.dataset.action;
 
-  if (action === "choose-create") { state.entryMode = "create"; render(); }
+  if (action === "choose-create") { state.createMode = "classic"; state.entryMode = "create"; render(); }
+  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.entryMode = "create"; render(); }
   if (action === "choose-join") { state.entryMode = "join"; render(); }
   if (action === "back-home") { state.entryMode = "home"; render(); }
   if (action === "copy-invite") await copyInvite();
@@ -113,7 +115,10 @@ root.addEventListener("click", async (event) => {
 root.addEventListener("submit", (event) => {
   event.preventDefault();
   if (event.target.id === "createForm") {
-    socket.emit("createRoom", { name: document.getElementById("createName").value });
+    socket.emit("createRoom", {
+      name: document.getElementById("createName").value,
+      mode: document.querySelector('input[name="gameMode"]:checked')?.value || state.createMode
+    });
   }
   if (event.target.id === "joinForm") {
     socket.emit("joinRoom", {
@@ -179,11 +184,20 @@ function homeTemplate() {
         <button class="button" data-action="choose-create">Create game <b>＋</b></button>
         <button class="button secondary" data-action="choose-join">Join game <b>→</b></button>
       </div>
+      <article class="compatibility-invite">
+        <div class="compatibility-invite-art" aria-hidden="true"><span>20</span><i></i><i></i><i></i></div>
+        <div>
+          <p class="eyebrow">New mode</p>
+          <h2>Get your compatibility report.</h2>
+          <p>Answer the same 20 prompts, read each other's minds, and unlock a playful breakdown of where you click.</p>
+        </div>
+        <button class="button small" data-action="choose-compatibility">Try compatibility →</button>
+      </article>
       <div class="how-grid" aria-label="How it works">
-        ${howCard(1, "Answer 10 random topics using exactly three words.")}
-        ${howCard(2, "Your partner answers a totally different set.")}
+        ${howCard(1, "Choose a quick 10 or compatibility 20 game.")}
+        ${howCard(2, "Answer each topic using exactly three words.")}
         ${howCard(3, "Guess which answers they actually wrote.")}
-        ${howCard(4, "See how well you know each other.")}
+        ${howCard(4, "Unlock scores, insights, and conversation starters.")}
       </div>
     </section>`;
 }
@@ -204,6 +218,7 @@ function entryTemplate(mode) {
             <label for="${creating ? "createName" : "joinName"}">Display name</label>
             <input class="text-input" id="${creating ? "createName" : "joinName"}" maxlength="24" autocomplete="name" placeholder="Your name" autofocus />
           </div>
+          ${creating ? modePickerTemplate() : ""}
           ${creating ? "" : `<div class="field"><label for="joinCode">Room code</label><input class="text-input code-input" id="joinCode" maxlength="6" autocomplete="off" value="${escapeHtml(inviteCode)}" placeholder="ABC123" /></div>`}
           <div class="form-actions">
             <button class="button" type="submit">${creating ? "Create game" : "Join game"}</button>
@@ -214,9 +229,29 @@ function entryTemplate(mode) {
     </section>`;
 }
 
+function modePickerTemplate() {
+  return `
+    <fieldset class="mode-picker">
+      <legend>Choose your game</legend>
+      <label class="mode-choice">
+        <input type="radio" name="gameMode" value="classic" ${state.createMode === "classic" ? "checked" : ""} />
+        <span class="mode-choice-icon">10</span>
+        <span><strong>Classic</strong><small>Different prompts · quick results</small></span>
+        <i>Quick</i>
+      </label>
+      <label class="mode-choice featured">
+        <input type="radio" name="gameMode" value="compatibility" ${state.createMode === "compatibility" ? "checked" : ""} />
+        <span class="mode-choice-icon">20</span>
+        <span><strong>Compatibility</strong><small>Shared prompts · full report</small></span>
+        <i>New</i>
+      </label>
+    </fieldset>`;
+}
+
 function lobbyTemplate(game) {
   const opponent = game.opponent;
   const allReady = game.players.length === 2 && game.players.every((player) => player.ready);
+  const compatibilityMode = game.mode?.id === "compatibility";
   return `
     <section class="screen narrow">
       <div class="panel">
@@ -225,6 +260,7 @@ function lobbyTemplate(game) {
           <button class="button ghost small" data-action="leave-room">Leave</button>
         </div>
         <div class="lobby-center">
+          <div class="mode-badge ${compatibilityMode ? "compatibility" : ""}">${compatibilityMode ? "✦ Compatibility · 20 shared prompts" : "Classic · 10 prompts each"}</div>
           <div class="waiting-orb"></div>
           <p class="eyebrow">${opponent ? "The room is full" : "Invite sent. Good vibes pending."}</p>
           <h2>${opponent ? "Both players ready?" : "Waiting for player two…"}</h2>
@@ -250,7 +286,7 @@ function answerTemplate(game) {
     <section class="screen topic-shell">
       <div class="game-meta"><span>Topic ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
       <article class="topic-card" key="${topic.id}">
-        <div class="topic-label">${topic.category === "adult" ? "Grown-up topic" : categoryName(topic.category)}</div>
+        <div class="topic-label">${game.mode?.id === "compatibility" ? "Compatibility · " : ""}${topic.category === "adult" ? "Grown-up topic" : categoryName(topic.category)}</div>
         <h1>${escapeHtml(topic.text)}</h1>
         <p class="prompt">What's your immediate reaction?</p>
       </article>
@@ -270,24 +306,26 @@ function answerTemplate(game) {
 
 function answerWaitingTemplate(game) {
   const completed = game.opponent?.answerProgress || 0;
+  const total = game.totalQuestions || 10;
   return `
     <section class="screen waiting-screen">
       <div class="done-burst">✓</div>
-      <p class="eyebrow">Ten answers locked</p>
+      <p class="eyebrow">${total} answers locked</p>
       <h1>YOU'RE<br>DONE!</h1>
       <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish their topics…</p>
-      <div class="mini-progress">${Array.from({ length: 10 }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
+      <div class="mini-progress">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
     </section>`;
 }
 
 function roundTwoTemplate(game) {
+  const compatibilityMode = game.mode?.id === "compatibility";
   return `
     <section class="screen">
       <div class="panel round-two-card">
         <div class="round-number">02</div>
         <p class="eyebrow" style="margin-top:28px">Round two</p>
         <h1>How well do you know them?</h1>
-        <p>You'll see the topics ${escapeHtml(game.opponent.name)} answered. One answer is real. Two are believable fakes. Pick the one they actually wrote.</p>
+        <p>${compatibilityMode ? `You both answered the same ${game.totalQuestions} prompts. Now see how accurately you can spot ${escapeHtml(game.opponent.name)}'s words.` : `You'll see the topics ${escapeHtml(game.opponent.name)} answered. One answer is real. Two are believable fakes. Pick the one they actually wrote.`}</p>
         <button class="button" data-action="start-guessing">Start guessing →</button>
       </div>
     </section>`;
@@ -299,7 +337,7 @@ function guessingTemplate(game) {
   const reveal = phase.reveal;
   return `
     <section class="screen narrow">
-      <div class="game-meta"><span>Guess ${Math.min(phase.completed + (reveal ? 0 : 1), 10)} of 10</span><span>Score ${game.self.score}</span></div>
+      <div class="game-meta"><span>Guess ${Math.min(phase.completed + (reveal ? 0 : 1), phase.total)} of ${phase.total}</span><span>Score ${game.self.score}</span></div>
       <div class="guess-topic">
         <p class="eyebrow">Topic</p>
         <h1>${escapeHtml(phase.current.topicText)}</h1>
@@ -331,18 +369,21 @@ function revealTemplate(reveal) {
 
 function guessWaitingTemplate(game) {
   const completed = game.opponent?.guessProgress || 0;
+  const total = game.totalQuestions || 10;
   return `
     <section class="screen waiting-screen">
       <div class="done-burst">✓</div>
       <p class="eyebrow">Your guesses are in</p>
       <h1>NICE<br>WORK.</h1>
       <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish guessing…</p>
-      <div class="mini-progress">${Array.from({ length: 10 }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
+      <div class="mini-progress">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
     </section>`;
 }
 
 function resultsTemplate(game) {
+  if (game.results.compatibility) return compatibilityReportTemplate(game);
   const rematchCount = game.players.filter((player) => player.rematchReady).length;
+  const total = game.results.total || game.totalQuestions || 10;
   return `
     <section class="screen narrow">
       <div class="results-head">
@@ -350,7 +391,7 @@ function resultsTemplate(game) {
         <h1>RESULTS</h1>
       </div>
       <div class="score-grid">
-        ${game.results.scores.map((result) => `<article class="score-card"><small>${escapeHtml(result.name)} knew ${escapeHtml(result.opponentName)}</small><h2>${result.score}<span> / 10</span></h2></article>`).join("")}
+        ${game.results.scores.map((result) => `<article class="score-card"><small>${escapeHtml(result.name)} knew ${escapeHtml(result.opponentName)}</small><h2>${result.score}<span> / ${total}</span></h2></article>`).join("")}
       </div>
       <p class="results-summary">“${escapeHtml(game.results.summary)}”</p>
       <div class="results-actions">
@@ -360,6 +401,160 @@ function resultsTemplate(game) {
       </div>
       ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next game…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
     </section>`;
+}
+
+function compatibilityReportTemplate(game) {
+  const report = game.results.compatibility;
+  const rematchCount = game.players.filter((player) => player.rematchReady).length;
+  return `
+    <section class="screen compatibility-report">
+      <header class="report-heading">
+        <p class="eyebrow">Your compatibility report</p>
+        <div class="report-names"><span>${escapeHtml(report.players[0].name)}</span><i>＋</i><span>${escapeHtml(report.players[1].name)}</span></div>
+        <h1>${escapeHtml(report.tier)}</h1>
+      </header>
+
+      <section class="report-hero-card">
+        <div class="compatibility-orbit" style="--score:${report.overall}">
+          <svg viewBox="0 0 160 160" aria-hidden="true">
+            <defs><linearGradient id="reportGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9d62ff"/><stop offset=".52" stop-color="#f15ea8"/><stop offset="1" stop-color="#ff9e5e"/></linearGradient></defs>
+            <circle class="orbit-track" cx="80" cy="80" r="68" pathLength="100" />
+            <circle class="orbit-value" cx="80" cy="80" r="68" pathLength="100" />
+          </svg>
+          <div><strong>${report.overall}<small>%</small></strong><span>overall connection</span></div>
+          <i class="orbit-spark spark-one">✦</i><i class="orbit-spark spark-two">✦</i>
+        </div>
+        <div class="report-verdict">
+          <p class="eyebrow">The vibe check</p>
+          <h2>${escapeHtml(report.summary)}</h2>
+          <p>Built from how closely your real answers aligned, how well you spotted each other's words, and how balanced that understanding was.</p>
+          <div class="report-formula"><span>Answer alignment</span><b>＋</b><span>Mind reading</span><b>＋</b><span>Balance</span></div>
+        </div>
+      </section>
+
+      <section class="report-metrics" aria-label="Compatibility score details">
+        ${reportMetric("Same-page energy", report.answerAlignment, "How closely your answers and emotional tone matched.", "✦")}
+        ${reportMetric("Mind-reading score", report.mutualKnowledge, "Your combined accuracy guessing each other's real answers.", "◎")}
+        ${reportMetric("Two-way balance", report.balance, "How evenly you understood one another across the game.", "↔")}
+      </section>
+
+      <section class="category-report">
+        <div class="section-heading">
+          <div><p class="eyebrow">Your connection map</p><h2>Where you click.</h2></div>
+          <p>Every category blends answer similarity with how accurately you read each other.</p>
+        </div>
+        <div class="category-visuals">
+          ${compatibilityRadar(report.categories)}
+          <div class="category-bars">
+            ${report.categories.map((category, index) => `
+              <div class="category-bar" style="--delay:${index * 90}ms">
+                <div><span>${escapeHtml(category.label)}</span><strong>${category.score}%</strong></div>
+                <i><b style="--value:${category.score}"></b></i>
+              </div>`).join("")}
+          </div>
+        </div>
+      </section>
+
+      <section class="report-highlights">
+        ${report.highlights.map((highlight, index) => `
+          <article style="--delay:${index * 90}ms">
+            <small>${escapeHtml(highlight.kicker)}</small>
+            <h3>${escapeHtml(highlight.value)}</h3>
+            <p>${escapeHtml(highlight.copy)}</p>
+          </article>`).join("")}
+      </section>
+
+      <section class="report-deep-dive">
+        <div class="section-heading">
+          <div><p class="eyebrow">Go deeper</p><h2>Open up the categories.</h2></div>
+          <p>Compare what you each wrote and find the prompts worth talking about next.</p>
+        </div>
+        <div class="category-accordions">
+          ${report.categories.map((category) => categoryAccordion(category)).join("")}
+        </div>
+      </section>
+
+      <p class="report-disclaimer">For fun, not science. Compatibility is bigger than any score—and the differences are often the best part.</p>
+      <div class="results-actions report-actions">
+        <button class="button secondary" data-action="review">Review every guess</button>
+        <button class="button" data-action="play-again" ${game.self.rematchReady ? "disabled" : ""}>Play again</button>
+        <button class="button secondary" data-action="new-topics" ${game.self.rematchReady ? "disabled" : ""}>New report</button>
+      </div>
+      ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next compatibility check…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
+    </section>`;
+}
+
+function reportMetric(label, value, copy, icon) {
+  return `
+    <article class="report-metric" style="--value:${value}">
+      <div class="metric-top"><span>${icon}</span><strong>${value}%</strong></div>
+      <h3>${escapeHtml(label)}</h3>
+      <p>${escapeHtml(copy)}</p>
+      <i><b></b></i>
+    </article>`;
+}
+
+function compatibilityRadar(categories) {
+  const center = 110;
+  const radius = 78;
+  const points = categories.map((category, index) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / categories.length;
+    const scaledRadius = radius * Math.max(0.08, category.score / 100);
+    return `${(center + Math.cos(angle) * scaledRadius).toFixed(1)},${(center + Math.sin(angle) * scaledRadius).toFixed(1)}`;
+  }).join(" ");
+  const outerPoints = categories.map((_category, index) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / categories.length;
+    return `${(center + Math.cos(angle) * radius).toFixed(1)},${(center + Math.sin(angle) * radius).toFixed(1)}`;
+  }).join(" ");
+  const axes = categories.map((_category, index) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / categories.length;
+    return `<line x1="${center}" y1="${center}" x2="${(center + Math.cos(angle) * radius).toFixed(1)}" y2="${(center + Math.sin(angle) * radius).toFixed(1)}" />`;
+  }).join("");
+  return `
+    <div class="radar-wrap" aria-label="Compatibility category radar chart">
+      <div class="radar-glow"></div>
+      <svg viewBox="0 0 220 220" role="img">
+        <polygon class="radar-grid outer" points="${outerPoints}" />
+        <polygon class="radar-grid inner" points="${outerPoints}" transform="translate(${center} ${center}) scale(.55) translate(${-center} ${-center})" />
+        <g class="radar-axes">${axes}</g>
+        <polygon class="radar-shape" points="${points}" />
+        ${points.split(" ").map((point) => { const [x, y] = point.split(","); return `<circle cx="${x}" cy="${y}" r="4" />`; }).join("")}
+      </svg>
+      <span>Connection map</span>
+    </div>`;
+}
+
+function categoryAccordion(category) {
+  return `
+    <details class="category-accordion">
+      <summary>
+        <span class="category-symbol">${categoryIcon(category.id)}</span>
+        <span><strong>${escapeHtml(category.label)}</strong><small>${category.questionCount} shared prompt${category.questionCount === 1 ? "" : "s"}</small></span>
+        <b>${category.score}%</b><i>＋</i>
+      </summary>
+      <div class="category-detail">
+        <div class="category-detail-metrics">
+          <span>Answer alignment <b>${category.alignment}%</b></span>
+          <span>Mind reading <b>${category.knowledge}%</b></span>
+        </div>
+        <div class="compatibility-answers">
+          ${category.entries.map((entry) => `
+            <article>
+              <div class="compatibility-topic"><span>${escapeHtml(entry.topic)}</span><b>${entry.similarity}% similar</b></div>
+              <div class="answer-comparison">
+                ${entry.answers.map((answer) => `<p><small>${escapeHtml(answer.name)}</small><strong>“${escapeHtml(answer.text)}”</strong></p>`).join("")}
+              </div>
+              <div class="guess-comparison">
+                ${entry.guesses.map((guess) => `<span class="${guess.correct ? "correct" : "missed"}">${guess.correct ? "✓" : "○"} ${escapeHtml(guess.name)} ${guess.correct ? "called it" : "was surprised"}</span>`).join("")}
+              </div>
+            </article>`).join("")}
+        </div>
+      </div>
+    </details>`;
+}
+
+function categoryIcon(category) {
+  return ({ random: "✦", nostalgia: "◷", life: "↗", relationships: "♡", deep: "◇", adult: "⚡" })[category] || "•";
 }
 
 function reviewTemplate(review) {
@@ -390,7 +585,7 @@ function categoryName(category) {
 }
 
 function countWords(value) {
-  return (String(value || "").match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) || []).length;
+  return (String(value || "").match(/[\p{L}\p{N}]+(?:['’\-‐‑–—][\p{L}\p{N}]+)*/gu) || []).length;
 }
 
 function escapeHtml(value) {
@@ -538,6 +733,8 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: "DOM card interface; viewport origin top-left, x right, y down",
   screen: state.game?.status || state.entryMode,
   roomCode: state.game?.roomCode || null,
+  gameMode: state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null),
+  totalQuestions: state.game?.totalQuestions || null,
   self: state.game ? {
     name: state.game.self.name,
     answerProgress: state.game.self.answerProgress,
@@ -557,7 +754,15 @@ window.render_game_to_text = () => JSON.stringify({
   visibleAnswerOptions: state.game?.guessPhase?.current?.options?.map((option) => option.text) || [],
   revealedAnswer: state.game?.guessPhase?.reveal?.realAnswer || null,
   selectedOptionId: state.pendingOptionId,
-  reviewOpen: Boolean(state.review)
+  reviewOpen: Boolean(state.review),
+  compatibilityReport: state.game?.results?.compatibility ? {
+    overall: state.game.results.compatibility.overall,
+    tier: state.game.results.compatibility.tier,
+    answerAlignment: state.game.results.compatibility.answerAlignment,
+    mutualKnowledge: state.game.results.compatibility.mutualKnowledge,
+    balance: state.game.results.compatibility.balance,
+    categories: state.game.results.compatibility.categories.map(({ label, score }) => ({ label, score }))
+  } : null
 });
 
 window.advanceTime = (milliseconds) => new Promise((resolve) => setTimeout(resolve, Math.min(milliseconds, 50)));

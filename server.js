@@ -4,12 +4,28 @@ const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
 const topics = require("./topics");
-const { generateFakeAnswers, normalizeAnswer } = require("./fake-answer-service");
+const { generateFakeAnswers, normalizeAnswer, normalizedWords } = require("./fake-answer-service");
 
 const PORT = Number(process.env.PORT) || 3040;
 const HOST = process.env.HOST || "0.0.0.0";
 const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
-const ANSWERS_PER_GAME = 10;
+const GAME_MODES = {
+  classic: {
+    id: "classic",
+    label: "Classic",
+    answerCount: 10,
+    sharedTopics: false,
+    compatibilityReport: false
+  },
+  compatibility: {
+    id: "compatibility",
+    label: "Compatibility",
+    answerCount: 20,
+    sharedTopics: true,
+    compatibilityReport: true
+  }
+};
+const DEFAULT_GAME_MODE = GAME_MODES.classic;
 const rooms = new Map();
 const sessions = new Map();
 const topicById = new Map(topics.map((topic) => [topic.id, topic]));
@@ -26,6 +42,7 @@ app.get("/health", (_request, response) => {
 io.on("connection", (socket) => {
   socket.on("createRoom", (payload = {}) => {
     const name = cleanName(payload.name);
+    const mode = getGameMode(payload.mode);
     if (!name) return sendError(socket, "Enter a display name first.");
 
     detachCurrentPlayer(socket);
@@ -35,6 +52,8 @@ io.on("connection", (socket) => {
       status: "WAITING_FOR_PLAYER",
       hostPlayerId: null,
       players: [],
+      modeId: mode.id,
+      answerTarget: mode.answerCount,
       gameNumber: 0,
       usedTopicIds: new Set(),
       previousTopicIds: new Set(),
@@ -132,7 +151,7 @@ io.on("connection", (socket) => {
     const topic = topicById.get(topicId);
     if (!topic) return sendError(socket, "That topic is no longer available.");
     player.answers.push({ topicId, topicText: topic.text, category: topic.category, answer });
-    player.finishedAnswerPhase = player.answers.length === ANSWERS_PER_GAME;
+    player.finishedAnswerPhase = player.answers.length === room.answerTarget;
     touch(room);
     socket.emit("answerLocked", { completed: player.answers.length });
 
@@ -217,7 +236,7 @@ io.on("connection", (socket) => {
     player.currentGuess = null;
     player.guessReveal = null;
 
-    if (player.guessIndex >= ANSWERS_PER_GAME) {
+    if (player.guessIndex >= room.answerTarget) {
       player.finishedGuessPhase = true;
     } else {
       await prepareCurrentGuess(room, player);
@@ -338,14 +357,12 @@ function startGame(room) {
   room.usedTopicIds = new Set();
   room.gameNumber += 1;
   room.status = "ANSWERING";
-  const selected = selectInitialTopics(room.previousTopicIds);
+  const selectedQueues = selectTopicQueues(room);
 
   room.players.forEach((player, playerIndex) => {
     player.ready = false;
     player.answers = [];
-    player.topicQueue = selected
-      .slice(playerIndex * ANSWERS_PER_GAME, (playerIndex + 1) * ANSWERS_PER_GAME)
-      .map((topic) => topic.id);
+    player.topicQueue = selectedQueues[playerIndex].map((topic) => topic.id);
     player.topicQueue.forEach((topicId) => room.usedTopicIds.add(topicId));
     player.passedTopicIds = [];
     player.finishedAnswerPhase = false;
@@ -362,7 +379,17 @@ function startGame(room) {
   touch(room);
 }
 
-function selectInitialTopics(excludedIds) {
+function selectTopicQueues(room) {
+  if (room.modeId === GAME_MODES.compatibility.id) {
+    const sharedTopics = selectCompatibilityTopics(room.previousTopicIds, room.answerTarget);
+    return [sharedTopics, sharedTopics];
+  }
+
+  const selected = selectClassicTopics(room.previousTopicIds, room.answerTarget);
+  return [selected.slice(0, room.answerTarget), selected.slice(room.answerTarget)];
+}
+
+function selectClassicTopics(excludedIds, answerTarget) {
   const available = topics.filter((topic) => !excludedIds.has(topic.id));
   const nonAdult = shuffle(available.filter((topic) => !topic.adultTopic));
   const adult = shuffle(available.filter((topic) => topic.adultTopic));
@@ -370,13 +397,33 @@ function selectInitialTopics(excludedIds) {
 
   for (let playerIndex = 0; playerIndex < 2; playerIndex += 1) {
     const includeAdult = adult.length > 0 && crypto.randomInt(100) < 55;
-    const group = nonAdult.splice(0, ANSWERS_PER_GAME - (includeAdult ? 1 : 0));
+    const group = nonAdult.splice(0, answerTarget - (includeAdult ? 1 : 0));
     if (includeAdult) group.push(adult.pop());
     selected.push(...shuffle(group));
   }
 
-  if (selected.length === ANSWERS_PER_GAME * 2) return selected;
-  return shuffle(topics).slice(0, ANSWERS_PER_GAME * 2);
+  if (selected.length === answerTarget * 2) return selected;
+  return shuffle(topics).slice(0, answerTarget * 2);
+}
+
+function selectCompatibilityTopics(excludedIds, answerTarget) {
+  const categoryTargets = { random: 4, nostalgia: 4, life: 4, relationships: 4, deep: 3, adult: 1 };
+  const available = topics.filter((topic) => !excludedIds.has(topic.id));
+  const selected = [];
+
+  for (const [category, count] of Object.entries(categoryTargets)) {
+    selected.push(...shuffle(available.filter((topic) => topic.category === category)).slice(0, count));
+  }
+
+  const selectedIds = new Set(selected.map((topic) => topic.id));
+  const fill = shuffle(available.filter((topic) => !selectedIds.has(topic.id)));
+  while (selected.length < answerTarget && fill.length) selected.push(fill.pop());
+
+  if (selected.length < answerTarget) {
+    const fallbackIds = new Set(selected.map((topic) => topic.id));
+    selected.push(...shuffle(topics.filter((topic) => !fallbackIds.has(topic.id))).slice(0, answerTarget - selected.length));
+  }
+  return shuffle(selected.slice(0, answerTarget));
 }
 
 async function prepareCurrentGuess(room, player) {
@@ -408,10 +455,13 @@ function pickUnusedTopic(room) {
 
 function buildStateForPlayer(room, player) {
   const opponent = room.players.find((candidate) => candidate.id !== player.id) || null;
+  const mode = getGameMode(room.modeId);
   const state = {
     roomCode: room.roomCode,
     status: room.status,
     gameNumber: room.gameNumber,
+    mode,
+    totalQuestions: room.answerTarget,
     isHost: room.hostPlayerId === player.id,
     players: room.players.map((candidate) => ({
       id: candidate.id,
@@ -456,7 +506,7 @@ function buildStateForPlayer(room, player) {
     state.answerPhase = {
       currentTopic: topic ? { id: topic.id, text: topic.text, category: topic.category } : null,
       completed: player.answers.length,
-      total: ANSWERS_PER_GAME
+      total: room.answerTarget
     };
   }
 
@@ -469,7 +519,7 @@ function buildStateForPlayer(room, player) {
       } : null,
       reveal: player.guessReveal,
       completed: player.guesses.length,
-      total: ANSWERS_PER_GAME
+      total: room.answerTarget
     };
   }
 
@@ -481,10 +531,187 @@ function buildStateForPlayer(room, player) {
         opponentName: room.players.find((other) => other.id !== candidate.id)?.name || "their partner",
         score: candidate.score
       })),
-      summary: scoreSummary(Math.round(room.players.reduce((sum, candidate) => sum + candidate.score, 0) / 2))
+      total: room.answerTarget,
+      summary: scoreSummary(
+        Math.round(room.players.reduce((sum, candidate) => sum + candidate.score, 0) / 2),
+        room.answerTarget
+      ),
+      compatibility: mode.compatibilityReport ? buildCompatibilityReport(room) : null
     };
   }
   return state;
+}
+
+function buildCompatibilityReport(room) {
+  const [first, second] = room.players;
+  if (!first || !second) return null;
+
+  const secondAnswers = new Map(second.answers.map((answer) => [answer.topicId, answer]));
+  const firstGuesses = new Map(first.guesses.map((guess) => [guess.topicId, guess]));
+  const secondGuesses = new Map(second.guesses.map((guess) => [guess.topicId, guess]));
+  const sharedEntries = first.answers.flatMap((firstAnswer) => {
+    const secondAnswer = secondAnswers.get(firstAnswer.topicId);
+    if (!secondAnswer) return [];
+    return [{
+      topicId: firstAnswer.topicId,
+      topic: firstAnswer.topicText,
+      category: firstAnswer.category,
+      similarity: answerSimilarity(firstAnswer.answer, secondAnswer.answer),
+      answers: [
+        { playerId: first.id, name: first.name, text: firstAnswer.answer },
+        { playerId: second.id, name: second.name, text: secondAnswer.answer }
+      ],
+      guesses: [
+        { playerId: first.id, name: first.name, about: second.name, correct: Boolean(firstGuesses.get(firstAnswer.topicId)?.correct) },
+        { playerId: second.id, name: second.name, about: first.name, correct: Boolean(secondGuesses.get(firstAnswer.topicId)?.correct) }
+      ]
+    }];
+  });
+
+  const categoryOrder = ["random", "nostalgia", "life", "relationships", "deep", "adult"];
+  const categories = categoryOrder.flatMap((category) => {
+    const entries = sharedEntries.filter((entry) => entry.category === category);
+    if (!entries.length) return [];
+    const alignment = average(entries.map((entry) => entry.similarity));
+    const guessResults = entries.flatMap((entry) => entry.guesses.map((guess) => guess.correct ? 100 : 0));
+    const knowledge = average(guessResults);
+    return [{
+      id: category,
+      label: categoryLabel(category),
+      score: Math.round(alignment * 0.6 + knowledge * 0.4),
+      alignment,
+      knowledge,
+      questionCount: entries.length,
+      entries
+    }];
+  });
+
+  const answerAlignment = average(sharedEntries.map((entry) => entry.similarity));
+  const firstKnowledge = Math.round(first.score / Math.max(1, room.answerTarget) * 100);
+  const secondKnowledge = Math.round(second.score / Math.max(1, room.answerTarget) * 100);
+  const mutualKnowledge = Math.round((firstKnowledge + secondKnowledge) / 2);
+  const balance = Math.max(0, 100 - Math.abs(firstKnowledge - secondKnowledge));
+  const overall = Math.round(answerAlignment * 0.55 + mutualKnowledge * 0.35 + balance * 0.1);
+  const tier = compatibilityTier(overall);
+  const strongest = [...categories].sort((a, b) => b.score - a.score)[0];
+  const growth = [...categories].sort((a, b) => a.score - b.score)[0];
+  const closest = [...sharedEntries].sort((a, b) => b.similarity - a.similarity)[0];
+  const alignedCount = sharedEntries.filter((entry) => entry.similarity >= 55).length;
+
+  return {
+    overall,
+    tier: tier.title,
+    summary: tier.summary,
+    answerAlignment,
+    mutualKnowledge,
+    balance,
+    sharedQuestionCount: sharedEntries.length,
+    totalQuestions: room.answerTarget,
+    players: [
+      { playerId: first.id, name: first.name, correctGuesses: first.score, knowledge: firstKnowledge },
+      { playerId: second.id, name: second.name, correctGuesses: second.score, knowledge: secondKnowledge }
+    ],
+    highlights: [
+      {
+        kicker: "Your sweet spot",
+        value: strongest?.label || "Still unfolding",
+        copy: strongest ? `${strongest.score}% connection across ${strongest.questionCount} shared prompts.` : "Play again to reveal more."
+      },
+      {
+        kicker: "Same wavelength",
+        value: `${alignedCount} of ${sharedEntries.length}`,
+        copy: "Shared prompts where your wording or emotional read lined up."
+      },
+      {
+        kicker: "Closest answer",
+        value: closest?.topic || "A future round",
+        copy: closest ? `${closest.similarity}% answer similarity on this prompt.` : "Your strongest overlap is still waiting."
+      },
+      {
+        kicker: "Conversation starter",
+        value: growth?.label || "Anything goes",
+        copy: growth ? "This category had the most room for a good follow-up conversation." : "Keep the questions coming."
+      }
+    ],
+    categories
+  };
+}
+
+function answerSimilarity(firstAnswer, secondAnswer) {
+  const firstText = String(firstAnswer || "").toLocaleLowerCase("en-US");
+  const secondText = String(secondAnswer || "").toLocaleLowerCase("en-US");
+  if (firstText === secondText) return 100;
+
+  const firstWords = meaningfulAnswerWords(firstText);
+  const secondWords = meaningfulAnswerWords(secondText);
+  const firstSet = new Set(firstWords);
+  const secondSet = new Set(secondWords);
+  const sharedWords = [...firstSet].filter((word) => secondSet.has(word)).length;
+  const lexicalSimilarity = firstSet.size + secondSet.size
+    ? (2 * sharedWords) / (firstSet.size + secondSet.size)
+    : 0;
+  const firstTone = answerTone(firstWords);
+  const secondTone = answerTone(secondWords);
+  let toneSimilarity = 0;
+  if (firstTone === secondTone && firstTone !== "neutral") toneSimilarity = 1;
+  else if (firstTone === secondTone) toneSimilarity = 0.35;
+  else if ([firstTone, secondTone].includes("mixed")) toneSimilarity = 0.4;
+  return Math.round(Math.min(1, lexicalSimilarity * 0.7 + toneSimilarity * 0.3) * 100);
+}
+
+function meaningfulAnswerWords(answer) {
+  const ignored = new Set(["a", "an", "and", "but", "i", "i'm", "is", "it", "its", "so", "the", "this", "very"]);
+  return normalizedWords(answer)
+    .flatMap((word) => word.toLocaleLowerCase("en-US").split(/[-']/))
+    .filter((word) => word && !ignored.has(word));
+}
+
+function answerTone(words) {
+  const positive = new Set([
+    "adore", "amazing", "beautiful", "best", "comfortable", "delightful", "enjoy", "exciting", "fun",
+    "good", "great", "happy", "hope", "joy", "like", "love", "lovely", "safe", "sweet", "wonderful", "yes"
+  ]);
+  const negative = new Set([
+    "annoying", "awful", "bad", "boring", "disappointing", "exhausting", "fear", "hard", "hate", "hurt",
+    "never", "no", "not", "overrated", "painful", "pass", "regret", "sad", "scary", "stressful", "terrible", "worse"
+  ]);
+  const uncertain = new Set(["complicated", "depends", "maybe", "mixed", "sometimes", "unsure"]);
+  const positiveCount = words.filter((word) => positive.has(word)).length;
+  const negativeCount = words.filter((word) => negative.has(word)).length;
+  if (positiveCount && negativeCount) return "mixed";
+  if (positiveCount > negativeCount) return "positive";
+  if (negativeCount > positiveCount) return "negative";
+  if (words.some((word) => uncertain.has(word))) return "mixed";
+  return "neutral";
+}
+
+function average(values) {
+  if (!values.length) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function compatibilityTier(score) {
+  if (score >= 90) return { title: "Mind-meld territory", summary: "Different brains, one suspiciously shared frequency." };
+  if (score >= 75) return { title: "Dynamic duo energy", summary: "You read each other well and meet in plenty of the same places." };
+  if (score >= 60) return { title: "Same wavelength", summary: "A strong signal, with just enough plot twists to keep things interesting." };
+  if (score >= 45) return { title: "Finding the frequency", summary: "You connect in meaningful ways and still have excellent things left to discover." };
+  if (score >= 25) return { title: "Plot still developing", summary: "There are sparks of overlap and lots of material for the next conversation." };
+  return { title: "Delightfully unpredictable", summary: "You keep each other guessing—which might be the most interesting result of all." };
+}
+
+function categoryLabel(category) {
+  return ({
+    random: "Play & humor",
+    nostalgia: "Shared nostalgia",
+    life: "Life outlook",
+    relationships: "Relationship rhythm",
+    deep: "Deeper values",
+    adult: "Chemistry"
+  })[category] || category;
+}
+
+function getGameMode(value) {
+  return value === GAME_MODES.compatibility.id ? GAME_MODES.compatibility : DEFAULT_GAME_MODE;
 }
 
 function buildReview(room) {
@@ -506,55 +733,13 @@ function buildReview(room) {
   });
 }
 
-function emitRoomState(room) {
-  for (const player of room.players) {
-    if (!player.connected || !player.socketId) continue;
-    io.to(player.socketId).emit("roomState", buildStateForPlayer(room, player));
-  }
-}
-
-function getSocketContext(socket) {
-  const room = rooms.get(socket.data.roomCode);
-  const player = room?.players.find((candidate) => candidate.id === socket.data.playerId);
-  return room && player ? { room, player } : null;
-}
-
-function cleanName(value) {
-  return String(value || "").trim().replace(/\s+/g, " ").slice(0, 24);
-}
-
-function createRoomCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  do {
-    code = Array.from({ length: 6 }, () => alphabet[crypto.randomInt(alphabet.length)]).join("");
-  } while (rooms.has(code));
-  return code;
-}
-
-function shuffle(items) {
-  const copy = [...items];
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const swapIndex = crypto.randomInt(index + 1);
-    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
-  }
-  return copy;
-}
-
-function scoreSummary(score) {
-  if (score <= 2) return "You two have some homework to do.";
-  if (score <= 5) return "You're getting there.";
-  if (score <= 7) return "Okay, you definitely pay attention.";
-  if (score <= 9) return "That's suspiciously impressive.";
+function scoreSummary(score, total) {
+  const ratio = score / Math.max(1, total);
+  if (ratio <= 0.2) return "You two have some homework to do.";
+  if (ratio <= 0.5) return "You're getting there.";
+  if (ratio <= 0.7) return "Okay, you definitely pay attention.";
+  if (ratio < 1) return "That's suspiciously impressive.";
   return "Either soulmates or excellent spies.";
-}
-
-function sendError(socket, message, field = null) {
-  socket.emit("gameError", { message, field });
-}
-
-function touch(room) {
-  room.lastActivity = Date.now();
 }
 
 function emitRoomState(room) {
@@ -568,25 +753,6 @@ function getSocketContext(socket) {
   const room = rooms.get(socket.data.roomCode);
   const player = room?.players.find((candidate) => candidate.id === socket.data.playerId);
   return room && player ? { room, player } : null;
-}
-
-function buildReview(room) {
-  return room.players.map((answeringPlayer) => {
-    const guessingPlayer = room.players.find((candidate) => candidate.id !== answeringPlayer.id);
-    return {
-      answeringPlayer: answeringPlayer.name,
-      guessingPlayer: guessingPlayer.name,
-      entries: answeringPlayer.answers.map((answer, index) => {
-        const guess = guessingPlayer.guesses[index];
-        return {
-          topic: answer.topicText,
-          answer: answer.answer,
-          guessed: guess?.selectedAnswer || "No guess",
-          correct: Boolean(guess?.correct)
-        };
-      })
-    };
-  });
 }
 
 function createRoomCode() {
@@ -611,6 +777,14 @@ function shuffle(items) {
     [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
   }
   return result;
+}
+
+function sendError(socket, message, field = null) {
+  socket.emit("gameError", { message, field });
+}
+
+function touch(room) {
+  room.lastActivity = Date.now();
 }
 
 module.exports = { app, server };

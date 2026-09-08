@@ -1,6 +1,8 @@
 # THREE WORDS
 
-THREE WORDS is a private, real-time game for two people who are getting to know each other. Each player answers ten unpredictable topics using exactly three words, then guesses which responses their partner actually wrote.
+THREE WORDS is a private, real-time game for two people who are getting to know each other. Players answer unpredictable topics using exactly three words, then guess which responses their partner actually wrote.
+
+Choose **Classic** for a quick 10-question game with different prompts, or **Compatibility** for 20 shared prompts and a playful, category-by-category connection report.
 
 ## Run locally
 
@@ -16,6 +18,8 @@ Open `http://localhost:3040`, create a room, and share its invite link with the 
 ## What is included
 
 - Exactly two players per private room
+- Classic 10-question and Compatibility 20-question modes
+- Animated compatibility report covering answer alignment, mutual guess accuracy, balance, and six expandable connection categories
 - Six-character room codes and shareable invite URLs
 - 240 broad topics across funny, nostalgic, personal, relationship, meaningful, and occasional tasteful adult categories
 - Exact three-word validation with punctuation-aware counting
@@ -60,7 +64,7 @@ npm run check
 npm test
 ```
 
-The full-flow test covers room creation, two-player limits, ready/start flow, three-word validation, passing, answer privacy, all twenty answers and guesses, scoring, review, reconnect, and rematch topic replacement.
+The test suite covers room creation, two-player limits, both game modes, ready/start flow, three-word validation, passing, answer privacy, 20-question shared-prompt play, all 40 compatibility guesses, report calculations, scoring, review, reconnect, and rematches.
 
 ## Story Showdown
 
