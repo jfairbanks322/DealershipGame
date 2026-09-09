@@ -5,6 +5,8 @@ const path = require("path");
 const { Server } = require("socket.io");
 const topics = require("./topics");
 const wouldYouRatherQuestions = require("./would-you-rather");
+const sillyWouldYouRatherQuestions = require("./would-you-rather-silly");
+const adultWouldYouRatherQuestions = require("./would-you-rather-adult");
 const { generateFakeAnswers, normalizeAnswer, normalizedWords } = require("./fake-answer-service");
 
 const PORT = Number(process.env.PORT) || 3040;
@@ -36,6 +38,36 @@ const GAME_MODES = {
 };
 const DEFAULT_GAME_MODE = GAME_MODES.classic;
 const WOULD_YOU_RATHER_COUNTS = new Set([10, 20, 30, 50]);
+const WOULD_YOU_RATHER_DECKS = {
+  balanced: {
+    id: "balanced",
+    label: "Balanced mix",
+    description: "Play, everyday life, adventure, connection, and the future.",
+    icon: "◇",
+    adult: false,
+    categories: ["play", "everyday", "adventure", "connection", "future"],
+    questions: wouldYouRatherQuestions
+  },
+  silly: {
+    id: "silly",
+    label: "Silly & Random",
+    description: "Absurd choices, food chaos, weird powers, and zero-pressure fun.",
+    icon: "☻",
+    adult: false,
+    categories: ["absurd", "food-chaos", "social-chaos", "weird-powers", "random-life"],
+    questions: sillyWouldYouRatherQuestions
+  },
+  adult: {
+    id: "adult",
+    label: "Adult & Intimacy",
+    description: "Mature, private questions for consenting adult partners.",
+    icon: "18+",
+    adult: true,
+    categories: ["chemistry", "bedroom", "exploration", "communication", "aftercare"],
+    questions: adultWouldYouRatherQuestions
+  }
+};
+const DEFAULT_WOULD_YOU_RATHER_DECK = WOULD_YOU_RATHER_DECKS.balanced;
 const TOPIC_TONES = {
   mixed: {
     id: "mixed",
@@ -77,7 +109,8 @@ const DEFAULT_TOPIC_TONE = TOPIC_TONES.mixed;
 const rooms = new Map();
 const sessions = new Map();
 const topicById = new Map(topics.map((topic) => [topic.id, topic]));
-const wouldYouRatherById = new Map(wouldYouRatherQuestions.map((question) => [question.id, question]));
+const allWouldYouRatherQuestions = Object.values(WOULD_YOU_RATHER_DECKS).flatMap((deck) => deck.questions);
+const wouldYouRatherById = new Map(allWouldYouRatherQuestions.map((question) => [question.id, question]));
 
 const app = express();
 const server = http.createServer(app);
@@ -85,7 +118,13 @@ const io = new Server(server, { serveClient: true });
 
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/health", (_request, response) => {
-  response.json({ ok: true, rooms: rooms.size, topics: topics.length, wouldYouRatherQuestions: wouldYouRatherQuestions.length });
+  response.json({
+    ok: true,
+    rooms: rooms.size,
+    topics: topics.length,
+    wouldYouRatherQuestions: allWouldYouRatherQuestions.length,
+    wouldYouRatherDecks: Object.fromEntries(Object.values(WOULD_YOU_RATHER_DECKS).map((deck) => [deck.id, deck.questions.length]))
+  });
 });
 
 io.on("connection", (socket) => {
@@ -104,6 +143,7 @@ io.on("connection", (socket) => {
       players: [],
       modeId: mode.id,
       topicToneId: topicTone.id,
+      choiceDeckId: getWouldYouRatherDeck(payload.choiceDeck).id,
       answerTarget: mode.choiceGame ? getWouldYouRatherCount(payload.questionCount) : mode.answerCount,
       gameNumber: 0,
       usedTopicIds: new Set(),
@@ -459,7 +499,7 @@ function startGame(room) {
 function startWouldYouRatherGame(room) {
   room.previousWouldYouRatherIds = new Set(room.usedWouldYouRatherIds);
   room.usedWouldYouRatherIds = new Set();
-  const questions = selectWouldYouRatherQuestions(room.previousWouldYouRatherIds, room.answerTarget);
+  const questions = selectWouldYouRatherQuestions(room.choiceDeckId, room.previousWouldYouRatherIds, room.answerTarget);
   room.wouldYouRatherQueue = questions.map((question) => question.id);
   room.wouldYouRatherQueue.forEach((questionId) => room.usedWouldYouRatherIds.add(questionId));
   room.status = "CHOOSING";
@@ -485,19 +525,20 @@ function resetPlayerForRound(player) {
   player.rematchMode = null;
 }
 
-function selectWouldYouRatherQuestions(excludedIds, count) {
-  const categoryOrder = ["play", "everyday", "adventure", "connection", "future"];
+function selectWouldYouRatherQuestions(deckId, excludedIds, count) {
+  const deck = getWouldYouRatherDeck(deckId);
+  const categoryOrder = deck.categories;
   const perCategory = count / categoryOrder.length;
   const selected = [];
 
   for (const category of categoryOrder) {
-    const available = shuffle(wouldYouRatherQuestions.filter((question) =>
+    const available = shuffle(deck.questions.filter((question) =>
       question.category === category && !excludedIds.has(question.id)
     ));
     const categorySelection = available.slice(0, perCategory);
     if (categorySelection.length < perCategory) {
       const selectedIds = new Set(categorySelection.map((question) => question.id));
-      const refill = shuffle(wouldYouRatherQuestions.filter((question) =>
+      const refill = shuffle(deck.questions.filter((question) =>
         question.category === category && !selectedIds.has(question.id)
       ));
       categorySelection.push(...refill.slice(0, perCategory - categorySelection.length));
@@ -609,12 +650,14 @@ function buildStateForPlayer(room, player) {
   const opponent = room.players.find((candidate) => candidate.id !== player.id) || null;
   const mode = getGameMode(room.modeId);
   const tone = getTopicTone(room.topicToneId);
+  const choiceDeck = getWouldYouRatherDeck(room.choiceDeckId);
   const state = {
     roomCode: room.roomCode,
     status: room.status,
     gameNumber: room.gameNumber,
     mode,
     tone,
+    choiceDeck: mode.choiceGame ? publicWouldYouRatherDeck(choiceDeck) : null,
     totalQuestions: room.answerTarget,
     isHost: room.hostPlayerId === player.id,
     players: room.players.map((candidate) => ({
@@ -833,7 +876,8 @@ function buildWouldYouRatherReport(room) {
   });
   const matchCount = entries.filter((entry) => entry.matched).length;
   const matchPercent = Math.round(matchCount / Math.max(1, entries.length) * 100);
-  const categoryOrder = ["play", "everyday", "adventure", "connection", "future"];
+  const deck = getWouldYouRatherDeck(room.choiceDeckId);
+  const categoryOrder = deck.categories;
   const categories = categoryOrder.flatMap((category) => {
     const categoryEntries = entries.filter((entry) => entry.category === category);
     if (!categoryEntries.length) return [];
@@ -853,6 +897,7 @@ function buildWouldYouRatherReport(room) {
   const tier = wouldYouRatherTier(matchPercent);
 
   return {
+    deck: publicWouldYouRatherDeck(deck),
     matchCount,
     differenceCount: entries.length - matchCount,
     matchPercent,
@@ -898,7 +943,17 @@ function wouldYouRatherCategoryLabel(category) {
     everyday: "Everyday rhythm",
     adventure: "Adventure mode",
     connection: "Connection style",
-    future: "Future vision"
+    future: "Future vision",
+    absurd: "Pure absurdity",
+    "food-chaos": "Food chaos",
+    "social-chaos": "Social chaos",
+    "weird-powers": "Weird powers",
+    "random-life": "Random life",
+    chemistry: "Chemistry",
+    bedroom: "Bedroom style",
+    exploration: "Exploration",
+    communication: "Communication",
+    aftercare: "Aftercare"
   })[category] || category;
 }
 
@@ -982,6 +1037,20 @@ function getGameMode(value) {
 function getWouldYouRatherCount(value) {
   const count = Number(value);
   return WOULD_YOU_RATHER_COUNTS.has(count) ? count : GAME_MODES.wouldYouRather.answerCount;
+}
+
+function getWouldYouRatherDeck(value) {
+  return WOULD_YOU_RATHER_DECKS[value] || DEFAULT_WOULD_YOU_RATHER_DECK;
+}
+
+function publicWouldYouRatherDeck(deck) {
+  return {
+    id: deck.id,
+    label: deck.label,
+    description: deck.description,
+    icon: deck.icon,
+    adult: deck.adult
+  };
 }
 
 function getTopicTone(value) {

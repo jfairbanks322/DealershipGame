@@ -12,6 +12,7 @@ const state = {
   entryMode: "home",
   createMode: "classic",
   createTone: "mixed",
+  createChoiceDeck: "balanced",
   createQuestionCount: 20,
   pendingOptionId: null,
   pendingPreferenceId: null,
@@ -115,9 +116,9 @@ root.addEventListener("click", async (event) => {
   if (!target) return;
   const action = target.dataset.action;
 
-  if (action === "choose-create") { state.createMode = "classic"; state.createTone = "mixed"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
-  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.createTone = "mixed"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
-  if (action === "choose-would-you-rather") { state.createMode = "would-you-rather"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
+  if (action === "choose-create") { state.createMode = "classic"; state.createTone = "mixed"; state.createChoiceDeck = "balanced"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
+  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.createTone = "mixed"; state.createChoiceDeck = "balanced"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
+  if (action === "choose-would-you-rather") { state.createMode = "would-you-rather"; state.createChoiceDeck = "balanced"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
   if (action === "choose-join") { state.entryMode = "join"; render(); }
   if (action === "back-home") { state.entryMode = "home"; render(); }
   if (action === "copy-invite") await copyInvite();
@@ -164,6 +165,7 @@ root.addEventListener("submit", (event) => {
       name: document.getElementById("createName").value,
       mode: document.querySelector('input[name="gameMode"]:checked')?.value || state.createMode,
       tone: document.querySelector('input[name="topicTone"]:checked')?.value || state.createTone,
+      choiceDeck: document.querySelector('input[name="choiceDeck"]:checked')?.value || state.createChoiceDeck,
       questionCount: Number(document.querySelector('input[name="questionCount"]:checked')?.value || state.createQuestionCount)
     });
   }
@@ -195,6 +197,7 @@ root.addEventListener("change", (event) => {
     syncCreateOptions();
   }
   if (event.target.matches('input[name="topicTone"]')) state.createTone = event.target.value;
+  if (event.target.matches('input[name="choiceDeck"]')) state.createChoiceDeck = event.target.value;
   if (event.target.matches('input[name="questionCount"]')) state.createQuestionCount = Number(event.target.value);
 });
 
@@ -245,8 +248,10 @@ function focusAnswerInput() {
 function syncCreateOptions() {
   const wouldYouRatherMode = state.createMode === "would-you-rather";
   const tonePicker = document.getElementById("topicTonePicker");
+  const choiceDeckPicker = document.getElementById("choiceDeckPicker");
   const questionCountPicker = document.getElementById("questionCountPicker");
   if (tonePicker) tonePicker.hidden = wouldYouRatherMode;
+  if (choiceDeckPicker) choiceDeckPicker.hidden = !wouldYouRatherMode;
   if (questionCountPicker) questionCountPicker.hidden = !wouldYouRatherMode;
 }
 
@@ -277,11 +282,11 @@ function homeTemplate() {
             <h2>Would you rather?</h2>
             <p>Make 10, 20, 30, or 50 private picks, then reveal exactly where your instincts match.</p>
           </div>
-          <button class="button small" data-action="choose-would-you-rather">Choose your length →</button>
+          <button class="button small" data-action="choose-would-you-rather">Choose category & length →</button>
         </article>
       </div>
       <div class="how-grid" aria-label="How it works">
-        ${howCard(1, "Choose your game, tone, and question length.")}
+        ${howCard(1, "Choose your game, topic category, and question length.")}
         ${howCard(2, "Answer privately with three words or one of four picks.")}
         ${howCard(3, "Finish without seeing your partner's choices.")}
         ${howCard(4, "Unlock matches, insights, and conversation starters.")}
@@ -305,7 +310,7 @@ function entryTemplate(mode) {
             <label for="${creating ? "createName" : "joinName"}">Display name</label>
             <input class="text-input" id="${creating ? "createName" : "joinName"}" maxlength="24" autocomplete="name" placeholder="Your name" autofocus />
           </div>
-          ${creating ? `${modePickerTemplate()}${tonePickerTemplate()}${questionCountPickerTemplate()}` : ""}
+          ${creating ? `${modePickerTemplate()}${tonePickerTemplate()}${choiceDeckPickerTemplate()}${questionCountPickerTemplate()}` : ""}
           ${creating ? "" : `<div class="field"><label for="joinCode">Room code</label><input class="text-input code-input" id="joinCode" maxlength="6" autocomplete="off" value="${escapeHtml(inviteCode)}" placeholder="ABC123" /></div>`}
           <div class="form-actions">
             <button class="button" type="submit">${creating ? "Create game" : "Join game"}</button>
@@ -377,6 +382,26 @@ function questionCountPickerTemplate() {
     </fieldset>`;
 }
 
+function choiceDeckPickerTemplate() {
+  const decks = [
+    { id: "balanced", icon: "◇", label: "Balanced Mix", copy: "Play, life, connection & future" },
+    { id: "silly", icon: "☻", label: "Silly & Random", copy: "Absurd, chaotic, zero-pressure fun" },
+    { id: "adult", icon: "18+", label: "Adult & Intimacy", copy: "Mature and private · consenting adults" }
+  ];
+  return `
+    <fieldset id="choiceDeckPicker" class="choice-deck-picker" ${state.createMode === "would-you-rather" ? "" : "hidden"}>
+      <legend>Pick a question category</legend>
+      <div class="choice-deck-options">
+        ${decks.map((deck) => `
+          <label class="choice-deck-choice ${deck.id === "adult" ? "adult" : ""}">
+            <input type="radio" name="choiceDeck" value="${deck.id}" ${state.createChoiceDeck === deck.id ? "checked" : ""} />
+            <span>${deck.icon}</span><strong>${deck.label}</strong><small>${deck.copy}</small>
+          </label>`).join("")}
+      </div>
+      <p class="picker-note">The category applies to the whole game and is shown to both players before they start.</p>
+    </fieldset>`;
+}
+
 function lobbyTemplate(game) {
   const opponent = game.opponent;
   const allReady = game.players.length === 2 && game.players.every((player) => player.ready);
@@ -397,8 +422,11 @@ function lobbyTemplate(game) {
         <div class="lobby-center">
           <div class="lobby-badges">
             <div class="mode-badge ${compatibilityMode || wouldYouRatherMode ? "compatibility" : ""}">${modeBadge}</div>
-            ${wouldYouRatherMode ? "" : `<div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>`}
+            ${wouldYouRatherMode
+              ? `<div class="choice-deck-badge ${game.choiceDeck?.adult ? "adult" : ""}">${escapeHtml(game.choiceDeck?.icon || "◇")} ${escapeHtml(game.choiceDeck?.label || "Balanced mix")}</div>`
+              : `<div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>`}
           </div>
+          ${game.choiceDeck?.adult ? `<p class="adult-lobby-note"><strong>Adults only.</strong> This round includes mature questions about intimacy, preferences, and boundaries. Make sure both players are comfortable before starting.</p>` : ""}
           <div class="waiting-orb"></div>
           <p class="eyebrow">${opponent ? "The room is full" : "Invite sent. Good vibes pending."}</p>
           <h2>${opponent ? "Both players ready?" : "Waiting for player two…"}</h2>
@@ -463,7 +491,7 @@ function wouldYouRatherTemplate(game) {
     <section class="screen choice-shell">
       <div class="game-meta"><span>Question ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
       <header class="choice-heading">
-        <p class="eyebrow">${wouldYouRatherCategoryName(question.category)}</p>
+        <p class="eyebrow">${game.choiceDeck?.adult ? "18+ · " : ""}${wouldYouRatherCategoryName(question.category)}</p>
         <h1>WOULD YOU<br><span>RATHER?</span></h1>
         <p>${escapeHtml(question.prompt)}</p>
       </header>
@@ -474,7 +502,7 @@ function wouldYouRatherTemplate(game) {
           </button>`).join("")}
       </div>
       <button class="button full preference-lock" data-action="lock-preference" ${state.pendingPreferenceId ? "" : "disabled"}>Choose this one →</button>
-      <p class="choice-privacy">Your pick stays hidden until you both finish.</p>
+      <p class="choice-privacy">${game.choiceDeck?.adult ? "Private and consensual: any answer can be a boundary. " : ""}Your pick stays hidden until you both finish.</p>
       ${progress(phase.completed, phase.total)}
     </section>`;
 }
@@ -581,11 +609,12 @@ function resultsTemplate(game) {
 
 function wouldYouRatherReportTemplate(game) {
   const report = game.results.wouldYouRather;
+  const deck = game.choiceDeck || report.deck || { label: "Would You Rather", adult: false };
   const rematchCount = game.players.filter((player) => player.rematchReady).length;
   return `
     <section class="screen compatibility-report choice-report">
       <header class="report-heading">
-        <p class="eyebrow">Your Would You Rather results</p>
+        <p class="eyebrow">Your ${escapeHtml(deck.label)} results${deck.adult ? " · 18+" : ""}</p>
         <div class="report-names"><span>${escapeHtml(report.players[0].name)}</span><i>＋</i><span>${escapeHtml(report.players[1].name)}</span></div>
         <h1>${escapeHtml(report.tier)}</h1>
       </header>
@@ -650,7 +679,7 @@ function wouldYouRatherReportTemplate(game) {
         </div>
       </section>
 
-      <p class="report-disclaimer">For fun, not science. A different pick is a conversation starter—not a compatibility verdict.</p>
+      <p class="report-disclaimer">${deck.adult ? "For consenting adults. Preferences are conversation starters, never obligations. " : ""}For fun, not science. A different pick is not a compatibility verdict.</p>
       <div class="results-actions report-actions">
         <button class="button" data-action="play-again" ${game.self.rematchReady ? "disabled" : ""}>Play again</button>
         <button class="button secondary" data-action="new-topics" ${game.self.rematchReady ? "disabled" : ""}>New questions</button>
@@ -876,11 +905,19 @@ function categoryName(category) {
 }
 
 function wouldYouRatherCategoryName(category) {
-  return ({ play: "Play style", everyday: "Everyday rhythm", adventure: "Adventure mode", connection: "Connection style", future: "Future vision" })[category] || category;
+  return ({
+    play: "Play style", everyday: "Everyday rhythm", adventure: "Adventure mode", connection: "Connection style", future: "Future vision",
+    absurd: "Pure absurdity", "food-chaos": "Food chaos", "social-chaos": "Social chaos", "weird-powers": "Weird powers", "random-life": "Random life",
+    chemistry: "Chemistry", bedroom: "Bedroom style", exploration: "Exploration", communication: "Communication", aftercare: "Aftercare"
+  })[category] || category;
 }
 
 function wouldYouRatherCategoryIcon(category) {
-  return ({ play: "✦", everyday: "⌂", adventure: "↗", connection: "♡", future: "◇" })[category] || "•";
+  return ({
+    play: "✦", everyday: "⌂", adventure: "↗", connection: "♡", future: "◇",
+    absurd: "?!", "food-chaos": "♨", "social-chaos": "☻", "weird-powers": "⚡", "random-life": "⌁",
+    chemistry: "✦", bedroom: "☾", exploration: "↗", communication: "◌", aftercare: "♡"
+  })[category] || "•";
 }
 
 function countWords(value) {
@@ -1116,6 +1153,7 @@ window.render_game_to_text = () => JSON.stringify({
   topicTone: (state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null)) === "would-you-rather"
     ? null
     : state.game?.tone?.id || (state.entryMode === "create" ? state.createTone : null),
+  choiceDeck: state.game?.choiceDeck?.id || (state.entryMode === "create" && state.createMode === "would-you-rather" ? state.createChoiceDeck : null),
   selectedQuestionCount: state.entryMode === "create" ? state.createQuestionCount : null,
   totalQuestions: state.game?.totalQuestions || null,
   self: state.game ? {
