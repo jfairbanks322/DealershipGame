@@ -7,6 +7,7 @@ const topics = require("./topics");
 const wouldYouRatherQuestions = require("./would-you-rather");
 const sillyWouldYouRatherQuestions = require("./would-you-rather-silly");
 const adultWouldYouRatherQuestions = require("./would-you-rather-adult");
+const afterDarkWouldYouRatherQuestions = require("./would-you-rather-after-dark");
 const { generateFakeAnswers, normalizeAnswer, normalizedWords } = require("./fake-answer-service");
 
 const PORT = Number(process.env.PORT) || 3040;
@@ -65,6 +66,16 @@ const WOULD_YOU_RATHER_DECKS = {
     adult: true,
     categories: ["chemistry", "bedroom", "exploration", "communication", "aftercare"],
     questions: adultWouldYouRatherQuestions
+  },
+  "after-dark": {
+    id: "after-dark",
+    label: "After Dark",
+    description: "The secret, extra-spicy deck for consenting adult partners.",
+    icon: "✦ 18+",
+    adult: true,
+    secret: true,
+    categories: ["turn-ons", "oral-touch", "positions-pace", "kink-play", "fantasies-boundaries"],
+    questions: afterDarkWouldYouRatherQuestions
   }
 };
 const DEFAULT_WOULD_YOU_RATHER_DECK = WOULD_YOU_RATHER_DECKS.balanced;
@@ -953,7 +964,12 @@ function wouldYouRatherCategoryLabel(category) {
     bedroom: "Bedroom style",
     exploration: "Exploration",
     communication: "Communication",
-    aftercare: "Aftercare"
+    aftercare: "Aftercare",
+    "turn-ons": "Turn-ons & desire",
+    "oral-touch": "Oral & touch",
+    "positions-pace": "Positions & pace",
+    "kink-play": "Kink & power play",
+    "fantasies-boundaries": "Fantasies & boundaries"
   })[category] || category;
 }
 
@@ -1049,7 +1065,8 @@ function publicWouldYouRatherDeck(deck) {
     label: deck.label,
     description: deck.description,
     icon: deck.icon,
-    adult: deck.adult
+    adult: deck.adult,
+    secret: Boolean(deck.secret)
   };
 }
 

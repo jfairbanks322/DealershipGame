@@ -5,6 +5,7 @@ const { io } = require("socket.io-client");
 const balancedQuestions = require("../would-you-rather");
 const sillyQuestions = require("../would-you-rather-silly");
 const adultQuestions = require("../would-you-rather-adult");
+const afterDarkQuestions = require("../would-you-rather-after-dark");
 
 const PORT = 3044;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -28,7 +29,7 @@ async function main() {
     const setupCheck = connect();
     await once(setupCheck, "connect");
     const setupSession = once(setupCheck, "sessionEstablished");
-    const choiceDeck = count === 10 ? "silly" : "balanced";
+    const choiceDeck = count === 10 ? "silly" : count === 30 ? "adult" : "balanced";
     setupCheck.emit("createRoom", { name: `${count} Check`, mode: "would-you-rather", choiceDeck, questionCount: count });
     await setupSession;
     const setupState = await waitState(setupCheck, (state) => state.status === "WAITING_FOR_PLAYER");
@@ -51,14 +52,15 @@ async function main() {
   const two = connect();
   await Promise.all([once(one, "connect"), once(two, "connect")]);
   const oneSessionPromise = once(one, "sessionEstablished");
-  one.emit("createRoom", { name: "Avery", mode: "would-you-rather", choiceDeck: "adult", questionCount: 50 });
+  one.emit("createRoom", { name: "Avery", mode: "would-you-rather", choiceDeck: "after-dark", questionCount: 50 });
   const oneSession = await oneSessionPromise;
   const roomCode = oneSession.roomCode;
   const created = await waitState(one, (state) => state.mode?.id === "would-you-rather" && state.totalQuestions === 50);
   assert.equal(created.mode.choiceGame, true);
-  assert.equal(created.choiceDeck.id, "adult");
+  assert.equal(created.choiceDeck.id, "after-dark");
   assert.equal(created.choiceDeck.adult, true);
-  assert.equal(created.choiceDeck.label, "Adult & Intimacy");
+  assert.equal(created.choiceDeck.secret, true);
+  assert.equal(created.choiceDeck.label, "After Dark");
 
   const twoSessionPromise = once(two, "sessionEstablished");
   two.emit("joinRoom", { name: "Jordan", roomCode });
@@ -78,7 +80,7 @@ async function main() {
     const oneState = states.get(one);
     const twoState = states.get(two);
     assert.equal(oneState.choicePhase.current.id, twoState.choicePhase.current.id, "both players should receive the same question order");
-    assert.match(oneState.choicePhase.current.id, /^adult-/, "the adult game should stay inside its selected deck");
+    assert.match(oneState.choicePhase.current.id, /^after-dark-/, "the secret game should stay inside its selected deck");
     assert.equal(oneState.choicePhase.current.options.length, 4, "every question should present four options");
     assert.equal(Object.hasOwn(oneState.opponent, "preferences"), false, "partner picks must remain private during play");
     assert.equal(oneState.results, undefined, "results must remain locked while either player is choosing");
@@ -99,7 +101,7 @@ async function main() {
   const oneLastState = states.get(one);
   const twoLastState = states.get(two);
   seenQuestionIds.push(oneLastState.choicePhase.current.id);
-  assert.match(oneLastState.choicePhase.current.id, /^adult-/);
+  assert.match(oneLastState.choicePhase.current.id, /^after-dark-/);
   const oneLastOption = oneLastState.choicePhase.current.options[1];
   const twoLastOption = twoLastState.choicePhase.current.options[2];
   one.emit("submitPreference", { questionId: oneLastState.choicePhase.current.id, optionId: oneLastOption.id });
@@ -117,8 +119,9 @@ async function main() {
   const report = oneResults.results.wouldYouRather;
   assert.ok(report, "Would You Rather should produce its own report");
   assert.equal(report.totalQuestions, 50);
-  assert.equal(report.deck.id, "adult");
+  assert.equal(report.deck.id, "after-dark");
   assert.equal(report.deck.adult, true);
+  assert.equal(report.deck.secret, true);
   assert.equal(report.matchCount, 25);
   assert.equal(report.differenceCount, 25);
   assert.equal(report.matchPercent, 50);
@@ -135,13 +138,13 @@ async function main() {
     waitState(two, (state) => state.status === "CHOOSING" && state.gameNumber === 2)
   ]);
   assert.equal(oneRematch.totalQuestions, 50, "rematches should preserve the selected length");
-  assert.equal(oneRematch.choiceDeck.id, "adult", "rematches should preserve the selected category");
+  assert.equal(oneRematch.choiceDeck.id, "after-dark", "rematches should preserve the selected category");
   assert.equal(oneRematch.choicePhase.current.id, twoRematch.choicePhase.current.id);
 
   console.log(JSON.stringify({
     passed: true,
     roomCode,
-    questionBanks: { balanced: balancedQuestions.length, silly: sillyQuestions.length, adult: adultQuestions.length },
+    questionBanks: { balanced: balancedQuestions.length, silly: sillyQuestions.length, adult: adultQuestions.length, afterDark: afterDarkQuestions.length },
     supportedLengths: [10, 20, 30, 50],
     privacy: "partner choices hidden until both players finish",
     report: {
@@ -150,7 +153,7 @@ async function main() {
       matchPercent: report.matchPercent,
       categories: report.categories.map(({ label, score, questionCount }) => ({ label, score, questionCount }))
     },
-    rematch: "50-question length and Adult & Intimacy category preserved"
+    rematch: "50-question length and secret After Dark category preserved"
   }, null, 2));
 }
 
@@ -158,7 +161,8 @@ function verifyQuestionBanks() {
   const banks = [
     { id: "balanced", questions: balancedQuestions, expected: 60 },
     { id: "silly", questions: sillyQuestions, expected: 50 },
-    { id: "adult", questions: adultQuestions, expected: 50 }
+    { id: "adult", questions: adultQuestions, expected: 50 },
+    { id: "after-dark", questions: afterDarkQuestions, expected: 50 }
   ];
   const allQuestions = banks.flatMap((bank) => bank.questions);
   assert.equal(new Set(allQuestions.map((question) => question.id)).size, allQuestions.length, "question IDs should be unique across every deck");

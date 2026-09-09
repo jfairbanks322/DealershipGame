@@ -398,6 +398,14 @@ function choiceDeckPickerTemplate() {
             <span>${deck.icon}</span><strong>${deck.label}</strong><small>${deck.copy}</small>
           </label>`).join("")}
       </div>
+      <details class="after-dark-vault" ${state.createChoiceDeck === "after-dark" ? "open" : ""}>
+        <summary><span>✦</span><span><strong>Psst… there’s a secret menu.</strong><small>Open only if you both want the spicier version.</small></span><i>Unlock</i></summary>
+        <label class="choice-deck-choice adult after-dark">
+          <input type="radio" name="choiceDeck" value="after-dark" ${state.createChoiceDeck === "after-dark" ? "checked" : ""} />
+          <span>18+</span><strong>After Dark</strong><small>Explicit turn-ons, oral, positions, kink & fantasies</small>
+        </label>
+        <p>For consenting adults only. Any choice can be a boundary, and either player can leave before starting.</p>
+      </details>
       <p class="picker-note">The category applies to the whole game and is shown to both players before they start.</p>
     </fieldset>`;
 }
@@ -423,10 +431,10 @@ function lobbyTemplate(game) {
           <div class="lobby-badges">
             <div class="mode-badge ${compatibilityMode || wouldYouRatherMode ? "compatibility" : ""}">${modeBadge}</div>
             ${wouldYouRatherMode
-              ? `<div class="choice-deck-badge ${game.choiceDeck?.adult ? "adult" : ""}">${escapeHtml(game.choiceDeck?.icon || "◇")} ${escapeHtml(game.choiceDeck?.label || "Balanced mix")}</div>`
+              ? `<div class="choice-deck-badge ${game.choiceDeck?.adult ? "adult" : ""} ${game.choiceDeck?.secret ? "secret" : ""}">${escapeHtml(game.choiceDeck?.icon || "◇")} ${escapeHtml(game.choiceDeck?.label || "Balanced mix")}</div>`
               : `<div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>`}
           </div>
-          ${game.choiceDeck?.adult ? `<p class="adult-lobby-note"><strong>Adults only.</strong> This round includes mature questions about intimacy, preferences, and boundaries. Make sure both players are comfortable before starting.</p>` : ""}
+          ${game.choiceDeck?.adult ? `<p class="adult-lobby-note ${game.choiceDeck?.secret ? "secret" : ""}"><strong>${game.choiceDeck?.secret ? "After Dark · adults only." : "Adults only."}</strong> ${game.choiceDeck?.secret ? "This secret round includes explicit questions about sex, oral preferences, positions, kink, fantasies, and boundaries." : "This round includes mature questions about intimacy, preferences, and boundaries."} Make sure both players are comfortable before starting.</p>` : ""}
           <div class="waiting-orb"></div>
           <p class="eyebrow">${opponent ? "The room is full" : "Invite sent. Good vibes pending."}</p>
           <h2>${opponent ? "Both players ready?" : "Waiting for player two…"}</h2>
@@ -491,7 +499,7 @@ function wouldYouRatherTemplate(game) {
     <section class="screen choice-shell">
       <div class="game-meta"><span>Question ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
       <header class="choice-heading">
-        <p class="eyebrow">${game.choiceDeck?.adult ? "18+ · " : ""}${wouldYouRatherCategoryName(question.category)}</p>
+        <p class="eyebrow">${game.choiceDeck?.secret ? "After Dark · 18+ · " : game.choiceDeck?.adult ? "18+ · " : ""}${wouldYouRatherCategoryName(question.category)}</p>
         <h1>WOULD YOU<br><span>RATHER?</span></h1>
         <p>${escapeHtml(question.prompt)}</p>
       </header>
@@ -908,7 +916,8 @@ function wouldYouRatherCategoryName(category) {
   return ({
     play: "Play style", everyday: "Everyday rhythm", adventure: "Adventure mode", connection: "Connection style", future: "Future vision",
     absurd: "Pure absurdity", "food-chaos": "Food chaos", "social-chaos": "Social chaos", "weird-powers": "Weird powers", "random-life": "Random life",
-    chemistry: "Chemistry", bedroom: "Bedroom style", exploration: "Exploration", communication: "Communication", aftercare: "Aftercare"
+    chemistry: "Chemistry", bedroom: "Bedroom style", exploration: "Exploration", communication: "Communication", aftercare: "Aftercare",
+    "turn-ons": "Turn-ons & desire", "oral-touch": "Oral & touch", "positions-pace": "Positions & pace", "kink-play": "Kink & power play", "fantasies-boundaries": "Fantasies & boundaries"
   })[category] || category;
 }
 
@@ -916,7 +925,8 @@ function wouldYouRatherCategoryIcon(category) {
   return ({
     play: "✦", everyday: "⌂", adventure: "↗", connection: "♡", future: "◇",
     absurd: "?!", "food-chaos": "♨", "social-chaos": "☻", "weird-powers": "⚡", "random-life": "⌁",
-    chemistry: "✦", bedroom: "☾", exploration: "↗", communication: "◌", aftercare: "♡"
+    chemistry: "✦", bedroom: "☾", exploration: "↗", communication: "◌", aftercare: "♡",
+    "turn-ons": "✦", "oral-touch": "◉", "positions-pace": "↕", "kink-play": "⌁", "fantasies-boundaries": "◇"
   })[category] || "•";
 }
 
