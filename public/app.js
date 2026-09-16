@@ -1,1215 +1,864 @@
-const socket = io();
-const root = document.getElementById("app");
-const toast = document.getElementById("toast");
-const connectionPill = document.getElementById("connectionPill");
-const confettiCanvas = document.getElementById("confettiCanvas");
-const confettiContext = confettiCanvas.getContext("2d");
-const SESSION_KEY = "threeWordsSession";
-const ANSWER_DRAFTS_KEY = "threeWordsAnswerDrafts";
-
-const state = {
-  game: null,
-  entryMode: "home",
-  createMode: "classic",
-  createTone: "mixed",
-  createChoiceDeck: "balanced",
-  createQuestionCount: 20,
-  pendingOptionId: null,
-  pendingPreferenceId: null,
-  review: null,
-  session: readSession(),
-  answerDrafts: readAnswerDrafts(),
-  discardedAnswerDraftKey: null,
-  confetti: [],
-  toastTimer: null,
-  renderCount: 0
-};
-
-const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase() || "";
-if (inviteCode && !state.session) state.entryMode = "join";
-if (state.session) state.entryMode = "restoring";
-
-socket.on("connect", () => {
-  connectionPill.classList.add("online");
-  connectionPill.innerHTML = "<i></i> Live";
-  if (state.session?.sessionToken) {
-    socket.emit("restoreSession", { sessionToken: state.session.sessionToken });
-  }
-});
-
-socket.on("disconnect", () => {
-  connectionPill.classList.remove("online");
-  connectionPill.innerHTML = "<i></i> Reconnecting";
-});
-
-socket.on("sessionEstablished", (session) => {
-  state.session = session;
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  history.replaceState(null, "", `${location.pathname}?room=${session.roomCode}`);
-});
-
-socket.on("sessionInvalid", () => {
-  clearSession();
-  state.entryMode = inviteCode ? "join" : "home";
-  render();
-});
-
-socket.on("roomState", (game) => {
-  captureVisibleAnswerDraft();
-  const previousGame = state.game;
-  const previousStatus = state.game?.status;
-  state.game = game;
-  if (state.discardedAnswerDraftKey && answerDraftKey(game) !== state.discardedAnswerDraftKey) {
-    state.discardedAnswerDraftKey = null;
-  }
-  if (state.pendingOptionId && game.guessPhase?.reveal) state.pendingOptionId = null;
-  if (previousStatus && previousStatus !== "RESULTS" && game.status === "RESULTS") burstConfetti(100);
-  if (canKeepActiveAnswerForm(previousGame, game)) return;
-  if (canKeepActiveGuessView(previousGame, game)) return;
-  if (canKeepActivePreferenceView(previousGame, game)) return;
-  if (canKeepWaitingScreen(previousGame, game)) {
-    updateWaitingProgress(game);
-    return;
-  }
-  render();
-});
-
-socket.on("gameError", ({ message, field }) => {
-  showToast(message, true);
-  if (field === "answer") document.getElementById("answerInput")?.focus();
-  const lockButton = root.querySelector('[data-action="lock-guess"]');
-  if (lockButton) {
-    lockButton.textContent = "Lock in";
-    lockButton.disabled = !state.pendingOptionId;
-  }
-  const nextButton = root.querySelector('[data-action="next-guess"]');
-  if (nextButton) {
-    nextButton.textContent = "Next →";
-    nextButton.disabled = false;
-  }
-  const preferenceButton = root.querySelector('[data-action="lock-preference"]');
-  if (preferenceButton) {
-    preferenceButton.textContent = "Choose this one →";
-    preferenceButton.disabled = !state.pendingPreferenceId;
-  }
-});
-
-socket.on("answerLocked", () => {
-  clearCurrentAnswerDraft();
-  showToast("LOCKED IN.");
-  burstConfetti(18);
-});
-
-socket.on("topicPassed", () => {
-  clearCurrentAnswerDraft();
-  showToast("New topic. No penalty.");
-});
-socket.on("preferenceLocked", () => {
-  state.pendingPreferenceId = null;
-  showToast("PICK LOCKED.");
-  burstConfetti(10);
-});
-socket.on("reviewData", (review) => { state.review = review; render(); });
-
-root.addEventListener("click", async (event) => {
-  const target = event.target.closest("[data-action]");
-  if (!target) return;
-  const action = target.dataset.action;
-
-  if (action === "choose-create") { state.createMode = "classic"; state.createTone = "mixed"; state.createChoiceDeck = "balanced"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
-  if (action === "choose-compatibility") { state.createMode = "compatibility"; state.createTone = "mixed"; state.createChoiceDeck = "balanced"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
-  if (action === "choose-would-you-rather") { state.createMode = "would-you-rather"; state.createChoiceDeck = "balanced"; state.createQuestionCount = 20; state.entryMode = "create"; render(); }
-  if (action === "choose-join") { state.entryMode = "join"; render(); }
-  if (action === "back-home") { state.entryMode = "home"; render(); }
-  if (action === "copy-invite") await copyInvite();
-  if (action === "ready") socket.emit("setReady");
-  if (action === "start") socket.emit("startGame");
-  if (action === "pass") socket.emit("passTopic");
-  if (action === "start-guessing") socket.emit("startGuessing");
-  if (action === "select-answer" && !state.game?.guessPhase?.reveal) {
-    selectGuessOption(target.dataset.optionId);
-  }
-  if (action === "lock-guess" && state.pendingOptionId) {
-    target.disabled = true;
-    target.textContent = "Checking…";
-    socket.emit("lockGuess", { optionId: state.pendingOptionId });
-  }
-  if (action === "next-guess") {
-    target.disabled = true;
-    target.textContent = "Next…";
-    socket.emit("nextGuess");
-  }
-  if (action === "select-preference") selectPreferenceOption(target.dataset.optionId);
-  if (action === "lock-preference" && state.pendingPreferenceId) {
-    target.disabled = true;
-    target.textContent = "Locking…";
-    socket.emit("submitPreference", {
-      questionId: state.game?.choicePhase?.current?.id,
-      optionId: state.pendingPreferenceId
-    });
-  }
-  if (action === "review") socket.emit("requestReview");
-  if (action === "close-review") { state.review = null; render(); }
-  if (action === "play-again") socket.emit("requestRematch", { mode: "playAgain" });
-  if (action === "new-topics") socket.emit("requestRematch", { mode: "newTopics" });
-  if (action === "leave-room") {
-    clearSession();
-    location.href = location.pathname;
-  }
-});
-
-root.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (event.target.id === "createForm") {
-    socket.emit("createRoom", {
-      name: document.getElementById("createName").value,
-      mode: document.querySelector('input[name="gameMode"]:checked')?.value || state.createMode,
-      tone: document.querySelector('input[name="topicTone"]:checked')?.value || state.createTone,
-      choiceDeck: document.querySelector('input[name="choiceDeck"]:checked')?.value || state.createChoiceDeck,
-      questionCount: Number(document.querySelector('input[name="questionCount"]:checked')?.value || state.createQuestionCount)
-    });
-  }
-  if (event.target.id === "joinForm") {
-    socket.emit("joinRoom", {
-      name: document.getElementById("joinName").value,
-      roomCode: document.getElementById("joinCode").value
-    });
-  }
-  if (event.target.id === "answerForm") {
-    const input = document.getElementById("answerInput");
-    socket.emit("submitAnswer", { answer: input.value });
-  }
-});
-
-root.addEventListener("input", (event) => {
-  if (event.target.id !== "answerInput") return;
-  saveCurrentAnswerDraft(event.target.value);
-  const count = countWords(event.target.value);
-  const counter = document.getElementById("wordCounter");
-  if (!counter) return;
-  counter.textContent = `${count} / 3 words`;
-  counter.classList.toggle("valid", count === 3);
-});
-
-root.addEventListener("change", (event) => {
-  if (event.target.matches('input[name="gameMode"]')) {
-    state.createMode = event.target.value;
-    syncCreateOptions();
-  }
-  if (event.target.matches('input[name="topicTone"]')) state.createTone = event.target.value;
-  if (event.target.matches('input[name="choiceDeck"]')) state.createChoiceDeck = event.target.value;
-  if (event.target.matches('input[name="questionCount"]')) state.createQuestionCount = Number(event.target.value);
-});
-
-document.body.addEventListener("click", (event) => {
-  const target = event.target.closest("[data-action]");
-  if (!target) return;
-  if (target.dataset.action === "fullscreen") toggleFullscreen();
-  if (target.dataset.action === "home" && !state.game) { state.entryMode = "home"; render(); }
-});
-
-document.addEventListener("keydown", (event) => {
-  if (event.key.toLowerCase() === "f" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+"use strict";
+const root = document.querySelector("#app");
+const avatarDefs = window.CounterAvatars;
+const foodArt = (id, cls = "") =>
+  `<span class="food-art ${cls}">${window.CounterFoodArt(id)}</span>`;
+let badgeFilter = "all";
+let teacherEntry = false;
+const restaurantOptions = window.RestaurantOptions;
+let lessonChoices = [{ id: "cost-markup-v1", label: "Cost & Markup" }];
+let registrationAvatar = "chef";
+let theme = matchMedia("(prefers-color-scheme: dark)").matches
+  ? "dark"
+  : "light";
+try {
+  const saved = localStorage.getItem("counter-theme");
+  if (["light", "dark"].includes(saved)) theme = saved;
+} catch {}
+document.documentElement.dataset.theme = theme;
+function themeButton() {
+  return `<button type="button" class="btn ghost small theme-toggle" data-action="theme" aria-label="Switch to ${theme === "dark" ? "light" : "dark"} mode">${theme === "dark" ? "☀ Light" : "☾ Dark"}</button>`;
+}
+function avatarArt(id, cls = "") {
+  const a = avatarDefs.find((x) => x.id === id) || avatarDefs[0];
+  return `<span class="owner-art ${cls}" title="${a.name}">${a.svg}</span>`;
+}
+function avatarPicker(id, registering = false) {
+  return `<div class="avatar-options ${registering ? "compact" : ""}" role="group" aria-label="Choose your player avatar">${avatarDefs.map((a) => `<button type="button" class="avatar-choice ${a.id === id ? "selected" : ""}" data-avatar="${a.id}" data-registering="${registering}" aria-label="${a.name}" aria-pressed="${a.id === id}">${avatarArt(a.id)}<span>${a.name}</span></button>`).join("")}</div>`;
+}
+function profilePage() {
+  return `<div class="page-heading"><div><span class="eyebrow">MEET THE PERSON BEHIND THE COUNTER</span><h1>Your owner identity.</h1><p class="muted">Pick your kitchen sidekick. Your avatar follows you across games and leaderboards.</p></div></div><section class="card avatar-profile"><div class="owner-showcase">${avatarArt(user.avatar, "hero-avatar")}<h2>${esc(user.name)}</h2><span class="pill">${avatarDefs.find((a) => a.id === user.avatar)?.name || "Chef Sprout"}</span><p class="muted">${user.badges.length} badges earned</p></div><div><h2>A whole crew of possibilities.</h2><p class="muted">Select an avatar to save it to your account.</p>${avatarPicker(user.avatar)}</div></section>`;
+}
+let user = null,
+  games = [],
+  badgeDefs = [],
+  game = null,
+  page = "home",
+  authTab = "register",
+  selected = null,
+  feedback = null,
+  boardData = [],
+  boardMode = "career",
+  projector = false,
+  requestBusy = false,
+  draftQueue = Promise.resolve(),
+  pendingDrafts = 0,
+  toastTimer;
+const failedDrafts = new Map();
+const esc = (x) =>
+  String(x ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const cash = (n) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    (n || 0) / 100,
+  );
+const brand =
+  '<div class="brand"><span class="brand-mark">↗</span><div>counter culture<small>THE BUSINESS MATH GAME</small></div></div>';
+function toast(t) {
+  clearTimeout(toastTimer);
+  const el = document.querySelector("#toast");
+  el.textContent = t;
+  el.className = "show";
+  toastTimer = setTimeout(() => (el.className = ""), 6500);
+}
+async function api(path, body) {
+  const res = await fetch("/api" + path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    keepalive: body !== undefined,
+  });
+  const value = await res.json();
+  if (!res.ok) throw new Error(value.error || "Request failed.");
+  return value;
+}
+async function flushDrafts() {
+  await draftQueue;
+  if (failedDrafts.size)
+    throw new Error(
+      "A draft has not saved. Check your connection and edit the field again before leaving.",
+    );
+}
+window.addEventListener("beforeunload", (event) => {
+  if (pendingDrafts || failedDrafts.size) {
     event.preventDefault();
-    toggleFullscreen();
+    event.returnValue = "";
   }
 });
+function rememberBadges(ids) {
+  if (!user) return;
+  const added = ids.filter((id) => !user.badges.includes(id));
+  user.badges = [...new Set([...user.badges, ...ids])];
+  if (added.length) {
+    const b = badgeDefs.find((x) => x.id === added[0]);
+    if (b)
+      toast(
+        `${b.icon} Badge unlocked: ${b.name}\n${b.description}${added.length > 1 ? `\n+ ${added.length - 1} more in your badge collection.` : ""}`,
+      );
+  }
+}
+function apply(g) {
+  game = g;
+  if (g.player) rememberBadges(g.player.badges);
+  if (selected && !g.catalog.some((x) => x.id === selected)) selected = null;
+}
+async function refreshMe() {
+  const d = await api("/me");
+  user = d.user;
+  games = d.games;
+  badgeDefs = d.badges;
+  lessonChoices = d.lessons || lessonChoices;
+}
+function auth() {
+  return `<div class="landing"><header class="landing-header">${brand}<div class="row">${themeButton()}<button class="btn small secondary" data-action="teacher-entry">${teacherEntry ? "Student login" : "Teacher login"}</button><button class="btn ghost small" data-action="public">Global leaderboard ↗</button></div></header><div class="landing-grid"><section><span class="pill">10 ROUNDS. YOUR RESTAURANT. YOUR CALL.</span><h1>Small counter.<br><em>Big ambitions.</em></h1><p class="muted intro">Build a menu. Find your price. Turn smart math into a thriving fast-food business.</p><div class="row"><span class="pill">🍔 34 menu possibilities</span><span class="pill">🏅 50 achievements</span></div><div class="visual"><canvas id="restaurant-scene" width="900" height="280" aria-label="An illustrated fast-food restaurant"></canvas></div></section><section class="card auth-card"><div class="auth-tabs"><button data-action="register-tab" class="${authTab === "register" ? "active" : ""}">Create account</button><button data-action="login-tab" class="${authTab === "login" ? "active" : ""}">Log in</button></div><span class="eyebrow">${teacherEntry ? "TEACHER ACCESS" : "YOUR NEXT BIG IDEA STARTS HERE"}</span><h2 style="margin-top:12px">${teacherEntry ? (authTab === "register" ? "Create your teacher account." : "Welcome back, teacher.") : authTab === "register" ? "Meet the owner." : "Welcome back, boss."}</h2><p class="muted">${teacherEntry ? "Log in with your account and teacher access key to run your classroom." : authTab === "register" ? "Your restaurant journey, saved from the first order." : "Pick up right where you left off."}</p><form id="auth-form" class="stack">${authTab === "register" ? '<label>Owner display name<input name="name" autocomplete="nickname" maxlength="40" placeholder="e.g. Jordan" required></label>' : ""}<label>Username<input name="username" autocomplete="username" pattern="(?:[A-Za-z0-9_]|-){3,24}" placeholder="Your unique username" required></label><label>Password<input name="password" type="password" autocomplete="${authTab === "register" ? "new-password" : "current-password"}" minlength="8" maxlength="128" placeholder="At least 8 characters" required></label>${authTab === "register" ? `<fieldset class="avatar-fieldset"><legend>Choose your avatar</legend><input type="hidden" name="avatar" value="${registrationAvatar}">${avatarPicker(registrationAvatar, true)}</fieldset>` : ""}${teacherEntry ? '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" placeholder="Your private classroom key" required></label>' : ""}<div id="form-error"></div><button class="btn orange full">${teacherEntry ? (authTab === "register" ? "Create teacher account" : "Teacher login") : authTab === "register" ? "Create my account" : "Log in"} →</button></form><p class="tiny muted" style="margin:18px 0 0">Your owner display name appears on leaderboards. Your username and password stay private.</p></section></div><footer class="landing-footer"><span>A little creativity. A little competition. A lot of good math.</span><span>COST + MARKUP = YOUR NEXT MOVE</span></footer></div>`;
+}
+function shell(body) {
+  return `<div class="app-shell ${projector ? "projector" : ""}"><aside class="sidebar">${brand}<nav><button class="nav ${page === "profile" ? "active" : ""}" data-action="profile">◉ &nbsp; My avatar</button><button class="nav ${page === "home" ? "active" : ""}" data-action="home">▦ &nbsp; My businesses</button>${game ? `<button class="nav ${page === "game" ? "active" : ""}" data-action="game">🍔 &nbsp; ${game.host ? "Teacher dashboard" : "My restaurant"}</button><button class="nav ${page === "board" ? "active" : ""}" data-action="board">↗ &nbsp; Game leaderboard</button>` : ""}<button class="nav ${page === "global" ? "active" : ""}" data-action="global">◎ &nbsp; Global leaderboard</button><button class="nav ${page === "badges" ? "active" : ""}" data-action="badges">✦ &nbsp; Achievements</button></nav><div class="side-foot">BUILT ONE ROUND AT A TIME<hr>Good math. Bold menus.<br>Your business story.</div></aside><div><header class="topbar"><span class="muted">${game ? `ROOM <strong>${esc(game.code)}</strong> &nbsp; / &nbsp; ${esc(game.name)}` : "BUSINESS MATH / OWNER HQ"}</span><div class="row">${themeButton()}${user ? `<button class="avatar-trigger" data-action="profile" aria-label="Choose your avatar">${avatarArt(user.avatar)}</button>` : ""}<strong>${esc(user?.name || "Public view")}</strong><button class="btn ghost small" data-action="${user ? "logout" : "login-tab"}">${user ? "Log out" : "Log in"}</button></div></header><main class="content">${body}</main></div></div>`;
+}
+function home() {
+  return `<div class="page-heading"><div><span class="eyebrow">${user.teacher ? "TEACHER HEADQUARTERS" : "THE OWNER’S OFFICE"}</span><h1 style="margin-top:10px">Your next chapter.</h1><p class="muted">Join your class, reopen a business, or host a new competition.</p></div><span class="pill">${user.badges.length} / 50 BADGES</span></div><div class="grid2"><section class="card"><h2>Open your restaurant</h2><p class="muted">Get a room code from your teacher. Make the place your own.</p><form id="join-form" class="stack"><label>Room code<input name="code" maxlength="6" minlength="6" placeholder="ABC123" required style="text-transform:uppercase"></label><label>Restaurant name<select name="restaurant" required><option value="">Choose from 50 restaurant names</option>${restaurantOptions.names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label><div class="grid2"><label>Your sign<select name="icon">${restaurantOptions.signs.map((x) => `<option>${x}</option>`).join("")}</select></label><label>Restaurant color<select name="color">${restaurantOptions.colors.map((c) => `<option value="${c.value}">${c.name}</option>`).join("")}</select></label></div><div id="restaurant-preview" class="restaurant-preview"><span>🍔</span><div><strong>Pick your restaurant</strong><small>50 names · 32 signs · 16 colors</small></div></div><button class="btn">Join the kitchen →</button></form></section><section class="card soft"><span class="eyebrow">FOR TEACHERS</span><h2 style="margin-top:12px">Run the room.</h2><p class="muted">You control each round. Students’ decisions and drafts save automatically.</p><form id="host-form" class="stack"><label>Competition name<input name="name" maxlength="60" placeholder="Period 3 · Fast Food Founders" required></label>${user.teacher ? '<div class="success tiny">✓ Teacher access verified for this session.</div>' : '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" required></label>'}<label>Lesson<select name="lessonId">${lessonChoices.map((l) => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join("")}</select></label><label>One-time round penalty (rounds 6–10)<input name="penalty" type="number" min="0" max="20" step="0.01" value="5" required></label><button class="btn secondary">Create a classroom →</button></form></section></div><div class="section-title"><h2>Your saved games</h2><span class="muted tiny">Resume with the same account on any device</span></div><div class="stack">${games.length ? games.map((g) => `<button class="card row between" data-open="${g.code}" style="text-align:left;color:inherit"><span><strong>${esc(g.name)}</strong><br><span class="muted tiny">${g.code} · ${g.host ? "Teacher" : "Owner"}</span></span><span class="pill">ROUND ${g.round} · ${esc(g.phase)}</span><span>Open →</span></button>`).join("") : '<div class="card empty">Your first business story starts above.</div>'}</div>`;
+}
+function heading() {
+  return `<div class="page-heading"><div><span class="eyebrow">${game.host ? "CLASSROOM CONTROL" : "YOUR RESTAURANT, YOUR RULES"}</span><h1 style="margin-top:10px">${game.host ? esc(game.name) : esc(game.player.restaurant)}</h1><p class="muted">${game.phase === "lobby" ? "The kitchen opens when your teacher starts the game." : game.phase === "complete" ? "That’s a wrap. Your ten-round business story is saved." : `Round ${game.round} of 10 · ${game.phase === "planning" ? "Make your next move." : "See what your decisions earned."}`}</p></div><span class="pill ${game.paused ? "orange" : ""}">${game.paused ? "PAUSED" : esc(game.phase.toUpperCase())}</span></div><ol class="round-rail" aria-label="Ten-round game progress">${Array.from(
+    { length: 10 },
+    (_, i) => {
+      const n = i + 1,
+        done =
+          n < game.round ||
+          (n === game.round && ["results", "complete"].includes(game.phase));
+      return `<li class="${done ? "done" : n === game.round ? "current" : ""}" ${n === game.round ? 'aria-current="step"' : ""}><span>${done ? "✓" : n}</span><small>${n === 1 ? "Open" : n === 3 ? "Promos" : n === 6 ? "Game on" : n === 10 ? "Finale" : "Round " + n}</small></li>`;
+    },
+  ).join("")}</ol>`;
+}
+function stat(label, value, note) {
+  return `<div class="card stat"><span class="eyebrow">${label}</span><strong>${value}</strong><small>${note}</small></div>`;
+}
+function leaderboard(rows = game.board) {
+  return `<div class="table-wrap"><table><thead><tr><th>Rank</th><th>Restaurant</th><th>Owner</th><th>Total profit</th><th>Last round</th><th>Units served</th><th>Status</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.userId === user?.id ? "me" : ""}"><td><strong>${r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : "#" + r.rank}</strong>${r.previousRank != null ? `<small>${r.previousRank === r.rank ? "—" : r.previousRank > r.rank ? "↑ " + (r.previousRank - r.rank) : "↓ " + (r.rank - r.previousRank)}</small>` : ""}</td><td><strong>${esc(r.icon)} ${esc(r.restaurant)}</strong>${r.featured ? `<small>${esc(r.featuredName || badgeDefs.find((b) => b.id === r.featured)?.name || "Badge earned")}</small>` : ""}</td><td><span class="owner-cell">${avatarArt(r.avatar)}${esc(r.owner)}</span></td><td><strong>${cash(r.profit)}</strong></td><td class="${r.last < 0 ? "negative" : "positive"}">${cash(r.last)}</td><td>${r.units}</td><td>${game?.phase === "planning" ? (r.skipped ? "Skipped this round" : r.ready ? "✓ Submitted" : "Planning") : "—"}</td></tr>`).join("")}</tbody></table>${rows.length ? "" : '<div class="empty">Waiting for the first restaurant.</div>'}</div>`;
+}
+function teacher() {
+  const ready = game.board.filter((x) => x.ready).length;
+  return `${heading()}${game.paused ? '<div class="notice">This game is paused. Saved work will be waiting when you resume.</div>' : ""}<div class="stats">${stat("Room code", game.code, "Share this code with students")}${stat("Restaurants", game.board.length, "Up to 100 owners")}${stat("Submitted", `${ready} / ${game.board.length}`, "Submit or skip each owner to simulate")}${stat("Math penalty", cash(game.penalty), "Once per round, starting round 6")}</div><div class="card row between"><div><h2 style="margin-bottom:5px">${game.phase === "lobby" ? "Ready to open?" : game.phase === "planning" ? "Let the owners make their move." : game.phase === "complete" ? "Competition complete." : "Time for a business debrief."}</h2><p class="muted" style="margin:0">${game.phase === "planning" ? "Submitted plans are locked until an owner reopens them." : "Discuss the results together before continuing."}</p></div><div class="row">${game.phase === "lobby" ? '<button class="btn" data-control="start">Start round 1 →</button>' : ""}${game.phase === "planning" ? `<button class="btn orange" data-control="run" ${!game.board.length || game.board.some((r) => !r.ready && !r.skipped) || !ready || game.paused ? "disabled" : ""}>Simulate round ${game.round} →</button>` : ""}${game.phase === "results" ? `<button class="btn" data-control="next" ${game.paused ? "disabled" : ""}>Open round ${game.round + 1} →</button>` : ""}${game.phase !== "complete" ? `<button class="btn ghost" data-control="pause">${game.paused ? "Resume" : "Pause"}</button>` : ""}</div></div>${game.phase === "planning" ? `<section class="card" style="margin-top:20px"><h2>Round attendance</h2><p class="muted">Skip an absent or unfinished owner for this round. They make no sales and receive no math penalty. Saved menu and drafts stay available. Restore them before simulating if they return. At least one owner must submit.</p><div class="stack">${game.board.filter((r) => !r.ready).map((r) => `<div class="row between"><span><strong>${esc(r.owner)}</strong> · ${esc(r.restaurant)}${r.skipped ? ' · Skipped' : ''}</span><button class="btn ghost small" data-control="${r.skipped ? 'restore' : 'skip'}" data-owner="${esc(r.userId)}" ${game.paused ? 'disabled' : ''}>${r.skipped ? 'Restore this round' : 'Skip this round'}</button></div>`).join('') || '<p>Everyone has submitted.</p>'}</div></section>` : ''}<div class="section-title"><h2>Classroom leaderboard</h2><div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div></div><div class="card">${leaderboard()}</div><div class="card soft" style="margin-top:20px"><h3>Round rhythm</h3><p class="muted" style="margin:0">One new item per round. Five choices in round 1, five more in round 2, then three each round. Promotions start in round 3. Math checks have unlimited free retries in rounds 1–5; later rounds apply only one penalty.</p></div>`;
+}
+function pricingPanel(p) {
+  const item = game.catalog.find((x) => x.id === selected);
+  if (!item)
+    return `<aside class="card price-panel"><span class="eyebrow">THE PRICING DESK</span><h2>Your next best seller?</h2><p class="muted">Choose an available product to calculate its markup and selling price.</p><div class="math-note">Markup dollars = cost × markup % ÷ 100<br>Selling price = cost + markup dollars<br><strong>Round money to the nearest cent.</strong></div></aside>`;
+  const entry = p.menu.find((x) => x.id === item.id),
+    draft = p.drafts[item.id] || {};
+  return `<aside class="card price-panel" id="pricing-panel"><span class="eyebrow">${entry ? "REFINE YOUR PRICE" : "BUILD YOUR MENU"}</span><div class="bigfood" style="margin-top:18px">${foodArt(item.id)}</div><h2>${esc(item.name)}</h2><p class="muted tiny">${esc(item.category)} · Customers expect about ${cash(item.expected)}</p><div class="formula"><span>Cost per unit</span><strong>${cash(item.cost)}</strong></div><form id="pricing-form" class="stack" data-item="${item.id}"><label>Your markup (%)<input name="markup" inputmode="decimal" type="number" min="0" max="500" step="0.01" value="${esc(draft.markup ?? entry?.markup ?? "")}" placeholder="Choose your markup" required></label><label>Markup amount ($)<input name="amount" inputmode="decimal" type="number" min="0" step="0.01" value="${esc(draft.amount ?? (entry ? ((entry.price - item.cost) / 100).toFixed(2) : ""))}" placeholder="Cost × markup ÷ 100" required></label><label>Selling price ($)<input name="price" inputmode="decimal" type="number" min="0" step="0.01" value="${esc(draft.price ?? (entry ? (entry.price / 100).toFixed(2) : ""))}" placeholder="Cost + markup amount" required></label><span class="save-status" id="save-status">${p.drafts[item.id] ? "Draft saved · not checked" : "Your work saves as you type"}</span><button class="btn full">Check math & save price ✓</button><button type="button" class="btn ghost small" data-action="discard">Discard unfinished changes</button></form><div class="math-note" style="margin-top:14px">${game.round <= 5 ? "Practice rounds: mistakes have no penalty." : `First wrong check this round: ${cash(game.penalty)} penalty. Further retries are free.`}<br>Round markup dollars to cents, then add to cost.</div>${feedback ? `<div class="feedback ${feedback.correct ? "success" : "error"}" role="status">${esc(feedback.message)}${feedback.penalty ? ` A ${cash(feedback.penalty)} penalty applies this round.` : ""}</div>` : ""}</aside>`;
+}
+function promotionPanel(p) {
+  return `<section class="card" style="margin-top:22px"><div class="row between"><h2>Bring in a crowd.</h2><span class="pill">PROMOTIONS</span></div>${
+    game.round < 3
+      ? '<p class="muted" style="margin:0">Your promotion toolbox opens in round 3.</p>'
+      : `<form id="promotion-form" class="stack"><label>Promotion<select name="id">${game.promotions.map((x) => `<option value="${x.id}" ${p.promotion.id === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label><p id="promo-description" class="math-note" style="margin:0">${esc(game.promotions.find((x) => x.id === p.promotion.id).description)}</p><div class="grid2"><label>Featured item<select name="target"><option value="">Choose item</option>${p.menu.map((x) => `<option value="${x.id}" ${p.promotion.target === x.id ? "selected" : ""}>${esc(game.catalog.find((i) => i.id === x.id).name)}</option>`).join("")}</select></label><label>Companion (for meal offers)<select name="companion"><option value="">No companion</option>${p.menu
+          .filter((x) =>
+            ["Sides", "Drinks"].includes(
+              game.catalog.find((i) => i.id === x.id).category,
+            ),
+          )
+          .map(
+            (x) =>
+              `<option value="${x.id}" ${p.promotion.companion === x.id ? "selected" : ""}>${esc(game.catalog.find((i) => i.id === x.id).name)}</option>`,
+          )
+          .join(
+            "",
+          )}</select></label></div><p class="tiny muted">Companion costs and sales are included with the featured product in your report. Preview the offer below before saving.</p><div id="promo-preview" class="math-note"></div><button class="btn secondary">Save promotion</button></form>`
+  }</section>`;
+}
+function student() {
+  const p = game.player,
+    total = p.reports.reduce((a, r) => a + r.profit, 0),
+    report = p.reports.at(-1);
+  if (game.phase === "lobby")
+    return `${heading()}<div class="welcome"><canvas id="restaurant-scene" width="900" height="280" style="width:100%;height:220px" aria-label="Your restaurant"></canvas><h2>${esc(p.icon)} ${esc(p.restaurant)} is on the map.</h2><p>Owner: ${esc(p.owner)}. Your teacher will open round 1 when everyone has joined.</p><span class="pill">ROOM ${game.code}</span></div><div class="card">${leaderboard()}</div>`;
+  const skipped = p.skippedRound === game.round;
+  const added = p.menu.some((x) => x.addedRound === game.round);
+  const locked = p.ready || game.paused || skipped;
+  return `${heading()}${skipped ? '<div class="notice">Your teacher skipped this round for your restaurant. No sales or math penalty this round. Your menu and drafts are saved; you can return next round.</div>' : ""}${game.paused ? '<div class="notice">Your teacher paused this game. Your work is saved.</div>' : ""}<div class="stats">${stat("Total profit", cash(total), "After promotions and math penalties")}${stat("Menu items", p.menu.length, `Add one product each round`)}${stat("Your rank", "#" + (game.board.find((x) => x.userId === user.id)?.rank || "—"), `Of ${game.board.length} restaurants`)}${stat("Round " + game.round, game.round <= 5 ? "Practice" : "Game on", game.round <= 5 ? "No math penalties" : `${cash(game.penalty)} max math penalty this round`)}</div>${
+    game.phase !== "planning"
+      ? results(p)
+      : `<div class="workspace"><div><section class="card restaurant"><canvas id="restaurant-scene" width="900" height="240" aria-label="Your personalized restaurant"></canvas><div class="restaurant-head row between"><h2>${esc(p.icon)} ${esc(p.restaurant)}</h2><span class="eyebrow">EST. ROUND 1</span></div><div class="menu-strip">${
+          p.menu.length
+            ? p.menu
+                .map((x) => {
+                  const i = game.catalog.find((y) => y.id === x.id);
+                  return `<button class="menu-item" data-select="${x.id}" ${locked ? "disabled" : ""}>${foodArt(i.id, "menu-food")}<strong>${esc(i.name)}</strong>${cash(x.price)} <small class="muted">· ${x.markup}%</small></button>`;
+                })
+                .join("")
+            : '<p class="muted" style="padding:12px;margin:0">A blank menu. A world of possibilities.</p>'
+        }</div></section>${
+          p.ready
+            ? `<div class="success" style="margin-top:20px"><h3>✓ Your restaurant is ready.</h3><p>Your teacher will simulate the round after everyone submits.</p><button class="btn secondary" data-action="unready" ${game.paused ? "disabled" : ""}>Reopen my submission</button></div>`
+            : `<div class="section-title"><h2>${!added ? "Choose your next menu item" : "Your menu is ready"}</h2><span class="pill">${game.catalog.length} UNLOCKED</span></div><p class="muted tiny">Older items remain available. New items are marked below. Select a menu item above to adjust its price.</p><div class="catalog">${game.catalog
+                .filter((i) => !p.menu.some((x) => x.id === i.id))
+                .map(
+                  (i) =>
+                    `<button class="product ${selected === i.id ? "selected" : ""}" data-select="${i.id}" ${added || locked ? "disabled" : ""}>${i.round === game.round ? '<span class="new">JUST UNLOCKED</span>' : ""}<span class="food-icon">${foodArt(i.id)}</span><h3>${esc(i.name)}</h3><div class="row between"><span class="tiny muted">Unit cost</span><span class="price">${cash(i.cost)}</span></div></button>`,
+                )
+                .join(
+                  "",
+                )}</div>${!locked ? promotionPanel(p) : ""}<div class="card row between" style="margin-top:22px"><div><h3>Ready for the rush?</h3><span class="muted tiny">${added ? "Your new item is on the menu." : "Add one new item before submitting."}</span>${
+                Object.keys(p.drafts).length
+                  ? `<p class="tiny negative">${Object.keys(p.drafts).length} unfinished draft(s): ${Object.keys(
+                      p.drafts,
+                    )
+                      .map(
+                        (id) =>
+                          `<button class="btn ghost small" data-select="${id}">${esc(game.catalog.find((i) => i.id === id)?.name || id)}</button>`,
+                      )
+                      .join(" ")}</p>`
+                  : ""
+              }</div><button class="btn orange" data-action="ready" ${!added || Object.keys(p.drafts).length || locked ? "disabled" : ""}>Submit round ${game.round} →</button></div>`
+        }</div>${!locked ? pricingPanel(p) : '<aside class="card"><h2>Your work is saved.</h2><p class="muted">You can close the browser and log back in with this account to resume.</p></aside>'}</div>`
+  }`;
+}
+function results(p) {
+  const r = p.reports.at(-1);
+  if (r.skipped) return `<section class="card"><span class="eyebrow">ROUND ${r.round} · SKIPPED</span><h2>Your restaurant sat this round out.</h2><p>No sales, costs, or math penalty were applied. Your menu and unfinished work are saved.</p><p class="muted">${game.phase === 'complete' ? 'This game is complete. Your earlier results are saved.' : 'You can participate when your teacher opens the next round.'}</p></section>`;
+  const best = [...r.items].sort((a, b) => b.profit - a.profit)[0];
+  const prior = p.reports.at(-2),
+    change = prior ? r.profit - prior.profit : null;
+  return `<div class="round-results"><section class="profit-hero ${r.profit < 0 ? "loss" : ""}"><div><span class="eyebrow">${game.phase === "complete" ? "SEASON COMPLETE" : "ROUND " + r.round + " • SERVICE COMPLETE"}</span><h2>${r.profit >= 0 ? "That’s a good day at the counter." : "Every round is a chance to learn."}</h2><span class="profit-total">${cash(r.profit)}</span><p class="muted">Round profit, after all costs${change !== null ? ` · ${change >= 0 ? "↑" : "↓"} ${cash(Math.abs(change))} from last round` : ""}</p><div class="row"><span class="pill">${r.units} units served</span><span class="pill">${r.items.length} menu item${r.items.length === 1 ? "" : "s"}</span></div></div><div class="receipt"><div class="eyebrow">${esc(p.restaurant)}</div><div class="receipt-line"><span>Sales revenue</span><strong>${cash(r.revenue)}</strong></div><div class="receipt-line"><span>Food costs</span><span>− ${cash(r.cost)}</span></div><div class="receipt-line"><span>Advertising</span><span>− ${cash(r.fees)}</span></div><div class="receipt-line"><span>Math penalty</span><span>− ${cash(r.penalty)}</span></div><div class="receipt-line receipt-total"><strong>NET PROFIT</strong><strong>${cash(r.profit)}</strong></div><div class="receipt-code" aria-hidden="true"></div><span class="tiny muted">ROUND ${r.round} / 10 · SAVED ✓</span></div></section><section class="star-product card"><div class="star-food">${foodArt(best.id)}</div><div><span class="eyebrow">${best.profit > 0 ? "YOUR TOP EARNER" : "YOUR STRONGEST PRODUCT"}</span><h2>${esc(best.name)}</h2><p class="muted">${best.units} units served · ${cash(best.profit)} product profit</p><span class="tiny">${esc(best.feedback)}</span></div><div class="result-owner">${avatarArt(user.avatar)}<span>${esc(p.owner)}<small class="muted">${game.phase === "complete" ? "Career results saved" : "Waiting for the next round"}</small></span></div></section></div><div class="welcome compact-summary"><span class="eyebrow">ROUND ${r.round} RESULTS</span><h2 style="margin-top:12px">${r.profit >= 0 ? "The numbers are in." : "A lesson for the next rush."}</h2><p>Revenue ${cash(r.revenue)} − food ${cash(r.cost)} − advertising ${cash(r.fees)} − math penalty ${cash(r.penalty)} = <strong>${cash(r.profit)} profit</strong>.</p>${game.phase === "complete" ? '<span class="pill">CAREER RESULTS SAVED ✓</span>' : '<span class="pill">WAITING FOR YOUR TEACHER TO OPEN THE NEXT ROUND</span>'}</div><div class="card"><h2>Every item tells a story.</h2><div class="table-wrap"><table><thead><tr><th>Menu item</th><th>Markup</th><th>Price</th><th>Orders / units</th><th>Revenue</th><th>Food cost</th><th>Ad fee</th><th>Profit</th></tr></thead><tbody>${r.items.map((x) => `<tr><td><strong class="owner-cell">${foodArt(x.id, "food-tiny")} ${esc(x.name)}</strong><small>${x.promoted ? "Promotion applied" : ""}</small></td><td>${x.markup}%</td><td>${cash(x.price)}</td><td>${x.orders} / ${x.units}</td><td>${cash(x.revenue)}</td><td>${cash(x.cost)}</td><td>${cash(x.fee)}</td><td class="${x.profit < 0 ? "negative" : "positive"}">${cash(x.profit)}</td></tr>`).join("")}</tbody></table></div><div class="result-list">${r.items.map((x) => `<p><strong>${esc(x.name)}:</strong> ${esc(x.feedback)}</p>`).join("")}</div></div><div class="section-title"><h2>Your season so far</h2></div><div class="card table-wrap"><table><thead><tr><th>Round</th><th>Revenue</th><th>Food cost</th><th>Ad fees</th><th>Math penalty</th><th>Profit</th></tr></thead><tbody>${p.reports.map((x) => `<tr><td>${x.round}${x.skipped ? " · Skipped" : ""}</td><td>${cash(x.revenue)}</td><td>${cash(x.cost)}</td><td>${cash(x.fees)}</td><td>${cash(x.penalty)}</td><td>${cash(x.profit)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function badgePage() {
+  return `<div class="page-heading"><div><span class="eyebrow">A LITTLE PROOF OF YOUR BIG IDEAS</span><h1 style="margin-top:10px">The badge collection.</h1><p class="muted">${user.badges.length} of 50 unlocked. Feature up to three; your first appears on the leaderboard.</p></div><span class="pill">COSMETIC REWARDS · NO GAME ADVANTAGE</span></div><div class="badge-toolbar"><div class="row">${["all", "earned", "locked"].map((f) => `<button class="btn small ${badgeFilter === f ? "" : "secondary"}" data-badge-filter="${f}" aria-pressed="${badgeFilter === f}">${f === "all" ? "All 50" : f === "earned" ? "Earned · " + user.badges.length : "Locked · " + (50 - user.badges.length)}</button>`).join("")}</div><div class="collection-progress" role="progressbar" aria-label="Achievement collection" aria-valuemin="0" aria-valuemax="50" aria-valuenow="${user.badges.length}"><span style="width:${user.badges.length * 2}%"></span></div></div><div class="badge-grid">${badgeDefs
+    .filter(
+      (b) =>
+        badgeFilter === "all" ||
+        (badgeFilter === "earned"
+          ? user.badges.includes(b.id)
+          : !user.badges.includes(b.id)),
+    )
+    .map(
+      (b) =>
+        `<article class="card badge ${user.badges.includes(b.id) ? "" : "locked"} ${user.featured.includes(b.id) ? "selected" : ""}"><div class="icon">${b.icon}</div><h3>${esc(b.name)}</h3><p class="muted">${esc(b.description)}</p>${user.badges.includes(b.id) ? `<button class="btn small ${user.featured.includes(b.id) ? "" : "secondary"}" data-feature="${b.id}">${user.featured.includes(b.id) ? "★ Featured" : "Feature badge"}</button>` : '<span class="eyebrow">LOCKED</span>'}</article>`,
+    )
+    .join("")}</div>`;
+}
+function globalPage() {
+  const rows = [...boardData].sort((a, b) =>
+    boardMode === "best" ? b.best - a.best : b.profit - a.profit,
+  );
+  return `<div class="page-heading"><div><span class="eyebrow">THE HALL OF FAST-FOOD FAME</span><h1 style="margin-top:10px">Big ambitions. Real results.</h1><p class="muted">Cost &amp; Markup · across completed games. Future lessons will have separate rankings.</p></div><div class="row"><button class="btn ${boardMode === "career" ? "" : "secondary"}" data-action="career-sort">Career profit</button><button class="btn ${boardMode === "best" ? "" : "secondary"}" data-action="best-sort">Best game</button></div></div><div class="card table-wrap"><table><thead><tr><th>Rank</th><th>Owner</th><th>Games completed</th><th>Career profit</th><th>Best game</th><th>Wins</th></tr></thead><tbody>${rows.map((r, i) => `<tr class="${r.id === user?.id ? "me" : ""}"><td>#${rows.findIndex((x) => (boardMode === "best" ? x.best : x.profit) === (boardMode === "best" ? r.best : r.profit)) + 1}</td><td><span class="owner-cell">${avatarArt(r.avatar)}<strong>${esc(r.name)}</strong></span></td><td>${r.games}</td><td>${cash(r.profit)}</td><td>${cash(r.best)}</td><td>${r.wins}</td></tr>`).join("")}</tbody></table>${rows.length ? "" : '<div class="empty">The first champions are still in the kitchen. Completed games will appear here.</div>'}</div>`;
+}
+function draw() {
+  const c = document.querySelector("canvas");
+  if (!c) return;
+  const ctx = c.getContext("2d"),
+    w = c.width,
+    h = c.height,
+    p = game?.player,
+    night = theme === "dark";
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, night ? "#12243b" : "#d9ebe0");
+  sky.addColorStop(1, night ? "#304556" : "#f6e9c7");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+  const circle = (x, y, r, color) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  circle(w * 0.84, 43, 22, night ? "#f3e6b0" : "#f6cf77");
+  if (night) {
+    for (let i = 0; i < 25; i++)
+      circle(
+        (i * 139 + 31) % w,
+        12 + ((i * 23) % 80),
+        i % 3 ? 1 : 1.7,
+        "#c3dbd8",
+      );
+  } else {
+    for (const x of [90, w * 0.65]) {
+      circle(x, 39, 14, "#ffffff99");
+      circle(x + 19, 34, 19, "#ffffff99");
+      circle(x + 39, 40, 13, "#ffffff99");
+    }
+  }
+  ctx.fillStyle = night ? "#213743" : "#c5d8c5";
+  for (let i = 0; i < 11; i++) {
+    const x = i * 92,
+      y = 85 + (i % 3) * 15;
+    ctx.fillRect(x, y, 58, h - y);
+    ctx.fillStyle = night ? "#e9bc6244" : "#f5f1dd";
+    for (let k = 0; k < 3; k++) ctx.fillRect(x + 9 + k * 15, y + 13, 7, 11);
+    ctx.fillStyle = night ? "#213743" : "#c5d8c5";
+  }
+  const ground = h - 25;
+  ctx.fillStyle = night ? "#334840" : "#a9bd97";
+  ctx.fillRect(0, ground - 7, w, 32);
+  ctx.fillStyle = night ? "#485450" : "#d7d4be";
+  ctx.fillRect(0, ground + 9, w, 16);
+  const x = w * 0.25,
+    bw = w * 0.5,
+    roof = 60,
+    base = ground;
+  ctx.fillStyle = "#00000018";
+  ctx.fillRect(x + 10, roof + 15, bw, base - roof);
+  ctx.fillStyle = night ? "#dbc59e" : "#fff3d8";
+  ctx.fillRect(x, roof + 34, bw, base - roof - 34);
+  ctx.fillStyle = p?.color || "#da583b";
+  ctx.beginPath();
+  ctx.roundRect(x - 9, roof, bw + 18, 44, 8);
+  ctx.fill();
+  const hex = p?.color || "#da583b",
+    rgb = hex
+      .slice(1)
+      .match(/../g)
+      .map((v) => parseInt(v, 16) / 255)
+      .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  ctx.fillStyle =
+    0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2] > 0.179
+      ? "#182d27"
+      : "#fff8e5";
+  ctx.textAlign = "center";
+  ctx.font = "900 22px Arial";
+  ctx.fillText(
+    (p?.restaurant || "YOUR NEXT BIG THING").toUpperCase(),
+    w / 2,
+    roof + 28,
+    bw - 30,
+  );
+  for (let i = 0; i < 12; i++) {
+    ctx.fillStyle = i % 2 ? "#fff3d5" : p?.color || "#da583b";
+    ctx.fillRect(x + (i * bw) / 12, roof + 44, bw / 12, 19);
+    ctx.beginPath();
+    ctx.arc(x + ((i + 0.5) * bw) / 12, roof + 62, bw / 24, 0, Math.PI);
+    ctx.fill();
+  }
+  const wy = roof + 83,
+    wh = base - wy - 11;
+  ctx.fillStyle = night ? "#f5c77b" : "#3b6658";
+  ctx.fillRect(x + 18, wy, bw * 0.48, wh);
+  ctx.fillRect(x + bw * 0.65, wy, bw * 0.27, base - wy);
+  ctx.fillStyle = night ? "#ffe4a4" : "#92b7a6";
+  ctx.fillRect(x + 22, wy + 4, bw * 0.47 - 5, 6);
+  ctx.fillStyle = night ? "#7f633a" : "#dae6ca";
+  ctx.font = "bold 14px Arial";
+  ctx.fillText(
+    "ORDER • PICK UP • ENJOY",
+    x + 18 + bw * 0.24,
+    wy + Math.max(21, wh * 0.55),
+    bw * 0.43,
+  );
+  ctx.strokeStyle = "#ffffff55";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x + bw * 0.71, wy + 8);
+  ctx.lineTo(x + bw * 0.86, wy + 24);
+  ctx.stroke();
+  circle(x + bw * 0.88, base - 22, 3, "#f2b858");
+  ctx.fillStyle = night ? "#153d35" : "#2c6950";
+  ctx.fillRect(x + bw * 0.66, base - 36, bw * 0.22, 18);
+  ctx.fillStyle = "#b7ecc9";
+  ctx.font = "bold 10px Arial";
+  ctx.fillText("OPEN", x + bw * 0.77, base - 23);
+  for (const tx of [x - 53, x + bw + 57]) {
+    ctx.fillStyle = "#957451";
+    ctx.fillRect(tx - 3, base - 60, 6, 60);
+    circle(tx, base - 63, 21, night ? "#3e6a58" : "#65996c");
+    circle(tx - 13, base - 53, 16, night ? "#385e4d" : "#77a875");
+    ctx.fillStyle = "#c68857";
+    ctx.fillRect(tx - 13, base - 16, 26, 17);
+  }
+  for (let i = 0; i < 7; i++) {
+    const lx = x + 8 + (i * bw) / 6.5;
+    circle(lx, roof - 4, 3.2, night ? "#ffe6a0" : "#f8ce74");
+    if (night) {
+      ctx.shadowColor = "#ffd887";
+      ctx.shadowBlur = 10;
+      circle(lx, roof - 4, 2, "#ffe8b5");
+      ctx.shadowBlur = 0;
+    }
+  }
+  ctx.fillStyle = night ? "#243d36" : "#3f6c54";
+  ctx.beginPath();
+  ctx.roundRect(x - 112, base - 48, 46, 48, 4);
+  ctx.fill();
+  ctx.strokeStyle = "#e3c78c";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x - 108, base - 43, 38, 38);
+  ctx.fillStyle = "#f6e4b9";
+  ctx.font = "bold 9px Arial";
+  ctx.fillText("FRESH", x - 89, base - 27);
+  ctx.fillText("DAILY", x - 89, base - 15);
+}
 
 function render() {
-  state.renderCount += 1;
-  if (!state.game) {
-    root.innerHTML = state.entryMode === "home" ? homeTemplate() : entryTemplate(state.entryMode);
-    focusAnswerInput();
+  root.innerHTML =
+    !user && page !== "global"
+      ? auth()
+      : shell(
+          page === "profile"
+            ? profilePage()
+            : page === "home"
+              ? home()
+              : page === "badges"
+                ? badgePage()
+                : page === "global"
+                  ? globalPage()
+                  : page === "board"
+                    ? `${heading()}<div class="row" style="margin-bottom:20px"><button class="btn secondary" data-action="projector">${projector ? "Exit projector view" : "Projector view"}</button><button class="btn ghost" data-action="copy-board">Copy public leaderboard link</button></div><div class="card">${leaderboard()}</div>`
+                    : game.host
+                      ? teacher()
+                      : student(),
+        );
+  draw();
+  previewPromotion();
+  previewRestaurant();
+}
+async function openGame(code) {
+  await flushDrafts();
+  apply(await api("/games/" + code));
+  page = "game";
+  selected = Object.keys(game.player?.drafts || {})[0] || null;
+  feedback = null;
+  render();
+}
+async function actionRoom(action, body = {}) {
+  await flushDrafts();
+  const data = await api(`/games/${game.code}/${action}`, body);
+  apply(data);
+  render();
+  return data;
+}
+root.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (requestBusy) return;
+  requestBusy = true;
+  const form = e.target,
+    b = Object.fromEntries(new FormData(form)),
+    button = form.querySelector("button[type=submit],button:not([type])");
+  form
+    .querySelectorAll("input, select, button")
+    .forEach((el) => (el.disabled = true));
+  try {
+    if (form.getAttribute("id") === "auth-form") {
+      await api("/" + authTab, { ...b, teacherLogin: teacherEntry });
+      await refreshMe();
+      page = "home";
+      render();
+    }
+    if (form.getAttribute("id") === "join-form") {
+      const code = b.code.trim().toUpperCase();
+      apply(await api("/games/" + code + "/join", b));
+      page = "game";
+      await refreshMe();
+      render();
+    }
+    if (form.getAttribute("id") === "host-form") {
+      apply(await api("/games", b));
+      page = "game";
+      await refreshMe();
+      render();
+    }
+    if (form.getAttribute("id") === "pricing-form") {
+      await flushDrafts();
+      const data = await api(`/games/${game.code}/check`, {
+        ...b,
+        id: form.dataset.item,
+      });
+      feedback = data.check;
+      apply(data);
+      render();
+    }
+    if (form.getAttribute("id") === "promotion-form") {
+      await actionRoom("promotion", b);
+      toast("Promotion saved.");
+    }
+  } catch (err) {
+    const target = document.querySelector("#form-error");
+    if (target)
+      target.innerHTML = `<div class="error">${esc(err.message)}</div>`;
+    else toast(err.message);
+  } finally {
+    requestBusy = false;
+    if (form.isConnected)
+      form
+        .querySelectorAll("input, select, button")
+        .forEach((el) => (el.disabled = false));
+  }
+});
+root.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || btn.disabled) return;
+  try {
+    if (btn.dataset.badgeFilter) {
+      badgeFilter = btn.dataset.badgeFilter;
+      render();
+      return;
+    }
+    if (btn.dataset.action === "theme") {
+      theme = theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = theme;
+      try {
+        localStorage.setItem("counter-theme", theme);
+      } catch {}
+      document.querySelectorAll(".theme-toggle").forEach((el) => {
+        el.textContent = theme === "dark" ? "☀ Light" : "☾ Dark";
+        el.setAttribute(
+          "aria-label",
+          `Switch to ${theme === "dark" ? "light" : "dark"} mode`,
+        );
+      });
+      document.querySelector('meta[name="theme-color"]').content =
+        theme === "dark" ? "#101b23" : "#f6f5ee";
+      draw();
+      return;
+    }
+    if (btn.dataset.avatar) {
+      if (btn.dataset.registering === "true") {
+        registrationAvatar = btn.dataset.avatar;
+        root.querySelector('input[name="avatar"]').value = registrationAvatar;
+        root.querySelectorAll(".avatar-choice").forEach((el) => {
+          const chosen = el.dataset.avatar === registrationAvatar;
+          el.classList.toggle("selected", chosen);
+          el.setAttribute("aria-pressed", String(chosen));
+        });
+      } else {
+        btn.disabled = true;
+        const data = await api("/profile", { avatar: btn.dataset.avatar });
+        user = data.user;
+        render();
+        toast("Your new avatar is saved.");
+      }
+      return;
+    }
+    if (btn.dataset.action === "profile") {
+      await flushDrafts();
+      await refreshMe();
+      page = "profile";
+      window.scrollTo(0, 0);
+      render();
+      return;
+    }
+    if (btn.dataset.select) {
+      await flushDrafts();
+      selected = btn.dataset.select;
+      feedback = null;
+      render();
+      document
+        .querySelector("#pricing-panel")
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+    if (btn.dataset.open) return await openGame(btn.dataset.open);
+    if (btn.dataset.control) {
+      btn.disabled = true;
+      await actionRoom(btn.dataset.control, { version: game.version, userId: btn.dataset.owner });
+      return;
+    }
+    if (btn.dataset.feature) {
+      const id = Number(btn.dataset.feature),
+        featured = user.featured.includes(id)
+          ? user.featured.filter((x) => x !== id)
+          : [...user.featured, id];
+      await api("/profile", { featured });
+      user.featured = featured;
+      render();
+      return;
+    }
+    const a = btn.dataset.action;
+    if (a === "teacher-entry") {
+      teacherEntry = !teacherEntry;
+      authTab = "login";
+      render();
+      document
+        .querySelector("#auth-form")
+        .scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    if (
+      [
+        "home",
+        "game",
+        "board",
+        "global",
+        "public",
+        "badges",
+        "login-tab",
+        "register-tab",
+      ].includes(a)
+    )
+      window.scrollTo(0, 0);
+    if (a === "login-tab" || a === "register-tab") {
+      authTab = a === "login-tab" ? "login" : "register";
+      page = "home";
+      render();
+    }
+    if (a === "logout") {
+      await flushDrafts();
+      await api("/logout", {});
+      user = null;
+      game = null;
+      page = "home";
+      render();
+    }
+    if (a === "home") {
+      await flushDrafts();
+      await refreshMe();
+      page = "home";
+      projector = false;
+      render();
+    }
+    if (a === "game") {
+      page = "game";
+      render();
+    }
+    if (a === "board") {
+      page = "board";
+      render();
+    }
+    if (a === "global" || a === "public") {
+      boardData = (await api("/leaderboard")).board;
+      page = "global";
+      render();
+    }
+    if (a === "career-sort" || a === "best-sort") {
+      boardMode = a === "best-sort" ? "best" : "career";
+      render();
+    }
+    if (a === "badges") {
+      await refreshMe();
+      page = "badges";
+      render();
+    }
+    if (a === "projector") {
+      projector = !projector;
+      render();
+    }
+    if (a === "export") {
+      const d = await api("/games/" + game.code + "/export");
+      const keys = [
+        "skipped",
+        "owner",
+        "restaurant",
+        "round",
+        "revenue",
+        "cost",
+        "fees",
+        "penalty",
+        "profit",
+        "units",
+      ];
+      const csv = [
+        keys.join(","),
+        ...d.rows.map((r) =>
+          keys
+            .map((k) => {
+              let v = String(
+                ["revenue", "cost", "fees", "penalty", "profit"].includes(k)
+                  ? (r[k] / 100).toFixed(2)
+                  : r[k],
+              );
+              if (["owner", "restaurant"].includes(k) && /^[=+@\-\t\r]/.test(v))
+                v = "'" + v;
+              return '"' + v.replace(/"/g, '""') + '"';
+            })
+            .join(","),
+        ),
+      ].join("\r\n");
+      const link = document.createElement("a"),
+        url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      link.href = url;
+      link.download = "business-math-" + game.code + ".csv";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    if (a === "copy-board") {
+      await navigator.clipboard.writeText(
+        location.origin + "/?board=" + game.code,
+      );
+      toast("Public leaderboard link copied.");
+    }
+    if (a === "ready" || a === "unready") {
+      btn.disabled = true;
+      await actionRoom(a);
+    }
+    if (a === "discard") {
+      await flushDrafts();
+      await actionRoom("draft", { id: selected, discard: true });
+      feedback = null;
+      render();
+    }
+  } catch (err) {
+    toast(err.message);
+    btn.disabled = false;
+  }
+});
+root.addEventListener("input", (e) => {
+  const form = e.target.closest("#pricing-form");
+  if (!form || !game) return;
+  const b = {
+      ...Object.fromEntries(new FormData(form)),
+      id: form.dataset.item,
+    },
+    code = game.code;
+  pendingDrafts++;
+  document.querySelector("#save-status").textContent = "Saving draft…";
+  draftQueue = draftQueue
+    .then(async () => {
+      try {
+        const data = await api(`/games/${code}/draft`, b);
+        failedDrafts.delete(code + ":" + b.id);
+        if (game?.code === code) game = data;
+        const s = document.querySelector("#save-status");
+        if (s) s.textContent = "Draft saved · not checked";
+      } catch (err) {
+        failedDrafts.set(code + ":" + b.id, b);
+        toast("Draft not saved: " + err.message);
+        const s = document.querySelector("#save-status");
+        if (s) s.textContent = "Not saved — retry before leaving";
+        throw err;
+      } finally {
+        pendingDrafts--;
+      }
+    })
+    .catch(() => {});
+});
+function previewRestaurant() {
+  const form = document.querySelector("#join-form"),
+    preview = document.querySelector("#restaurant-preview");
+  if (!form || !preview) return;
+  const values = Object.fromEntries(new FormData(form));
+  preview.style.borderColor = values.color;
+  preview.innerHTML = `<span>${esc(values.icon)}</span><div><strong>${esc(values.restaurant || "Pick your restaurant")}</strong><small>50 names · 32 signs · 16 colors</small></div>`;
+}
+function previewPromotion() {
+  const form = document.querySelector("#promotion-form");
+  if (!form) return;
+  const b = Object.fromEntries(new FormData(form)),
+    def = game.promotions.find((x) => x.id === b.id),
+    target = game.player.menu.find((x) => x.id === b.target),
+    other = game.player.menu.find((x) => x.id === b.companion);
+  document.querySelector("#promo-description").textContent = def.description;
+  const el = document.querySelector("#promo-preview");
+  if (def.id === "none") {
+    el.textContent = "Regular menu prices. No additional costs.";
     return;
   }
-
-  const game = state.game;
-  if (game.status === "WAITING_FOR_PLAYER" || game.status === "READY") root.innerHTML = lobbyTemplate(game);
-  if (game.status === "ANSWERING") root.innerHTML = game.self.finishedAnswerPhase ? answerWaitingTemplate(game) : answerTemplate(game);
-  if (game.status === "GUESSING") {
-    if (game.self.finishedGuessPhase) root.innerHTML = guessWaitingTemplate(game);
-    else if (!game.self.guessStarted) root.innerHTML = roundTwoTemplate(game);
-    else root.innerHTML = guessingTemplate(game);
+  if (!target) {
+    el.textContent = "Choose an item to preview revenue and cost per offer.";
+    return;
   }
-  if (game.status === "CHOOSING") root.innerHTML = game.self.finishedPreferencePhase ? preferenceWaitingTemplate(game) : wouldYouRatherTemplate(game);
-  if (game.status === "RESULTS") root.innerHTML = resultsTemplate(game);
-  if (state.review) root.insertAdjacentHTML("beforeend", reviewTemplate(state.review));
-  focusAnswerInput();
-}
-
-function focusAnswerInput() {
-  const input = document.getElementById("answerInput");
-  if (!input) return;
-  input.focus({ preventScroll: true });
-  const cursorPosition = input.value.length;
-  input.setSelectionRange(cursorPosition, cursorPosition);
-}
-
-function syncCreateOptions() {
-  const wouldYouRatherMode = state.createMode === "would-you-rather";
-  const tonePicker = document.getElementById("topicTonePicker");
-  const choiceDeckPicker = document.getElementById("choiceDeckPicker");
-  const questionCountPicker = document.getElementById("questionCountPicker");
-  if (tonePicker) tonePicker.hidden = wouldYouRatherMode;
-  if (choiceDeckPicker) choiceDeckPicker.hidden = !wouldYouRatherMode;
-  if (questionCountPicker) questionCountPicker.hidden = !wouldYouRatherMode;
-}
-
-function homeTemplate() {
-  return `
-    <section class="screen hero">
-      <p class="eyebrow">A game for two</p>
-      <h1>THREE <span>WORDS.</span></h1>
-      <p class="hero-subtitle">How well do you really know each other?</p>
-      <div class="hero-actions">
-        <button class="button" data-action="choose-create">Create game <b>＋</b></button>
-        <button class="button secondary" data-action="choose-join">Join game <b>→</b></button>
-      </div>
-      <div class="game-invites">
-        <article class="compatibility-invite">
-          <div class="compatibility-invite-art" aria-hidden="true"><span>20</span><i></i><i></i><i></i></div>
-          <div>
-            <p class="eyebrow">Writing compatibility</p>
-            <h2>Get your compatibility report.</h2>
-            <p>Answer the same prompts in three words, read each other's minds, and see where you click.</p>
-          </div>
-          <button class="button small" data-action="choose-compatibility">Play with words →</button>
-        </article>
-        <article class="compatibility-invite wyr-invite">
-          <div class="compatibility-invite-art wyr-art" aria-hidden="true"><span>A</span><b>B</b><em>C</em><strong>D</strong></div>
-          <div>
-            <p class="eyebrow">Four-choice compatibility</p>
-            <h2>Would you rather?</h2>
-            <p>Make 10, 20, 30, or 50 private picks, then reveal exactly where your instincts match.</p>
-          </div>
-          <button class="button small" data-action="choose-would-you-rather">Choose category & length →</button>
-        </article>
-      </div>
-      <div class="how-grid" aria-label="How it works">
-        ${howCard(1, "Choose your game, topic category, and question length.")}
-        ${howCard(2, "Answer privately with three words or one of four picks.")}
-        ${howCard(3, "Finish without seeing your partner's choices.")}
-        ${howCard(4, "Unlock matches, insights, and conversation starters.")}
-      </div>
-    </section>`;
-}
-
-function entryTemplate(mode) {
-  if (mode === "restoring") {
-    return `<section class="screen narrow"><div class="panel lobby-center"><div class="waiting-orb"></div><p class="eyebrow">Finding your room</p><h2>Picking up where you left off…</h2></div></section>`;
+  let price = target.price,
+    cost = game.catalog.find((x) => x.id === target.id).cost;
+  if (def.id === "bogo") cost *= 2;
+  if (def.id === "half") {
+    cost *= 2;
+    price = Math.round(price * 1.5);
   }
-  const creating = mode === "create";
-  return `
-    <section class="screen narrow">
-      <div class="panel">
-        <p class="eyebrow">${creating ? "Start something good" : "Your person is waiting"}</p>
-        <h2>${creating ? "Create a private game." : "Join the room."}</h2>
-        <p class="panel-copy">${creating ? "We'll make a six-character code you can share." : "Enter the code from your invite and tell us what to call you."}</p>
-        <form id="${creating ? "createForm" : "joinForm"}" class="form-grid">
-          <div class="field">
-            <label for="${creating ? "createName" : "joinName"}">Display name</label>
-            <input class="text-input" id="${creating ? "createName" : "joinName"}" maxlength="24" autocomplete="name" placeholder="Your name" autofocus />
-          </div>
-          ${creating ? `${modePickerTemplate()}${tonePickerTemplate()}${choiceDeckPickerTemplate()}${questionCountPickerTemplate()}` : ""}
-          ${creating ? "" : `<div class="field"><label for="joinCode">Room code</label><input class="text-input code-input" id="joinCode" maxlength="6" autocomplete="off" value="${escapeHtml(inviteCode)}" placeholder="ABC123" /></div>`}
-          <div class="form-actions">
-            <button class="button" type="submit">${creating ? "Create game" : "Join game"}</button>
-            <button class="button ghost" type="button" data-action="back-home">Back</button>
-          </div>
-        </form>
-      </div>
-    </section>`;
-}
-
-function modePickerTemplate() {
-  return `
-    <fieldset class="mode-picker">
-      <legend>Choose your game</legend>
-      <label class="mode-choice">
-        <input type="radio" name="gameMode" value="classic" ${state.createMode === "classic" ? "checked" : ""} />
-        <span class="mode-choice-icon">10</span>
-        <span><strong>Classic</strong><small>Different prompts · quick results</small></span>
-        <i>Quick</i>
-      </label>
-      <label class="mode-choice featured">
-        <input type="radio" name="gameMode" value="compatibility" ${state.createMode === "compatibility" ? "checked" : ""} />
-        <span class="mode-choice-icon">20</span>
-        <span><strong>Compatibility</strong><small>Shared prompts · full report</small></span>
-        <i>New</i>
-      </label>
-      <label class="mode-choice wyr-mode-choice">
-        <input type="radio" name="gameMode" value="would-you-rather" ${state.createMode === "would-you-rather" ? "checked" : ""} />
-        <span class="mode-choice-icon">4×</span>
-        <span><strong>Would You Rather</strong><small>Four choices · instant match report</small></span>
-        <i>New</i>
-      </label>
-    </fieldset>`;
-}
-
-function tonePickerTemplate() {
-  const tones = [
-    { id: "mixed", icon: "✦", label: "Mixed bag", copy: "A little of everything" },
-    { id: "silly", icon: "☻", label: "Silly", copy: "Light and ridiculous" },
-    { id: "relationship", icon: "♡", label: "Relationship", copy: "All about connection" },
-    { id: "deep", icon: "◇", label: "Deep", copy: "Values and vulnerability" },
-    { id: "nostalgic", icon: "◷", label: "Nostalgic", copy: "Memories and firsts" }
-  ];
-  return `
-    <fieldset id="topicTonePicker" class="tone-picker" ${state.createMode === "would-you-rather" ? "hidden" : ""}>
-      <legend>Pick a topic tone</legend>
-      <div class="tone-options">
-        ${tones.map((tone) => `
-          <label class="tone-choice">
-            <input type="radio" name="topicTone" value="${tone.id}" ${state.createTone === tone.id ? "checked" : ""} />
-            <span>${tone.icon}</span><strong>${tone.label}</strong><small>${tone.copy}</small>
-          </label>`).join("")}
-      </div>
-    </fieldset>`;
-}
-
-function questionCountPickerTemplate() {
-  return `
-    <fieldset id="questionCountPicker" class="question-count-picker" ${state.createMode === "would-you-rather" ? "" : "hidden"}>
-      <legend>How many questions?</legend>
-      <div class="question-count-options">
-        ${[10, 20, 30, 50].map((count) => `
-          <label class="question-count-choice">
-            <input type="radio" name="questionCount" value="${count}" ${state.createQuestionCount === count ? "checked" : ""} />
-            <strong>${count}</strong><small>${count === 10 ? "Quick" : count === 20 ? "Classic" : count === 30 ? "Long" : "Deep dive"}</small>
-          </label>`).join("")}
-      </div>
-      <p class="picker-note">Both players get the same questions. Picks stay private until the final reveal.</p>
-    </fieldset>`;
-}
-
-function choiceDeckPickerTemplate() {
-  const decks = [
-    { id: "balanced", icon: "◇", label: "Balanced Mix", copy: "Play, life, connection & future" },
-    { id: "silly", icon: "☻", label: "Silly & Random", copy: "Absurd, chaotic, zero-pressure fun" },
-    { id: "adult", icon: "18+", label: "Adult & Intimacy", copy: "Mature and private · consenting adults" }
-  ];
-  return `
-    <fieldset id="choiceDeckPicker" class="choice-deck-picker" ${state.createMode === "would-you-rather" ? "" : "hidden"}>
-      <legend>Pick a question category</legend>
-      <div class="choice-deck-options">
-        ${decks.map((deck) => `
-          <label class="choice-deck-choice ${deck.id === "adult" ? "adult" : ""}">
-            <input type="radio" name="choiceDeck" value="${deck.id}" ${state.createChoiceDeck === deck.id ? "checked" : ""} />
-            <span>${deck.icon}</span><strong>${deck.label}</strong><small>${deck.copy}</small>
-          </label>`).join("")}
-      </div>
-      <details class="after-dark-vault" ${state.createChoiceDeck === "after-dark" ? "open" : ""}>
-        <summary><span>✦</span><span><strong>Psst… there’s a secret menu.</strong><small>Open only if you both want the spicier version.</small></span><i>Unlock</i></summary>
-        <label class="choice-deck-choice adult after-dark">
-          <input type="radio" name="choiceDeck" value="after-dark" ${state.createChoiceDeck === "after-dark" ? "checked" : ""} />
-          <span>18+</span><strong>After Dark</strong><small>Explicit turn-ons, oral, positions, kink & fantasies</small>
-        </label>
-        <p>For consenting adults only. Any choice can be a boundary, and either player can leave before starting.</p>
-      </details>
-      <p class="picker-note">The category applies to the whole game and is shown to both players before they start.</p>
-    </fieldset>`;
-}
-
-function lobbyTemplate(game) {
-  const opponent = game.opponent;
-  const allReady = game.players.length === 2 && game.players.every((player) => player.ready);
-  const compatibilityMode = game.mode?.id === "compatibility";
-  const wouldYouRatherMode = game.mode?.id === "would-you-rather";
-  const modeBadge = wouldYouRatherMode
-    ? `◇ Would You Rather · ${game.totalQuestions} shared choices`
-    : compatibilityMode
-      ? "✦ Compatibility · 20 shared prompts"
-      : "Classic · 10 prompts each";
-  return `
-    <section class="screen narrow">
-      <div class="panel">
-        <div class="room-topline">
-          <div class="room-code">Room <strong>${game.roomCode}</strong><button data-action="copy-invite" aria-label="Copy invite">⧉</button></div>
-          <button class="button ghost small" data-action="leave-room">Leave</button>
-        </div>
-        <div class="lobby-center">
-          <div class="lobby-badges">
-            <div class="mode-badge ${compatibilityMode || wouldYouRatherMode ? "compatibility" : ""}">${modeBadge}</div>
-            ${wouldYouRatherMode
-              ? `<div class="choice-deck-badge ${game.choiceDeck?.adult ? "adult" : ""} ${game.choiceDeck?.secret ? "secret" : ""}">${escapeHtml(game.choiceDeck?.icon || "◇")} ${escapeHtml(game.choiceDeck?.label || "Balanced mix")}</div>`
-              : `<div class="tone-badge">${escapeHtml(game.tone?.icon || "✦")} ${escapeHtml(game.tone?.label || "Mixed bag")} topics</div>`}
-          </div>
-          ${game.choiceDeck?.adult ? `<p class="adult-lobby-note ${game.choiceDeck?.secret ? "secret" : ""}"><strong>${game.choiceDeck?.secret ? "After Dark · adults only." : "Adults only."}</strong> ${game.choiceDeck?.secret ? "This secret round includes explicit questions about sex, oral preferences, positions, kink, fantasies, and boundaries." : "This round includes mature questions about intimacy, preferences, and boundaries."} Make sure both players are comfortable before starting.</p>` : ""}
-          <div class="waiting-orb"></div>
-          <p class="eyebrow">${opponent ? "The room is full" : "Invite sent. Good vibes pending."}</p>
-          <h2>${opponent ? "Both players ready?" : "Waiting for player two…"}</h2>
-          <p class="panel-copy">${opponent ? "Tap ready when you're set. The room creator starts the game." : "Share the invite link or room code. We'll keep this screen in sync."}</p>
-          <div class="player-row">
-            ${playerChip(game.self.name, game.self.ready, true, true)}
-            <span class="versus">AND</span>
-            ${opponent ? playerChip(opponent.name, game.players.find((p) => p.id === opponent.id)?.ready, opponent.connected, false) : playerChip("Waiting…", false, false, false)}
-          </div>
-          ${opponent ? `<button class="button ${game.self.ready ? "secondary" : ""}" data-action="ready">${game.self.ready ? "You're ready ✓" : "I'm ready"}</button>` : `<button class="button" data-action="copy-invite">Copy invite link</button>`}
-          ${game.isHost && opponent ? `<div style="margin-top:10px"><button class="button secondary" data-action="start" ${allReady ? "" : "disabled"}>Start game →</button></div>` : ""}
-        </div>
-      </div>
-    </section>`;
-}
-
-function answerTemplate(game) {
-  const phase = game.answerPhase;
-  const topic = phase.currentTopic;
-  const draft = getAnswerDraft(game, topic.id);
-  const draftWordCount = countWords(draft);
-  return `
-    <section class="screen topic-shell">
-      <div class="game-meta"><span>Topic ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
-      <article class="topic-card" key="${topic.id}">
-        <div class="topic-label">${game.mode?.id === "compatibility" ? "Compatibility · " : ""}${game.tone?.id !== "mixed" ? `${escapeHtml(game.tone?.label)} topics` : (topic.category === "adult" ? "Grown-up topic" : categoryName(topic.category))}</div>
-        <h1>${escapeHtml(topic.text)}</h1>
-        <p class="prompt">What's your immediate reaction?</p>
-      </article>
-      <form id="answerForm" class="answer-form">
-        <div class="answer-input-wrap">
-          <input id="answerInput" class="text-input answer-input" maxlength="100" placeholder="Three words only…" autocomplete="off" aria-label="Your three word answer" value="${escapeHtml(draft)}" autofocus />
-          <span id="wordCounter" class="word-counter ${draftWordCount === 3 ? "valid" : ""}">${draftWordCount} / 3 words</span>
-        </div>
-        <div class="answer-actions">
-          <button type="submit" class="button">Submit answer →</button>
-          <button type="button" class="button ghost" data-action="pass">Pass</button>
-        </div>
-      </form>
-      ${progress(phase.completed, phase.total)}
-    </section>`;
-}
-
-function answerWaitingTemplate(game) {
-  const completed = game.opponent?.answerProgress || 0;
-  const total = game.totalQuestions || 10;
-  return `
-    <section class="screen waiting-screen">
-      <div class="done-burst">✓</div>
-      <p class="eyebrow">${total} answers locked</p>
-      <h1>YOU'RE<br>DONE!</h1>
-      <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish their topics…</p>
-      <div class="mini-progress">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
-    </section>`;
-}
-
-function wouldYouRatherTemplate(game) {
-  const phase = game.choicePhase;
-  const question = phase?.current;
-  if (!question) return `<section class="screen waiting-screen"><div class="waiting-orb"></div><h1>Finding your next choice…</h1></section>`;
-  return `
-    <section class="screen choice-shell">
-      <div class="game-meta"><span>Question ${phase.completed + 1} of ${phase.total}</span><span>Room ${game.roomCode}</span></div>
-      <header class="choice-heading">
-        <p class="eyebrow">${game.choiceDeck?.secret ? "After Dark · 18+ · " : game.choiceDeck?.adult ? "18+ · " : ""}${wouldYouRatherCategoryName(question.category)}</p>
-        <h1>WOULD YOU<br><span>RATHER?</span></h1>
-        <p>${escapeHtml(question.prompt)}</p>
-      </header>
-      <div class="preference-options" role="group" aria-label="Choose your preferred option">
-        ${question.options.map((option, index) => `
-          <button class="preference-option ${state.pendingPreferenceId === option.id ? "selected" : ""}" data-action="select-preference" data-option-id="${option.id}">
-            <span>${String.fromCharCode(65 + index)}</span><strong>${escapeHtml(option.text)}</strong><i></i>
-          </button>`).join("")}
-      </div>
-      <button class="button full preference-lock" data-action="lock-preference" ${state.pendingPreferenceId ? "" : "disabled"}>Choose this one →</button>
-      <p class="choice-privacy">${game.choiceDeck?.adult ? "Private and consensual: any answer can be a boundary. " : ""}Your pick stays hidden until you both finish.</p>
-      ${progress(phase.completed, phase.total)}
-    </section>`;
-}
-
-function preferenceWaitingTemplate(game) {
-  const completed = game.opponent?.choiceProgress || 0;
-  const total = game.totalQuestions || 20;
-  return `
-    <section class="screen waiting-screen">
-      <div class="done-burst">✓</div>
-      <p class="eyebrow">${total} choices locked</p>
-      <h1>PICKS<br>ARE IN!</h1>
-      <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish choosing…</p>
-      <div class="mini-progress compact">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
-    </section>`;
-}
-
-function roundTwoTemplate(game) {
-  const compatibilityMode = game.mode?.id === "compatibility";
-  return `
-    <section class="screen">
-      <div class="panel round-two-card">
-        <div class="round-number">02</div>
-        <p class="eyebrow" style="margin-top:28px">Round two</p>
-        <h1>How well do you know them?</h1>
-        <p>${compatibilityMode ? `You both answered the same ${game.totalQuestions} prompts. Now see how accurately you can spot ${escapeHtml(game.opponent.name)}'s words.` : `You'll see the topics ${escapeHtml(game.opponent.name)} answered. One answer is real. Two are believable fakes. Pick the one they actually wrote.`}</p>
-        <button class="button" data-action="start-guessing">Start guessing →</button>
-      </div>
-    </section>`;
-}
-
-function guessingTemplate(game) {
-  const phase = game.guessPhase;
-  if (!phase?.current) return `<section class="screen waiting-screen"><div class="waiting-orb"></div><h1>Building your first guess…</h1></section>`;
-  const reveal = phase.reveal;
-  return `
-    <section class="screen narrow">
-      <div class="game-meta"><span>Guess ${Math.min(phase.completed + (reveal ? 0 : 1), phase.total)} of ${phase.total}</span><span>Score ${game.self.score}</span></div>
-      <div class="guess-topic">
-        <p class="eyebrow">Topic</p>
-        <h1>${escapeHtml(phase.current.topicText)}</h1>
-        <p>Which answer did ${escapeHtml(game.opponent.name)} actually write?</p>
-      </div>
-      <div class="answer-options">
-        ${phase.current.options.map((option) => answerOption(option, reveal)).join("")}
-      </div>
-      ${reveal ? revealTemplate(reveal) : `<button class="button full guess-lock" data-action="lock-guess" ${state.pendingOptionId ? "" : "disabled"}>Lock in</button>`}
-      ${progress(phase.completed, phase.total)}
-    </section>`;
-}
-
-function answerOption(option, reveal) {
-  let className = state.pendingOptionId === option.id ? "selected" : "";
-  if (reveal && option.text === reveal.realAnswer) className = "correct";
-  else if (reveal && option.text === reveal.selectedAnswer && !reveal.correct) className = "wrong";
-  return `<button class="answer-option ${className}" data-action="select-answer" data-option-id="${option.id}" ${reveal ? "disabled" : ""}>${escapeHtml(option.text)}</button>`;
-}
-
-function revealTemplate(reveal) {
-  return `
-    <div class="reveal-card ${reveal.correct ? "correct" : "wrong"}">
-      <div class="reveal-title">${reveal.correct ? "✓ YOU GOT IT" : "✕ NOT THIS TIME"}</div>
-      <p>${reveal.correct ? "They actually wrote" : `You guessed <strong>“${escapeHtml(reveal.selectedAnswer)}”</strong><br>They actually wrote`}<br><strong>“${escapeHtml(reveal.realAnswer)}”</strong></p>
-      <button class="button small" data-action="next-guess">Next →</button>
-    </div>`;
-}
-
-function guessWaitingTemplate(game) {
-  const completed = game.opponent?.guessProgress || 0;
-  const total = game.totalQuestions || 10;
-  return `
-    <section class="screen waiting-screen">
-      <div class="done-burst">✓</div>
-      <p class="eyebrow">Your guesses are in</p>
-      <h1>NICE<br>WORK.</h1>
-      <p>Waiting for ${escapeHtml(game.opponent?.name || "your partner")} to finish guessing…</p>
-      <div class="mini-progress">${Array.from({ length: total }, (_, index) => `<i class="${index < completed ? "done" : ""}"></i>`).join("")}</div>
-    </section>`;
-}
-
-function resultsTemplate(game) {
-  if (game.results.wouldYouRather) return wouldYouRatherReportTemplate(game);
-  if (game.results.compatibility) return compatibilityReportTemplate(game);
-  const rematchCount = game.players.filter((player) => player.rematchReady).length;
-  const total = game.results.total || game.totalQuestions || 10;
-  return `
-    <section class="screen narrow">
-      <div class="results-head">
-        <p class="eyebrow">The verdict is in</p>
-        <h1>RESULTS</h1>
-      </div>
-      <div class="score-grid">
-        ${game.results.scores.map((result) => `<article class="score-card"><small>${escapeHtml(result.name)} knew ${escapeHtml(result.opponentName)}</small><h2>${result.score}<span> / ${total}</span></h2></article>`).join("")}
-      </div>
-      <p class="results-summary">“${escapeHtml(game.results.summary)}”</p>
-      <div class="results-actions">
-        <button class="button secondary" data-action="review">Review answers</button>
-        <button class="button" data-action="play-again" ${game.self.rematchReady ? "disabled" : ""}>Play again</button>
-        <button class="button secondary" data-action="new-topics" ${game.self.rematchReady ? "disabled" : ""}>New topics</button>
-      </div>
-      ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next game…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
-    </section>`;
-}
-
-function wouldYouRatherReportTemplate(game) {
-  const report = game.results.wouldYouRather;
-  const deck = game.choiceDeck || report.deck || { label: "Would You Rather", adult: false };
-  const rematchCount = game.players.filter((player) => player.rematchReady).length;
-  return `
-    <section class="screen compatibility-report choice-report">
-      <header class="report-heading">
-        <p class="eyebrow">Your ${escapeHtml(deck.label)} results${deck.adult ? " · 18+" : ""}</p>
-        <div class="report-names"><span>${escapeHtml(report.players[0].name)}</span><i>＋</i><span>${escapeHtml(report.players[1].name)}</span></div>
-        <h1>${escapeHtml(report.tier)}</h1>
-      </header>
-
-      <section class="report-hero-card choice-report-hero">
-        <div class="compatibility-orbit" style="--score:${report.matchPercent}">
-          <svg viewBox="0 0 160 160" aria-hidden="true">
-            <defs><linearGradient id="reportGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#66d8ff"/><stop offset=".52" stop-color="#a66cff"/><stop offset="1" stop-color="#ff7fb7"/></linearGradient></defs>
-            <circle class="orbit-track" cx="80" cy="80" r="68" pathLength="100" />
-            <circle class="orbit-value" cx="80" cy="80" r="68" pathLength="100" />
-          </svg>
-          <div><strong>${report.matchPercent}<small>%</small></strong><span>exact pick match</span></div>
-          <i class="orbit-spark spark-one">◇</i><i class="orbit-spark spark-two">✦</i>
-        </div>
-        <div class="report-verdict">
-          <p class="eyebrow">The big reveal</p>
-          <h2>${escapeHtml(report.summary)}</h2>
-          <p>You chose the exact same option on <strong>${report.matchCount} of ${report.totalQuestions}</strong> questions. Different picks are not bad news—they are the interesting part.</p>
-          <div class="report-formula"><span>${report.matchCount} same picks</span><b>＋</b><span>${report.differenceCount} conversation starters</span></div>
-        </div>
-      </section>
-
-      <section class="choice-summary-grid" aria-label="Would You Rather result summary">
-        <article><span>◎</span><strong>${report.matchCount}</strong><small>Exact matches</small></article>
-        <article><span>↗</span><strong>${report.differenceCount}</strong><small>Different picks</small></article>
-        <article><span>□</span><strong>${report.totalQuestions}</strong><small>Total questions</small></article>
-      </section>
-
-      <section class="category-report">
-        <div class="section-heading">
-          <div><p class="eyebrow">Your match map</p><h2>Where instincts align.</h2></div>
-          <p>Each category shows the percentage of questions where you made the exact same choice.</p>
-        </div>
-        <div class="category-visuals">
-          ${compatibilityRadar(report.categories, "Match map")}
-          <div class="category-bars">
-            ${report.categories.map((category, index) => `
-              <div class="category-bar" style="--delay:${index * 90}ms">
-                <div><span>${escapeHtml(category.label)}</span><strong>${category.matchCount}/${category.questionCount} · ${category.score}%</strong></div>
-                <i><b style="--value:${category.score}"></b></i>
-              </div>`).join("")}
-          </div>
-        </div>
-      </section>
-
-      <section class="report-highlights choice-highlights">
-        ${report.highlights.map((highlight, index) => `
-          <article style="--delay:${index * 90}ms">
-            <small>${escapeHtml(highlight.kicker)}</small>
-            <h3>${escapeHtml(highlight.value)}</h3>
-            <p>${escapeHtml(highlight.copy)}</p>
-          </article>`).join("")}
-      </section>
-
-      <section class="report-deep-dive">
-        <div class="section-heading">
-          <div><p class="eyebrow">Every answer revealed</p><h2>Compare your picks.</h2></div>
-          <p>Open a category to see exactly what each person chose on every question.</p>
-        </div>
-        <div class="category-accordions">
-          ${report.categories.map((category) => wouldYouRatherCategoryAccordion(category)).join("")}
-        </div>
-      </section>
-
-      <p class="report-disclaimer">${deck.adult ? "For consenting adults. Preferences are conversation starters, never obligations. " : ""}For fun, not science. A different pick is not a compatibility verdict.</p>
-      <div class="results-actions report-actions">
-        <button class="button" data-action="play-again" ${game.self.rematchReady ? "disabled" : ""}>Play again</button>
-        <button class="button secondary" data-action="new-topics" ${game.self.rematchReady ? "disabled" : ""}>New questions</button>
-      </div>
-      ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next set…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
-    </section>`;
-}
-
-function wouldYouRatherCategoryAccordion(category) {
-  return `
-    <details class="category-accordion choice-accordion">
-      <summary>
-        <span class="category-symbol">${wouldYouRatherCategoryIcon(category.id)}</span>
-        <span><strong>${escapeHtml(category.label)}</strong><small>${category.matchCount} of ${category.questionCount} matched</small></span>
-        <b>${category.score}%</b><i>＋</i>
-      </summary>
-      <div class="category-detail">
-        <div class="compatibility-answers">
-          ${category.entries.map((entry) => `
-            <article class="preference-result ${entry.matched ? "matched" : "different"}">
-              <div class="compatibility-topic"><span>${escapeHtml(entry.prompt)}</span><b>${entry.matched ? "✓ Same pick" : "↗ Different picks"}</b></div>
-              <div class="answer-comparison">
-                ${entry.choices.map((choice) => `<p><small>${escapeHtml(choice.name)}</small><strong>${escapeHtml(choice.text)}</strong></p>`).join("")}
-              </div>
-            </article>`).join("")}
-        </div>
-      </div>
-    </details>`;
-}
-
-function compatibilityReportTemplate(game) {
-  const report = game.results.compatibility;
-  const rematchCount = game.players.filter((player) => player.rematchReady).length;
-  const focusedReport = report.categories.length === 1;
-  return `
-    <section class="screen compatibility-report">
-      <header class="report-heading">
-        <p class="eyebrow">Your ${game.tone?.id !== "mixed" ? `${escapeHtml(game.tone?.label).toLowerCase()} ` : ""}compatibility report</p>
-        <div class="report-names"><span>${escapeHtml(report.players[0].name)}</span><i>＋</i><span>${escapeHtml(report.players[1].name)}</span></div>
-        <h1>${escapeHtml(report.tier)}</h1>
-      </header>
-
-      <section class="report-hero-card">
-        <div class="compatibility-orbit" style="--score:${report.overall}">
-          <svg viewBox="0 0 160 160" aria-hidden="true">
-            <defs><linearGradient id="reportGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9d62ff"/><stop offset=".52" stop-color="#f15ea8"/><stop offset="1" stop-color="#ff9e5e"/></linearGradient></defs>
-            <circle class="orbit-track" cx="80" cy="80" r="68" pathLength="100" />
-            <circle class="orbit-value" cx="80" cy="80" r="68" pathLength="100" />
-          </svg>
-          <div><strong>${report.overall}<small>%</small></strong><span>overall connection</span></div>
-          <i class="orbit-spark spark-one">✦</i><i class="orbit-spark spark-two">✦</i>
-        </div>
-        <div class="report-verdict">
-          <p class="eyebrow">The vibe check</p>
-          <h2>${escapeHtml(report.summary)}</h2>
-          <p>Built from how closely your real answers aligned, how well you spotted each other's words, and how balanced that understanding was.</p>
-          <div class="report-formula"><span>Answer alignment</span><b>＋</b><span>Mind reading</span><b>＋</b><span>Balance</span></div>
-        </div>
-      </section>
-
-      <section class="report-metrics" aria-label="Compatibility score details">
-        ${reportMetric("Same-page energy", report.answerAlignment, "How closely your answers and emotional tone matched.", "✦")}
-        ${reportMetric("Mind-reading score", report.mutualKnowledge, "Your combined accuracy guessing each other's real answers.", "◎")}
-        ${reportMetric("Two-way balance", report.balance, "How evenly you understood one another across the game.", "↔")}
-      </section>
-
-      <section class="category-report">
-        <div class="section-heading">
-          <div><p class="eyebrow">Your connection map</p><h2>Where you click.</h2></div>
-          <p>${focusedReport ? "This category blends answer similarity with how accurately you read each other." : "Every category blends answer similarity with how accurately you read each other."}</p>
-        </div>
-        <div class="category-visuals">
-          ${compatibilityRadar(report.categories)}
-          <div class="category-bars">
-            ${report.categories.map((category, index) => `
-              <div class="category-bar" style="--delay:${index * 90}ms">
-                <div><span>${escapeHtml(category.label)}</span><strong>${category.score}%</strong></div>
-                <i><b style="--value:${category.score}"></b></i>
-              </div>`).join("")}
-          </div>
-        </div>
-      </section>
-
-      <section class="report-highlights">
-        ${report.highlights.map((highlight, index) => `
-          <article style="--delay:${index * 90}ms">
-            <small>${escapeHtml(highlight.kicker)}</small>
-            <h3>${escapeHtml(highlight.value)}</h3>
-            <p>${escapeHtml(highlight.copy)}</p>
-          </article>`).join("")}
-      </section>
-
-      <section class="report-deep-dive">
-        <div class="section-heading">
-          <div><p class="eyebrow">Go deeper</p><h2>Open up the ${focusedReport ? "category" : "categories"}.</h2></div>
-          <p>Compare what you each wrote and find the prompts worth talking about next.</p>
-        </div>
-        <div class="category-accordions">
-          ${report.categories.map((category) => categoryAccordion(category)).join("")}
-        </div>
-      </section>
-
-      <p class="report-disclaimer">For fun, not science. Compatibility is bigger than any score—and the differences are often the best part.</p>
-      <div class="results-actions report-actions">
-        <button class="button secondary" data-action="review">Review every guess</button>
-        <button class="button" data-action="play-again" ${game.self.rematchReady ? "disabled" : ""}>Play again</button>
-        <button class="button secondary" data-action="new-topics" ${game.self.rematchReady ? "disabled" : ""}>New report</button>
-      </div>
-      ${rematchCount ? `<p class="rematch-note">${rematchCount === 2 ? "Starting the next compatibility check…" : `Waiting for ${escapeHtml(game.opponent.name)} to play again…`}</p>` : ""}
-    </section>`;
-}
-
-function reportMetric(label, value, copy, icon) {
-  return `
-    <article class="report-metric" style="--value:${value}">
-      <div class="metric-top"><span>${icon}</span><strong>${value}%</strong></div>
-      <h3>${escapeHtml(label)}</h3>
-      <p>${escapeHtml(copy)}</p>
-      <i><b></b></i>
-    </article>`;
-}
-
-function compatibilityRadar(categories, chartLabel = "Connection map") {
-  if (categories.length === 1) {
-    const category = categories[0];
-    return `
-      <div class="radar-wrap focused" aria-label="${escapeHtml(category.label)} compatibility score: ${category.score} percent">
-        <div class="radar-glow"></div>
-        <svg viewBox="0 0 220 220" role="img">
-          <circle class="focus-radar-track" cx="110" cy="110" r="78" pathLength="100" />
-          <circle class="focus-radar-value" cx="110" cy="110" r="78" pathLength="100" style="--value:${category.score}" />
-        </svg>
-        <div class="focus-radar-score"><strong>${category.score}%</strong><span>${escapeHtml(category.label)}</span></div>
-      </div>`;
+  if (["ten", "happy"].includes(def.id)) price = Math.round(price * 0.9);
+  if (def.id === "twenty") price = Math.round(price * 0.8);
+  if (def.id === "dollar") price = Math.max(0, price - 100);
+  if (def.companion) {
+    if (!other || other === target) {
+      el.textContent = "Choose a different eligible side or drink.";
+      return;
+    }
+    cost += game.catalog.find((x) => x.id === other.id).cost;
+    price =
+      def.id === "bundle"
+        ? Math.round((price + other.price) * 0.85)
+        : def.id === "drink"
+          ? price + Math.round(other.price * 0.5)
+          : price;
   }
-  const center = 110;
-  const radius = 78;
-  const points = categories.map((category, index) => {
-    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / categories.length;
-    const scaledRadius = radius * Math.max(0.08, category.score / 100);
-    return `${(center + Math.cos(angle) * scaledRadius).toFixed(1)},${(center + Math.sin(angle) * scaledRadius).toFixed(1)}`;
-  }).join(" ");
-  const outerPoints = categories.map((_category, index) => {
-    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / categories.length;
-    return `${(center + Math.cos(angle) * radius).toFixed(1)},${(center + Math.sin(angle) * radius).toFixed(1)}`;
-  }).join(" ");
-  const axes = categories.map((_category, index) => {
-    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / categories.length;
-    return `<line x1="${center}" y1="${center}" x2="${(center + Math.cos(angle) * radius).toFixed(1)}" y2="${(center + Math.sin(angle) * radius).toFixed(1)}" />`;
-  }).join("");
-  return `
-    <div class="radar-wrap" aria-label="${escapeHtml(chartLabel)} category radar chart">
-      <div class="radar-glow"></div>
-      <svg viewBox="0 0 220 220" role="img">
-        <polygon class="radar-grid outer" points="${outerPoints}" />
-        <polygon class="radar-grid inner" points="${outerPoints}" transform="translate(${center} ${center}) scale(.55) translate(${-center} ${-center})" />
-        <g class="radar-axes">${axes}</g>
-        <polygon class="radar-shape" points="${points}" />
-        ${points.split(" ").map((point) => { const [x, y] = point.split(","); return `<circle cx="${x}" cy="${y}" r="4" />`; }).join("")}
-      </svg>
-      <span>${escapeHtml(chartLabel)}</span>
-    </div>`;
+  el.textContent = `Per offer: revenue ${cash(price)} − food cost ${cash(cost)} = ${cash(price - cost)} before fees.${def.fee ? " Advertising fee: " + cash(def.fee) + " per round." : ""}`;
 }
-
-function categoryAccordion(category) {
-  return `
-    <details class="category-accordion">
-      <summary>
-        <span class="category-symbol">${categoryIcon(category.id)}</span>
-        <span><strong>${escapeHtml(category.label)}</strong><small>${category.questionCount} shared prompt${category.questionCount === 1 ? "" : "s"}</small></span>
-        <b>${category.score}%</b><i>＋</i>
-      </summary>
-      <div class="category-detail">
-        <div class="category-detail-metrics">
-          <span>Answer alignment <b>${category.alignment}%</b></span>
-          <span>Mind reading <b>${category.knowledge}%</b></span>
-        </div>
-        <div class="compatibility-answers">
-          ${category.entries.map((entry) => `
-            <article>
-              <div class="compatibility-topic"><span>${escapeHtml(entry.topic)}</span><b>${entry.similarity}% similar</b></div>
-              <div class="answer-comparison">
-                ${entry.answers.map((answer) => `<p><small>${escapeHtml(answer.name)}</small><strong>“${escapeHtml(answer.text)}”</strong></p>`).join("")}
-              </div>
-              <div class="guess-comparison">
-                ${entry.guesses.map((guess) => `<span class="${guess.correct ? "correct" : "missed"}">${guess.correct ? "✓" : "○"} ${escapeHtml(guess.name)} ${guess.correct ? "called it" : "was surprised"}</span>`).join("")}
-              </div>
-            </article>`).join("")}
-        </div>
-      </div>
-    </details>`;
-}
-
-function categoryIcon(category) {
-  return ({ random: "✦", nostalgia: "◷", life: "↗", relationships: "♡", deep: "◇", adult: "⚡" })[category] || "•";
-}
-
-function reviewTemplate(review) {
-  return `
-    <div class="review-overlay">
-      <div class="review-dialog">
-        <div class="review-header"><div><p class="eyebrow">No more secrets</p><h2>Review answers</h2></div><button class="button secondary small" data-action="close-review">Close</button></div>
-        <div class="review-columns">
-          ${review.map((column) => `<section class="review-column"><h3>${escapeHtml(column.answeringPlayer)}'s answers</h3>${column.entries.map((entry) => `<article class="review-entry"><small>${escapeHtml(entry.topic)}</small><strong>“${escapeHtml(entry.answer)}”</strong><p>${escapeHtml(column.guessingPlayer)} guessed “${escapeHtml(entry.guessed)}” <span class="${entry.correct ? "correct-text" : "wrong-text"}">${entry.correct ? "✓ Correct" : "✕ Missed"}</span></p></article>`).join("")}</section>`).join("")}
-        </div>
-      </div>
-    </div>`;
-}
-
-function howCard(number, copy) { return `<article class="how-card"><span>${number}</span><p>${copy}</p></article>`; }
-
-function playerChip(name, ready, connected, self) {
-  return `<div class="player-chip ${connected ? "" : "offline"}"><div class="avatar">${escapeHtml(name.charAt(0).toUpperCase() || "?")}</div><strong>${escapeHtml(name)}${self ? " (you)" : ""}</strong><small>${connected ? (ready ? "Ready ✓" : "Not ready") : "Offline"}</small></div>`;
-}
-
-function progress(value, total) {
-  const percent = Math.max(0, Math.min(100, (value / total) * 100));
-  return `<div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div><div class="progress-caption"><span>Your progress</span><span>${value} / ${total}</span></div>`;
-}
-
-function categoryName(category) {
-  return ({ random: "Funny / random", nostalgia: "Nostalgia", life: "Personality / life", relationships: "Relationships", deep: "Deep / meaningful" })[category] || category;
-}
-
-function wouldYouRatherCategoryName(category) {
-  return ({
-    play: "Play style", everyday: "Everyday rhythm", adventure: "Adventure mode", connection: "Connection style", future: "Future vision",
-    absurd: "Pure absurdity", "food-chaos": "Food chaos", "social-chaos": "Social chaos", "weird-powers": "Weird powers", "random-life": "Random life",
-    chemistry: "Chemistry", bedroom: "Bedroom style", exploration: "Exploration", communication: "Communication", aftercare: "Aftercare",
-    "turn-ons": "Turn-ons & desire", "oral-touch": "Oral & touch", "positions-pace": "Positions & pace", "kink-play": "Kink & power play", "fantasies-boundaries": "Fantasies & boundaries"
-  })[category] || category;
-}
-
-function wouldYouRatherCategoryIcon(category) {
-  return ({
-    play: "✦", everyday: "⌂", adventure: "↗", connection: "♡", future: "◇",
-    absurd: "?!", "food-chaos": "♨", "social-chaos": "☻", "weird-powers": "⚡", "random-life": "⌁",
-    chemistry: "✦", bedroom: "☾", exploration: "↗", communication: "◌", aftercare: "♡",
-    "turn-ons": "✦", "oral-touch": "◉", "positions-pace": "↕", "kink-play": "⌁", "fantasies-boundaries": "◇"
-  })[category] || "•";
-}
-
-function countWords(value) {
-  return (String(value || "").match(/[\p{L}\p{N}]+(?:['’\-‐‑–—][\p{L}\p{N}]+)*/gu) || []).length;
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
-}
-
-async function copyInvite() {
-  const code = state.game?.roomCode || state.session?.roomCode;
-  if (!code) return;
-  const url = new URL(location.origin + location.pathname);
-  url.searchParams.set("room", code);
-  try {
-    await navigator.clipboard.writeText(url.toString());
-    showToast("Invite link copied.");
-  } catch {
-    showToast(`Room code: ${code}`);
-  }
-}
-
-function showToast(message, isError = false) {
-  clearTimeout(state.toastTimer);
-  toast.textContent = message;
-  toast.className = `toast show${isError ? " error" : ""}`;
-  state.toastTimer = setTimeout(() => { toast.className = "toast"; }, 2300);
-}
-
-function readSession() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); }
-  catch { return null; }
-}
-
-function readAnswerDrafts() {
-  try {
-    const drafts = JSON.parse(sessionStorage.getItem(ANSWER_DRAFTS_KEY) || "{}");
-    return drafts && typeof drafts === "object" && !Array.isArray(drafts) ? drafts : {};
-  } catch {
-    return {};
-  }
-}
-
-function answerDraftKey(game = state.game, topicId = game?.answerPhase?.currentTopic?.id) {
-  if (!game?.roomCode || !game?.self?.id || !topicId) return null;
-  return `${game.roomCode}:${game.gameNumber}:${game.self.id}:${topicId}`;
-}
-
-function getAnswerDraft(game, topicId) {
-  const key = answerDraftKey(game, topicId);
-  return key ? state.answerDrafts[key] || "" : "";
-}
-
-function saveCurrentAnswerDraft(value) {
-  const key = answerDraftKey();
-  if (!key || key === state.discardedAnswerDraftKey) return;
-  state.answerDrafts[key] = String(value || "");
-  persistAnswerDrafts();
-}
-
-function captureVisibleAnswerDraft() {
-  const input = document.getElementById("answerInput");
-  if (input) saveCurrentAnswerDraft(input.value);
-}
-
-function clearCurrentAnswerDraft() {
-  const key = answerDraftKey();
-  if (!key) return;
-  delete state.answerDrafts[key];
-  state.discardedAnswerDraftKey = key;
-  persistAnswerDrafts();
-}
-
-function persistAnswerDrafts() {
-  try {
-    sessionStorage.setItem(ANSWER_DRAFTS_KEY, JSON.stringify(state.answerDrafts));
-  } catch {
-    // Drafts still remain in memory when browser storage is unavailable.
-  }
-}
-
-function canKeepActiveAnswerForm(previousGame, nextGame) {
-  const previousTopicId = previousGame?.answerPhase?.currentTopic?.id;
-  const nextTopicId = nextGame?.answerPhase?.currentTopic?.id;
-  return Boolean(
-    document.getElementById("answerInput") &&
-    previousGame?.status === "ANSWERING" &&
-    nextGame?.status === "ANSWERING" &&
-    previousTopicId &&
-    previousTopicId === nextTopicId &&
-    previousGame.self.answerProgress === nextGame.self.answerProgress
-  );
-}
-
-function canKeepActiveGuessView(previousGame, nextGame) {
-  if (
-    previousGame?.status !== "GUESSING" ||
-    nextGame?.status !== "GUESSING" ||
-    !previousGame.self?.guessStarted ||
-    !nextGame.self?.guessStarted ||
-    previousGame.self.finishedGuessPhase ||
-    nextGame.self.finishedGuessPhase
-  ) return false;
-
-  const previousPhase = previousGame.guessPhase;
-  const nextPhase = nextGame.guessPhase;
-  if (!previousPhase?.current || !nextPhase?.current) return false;
-  return previousGame.self.guessProgress === nextGame.self.guessProgress &&
-    previousGame.self.score === nextGame.self.score &&
-    previousPhase.current.topicId === nextPhase.current.topicId &&
-    JSON.stringify(previousPhase.current.options) === JSON.stringify(nextPhase.current.options) &&
-    JSON.stringify(previousPhase.reveal || null) === JSON.stringify(nextPhase.reveal || null);
-}
-
-function canKeepActivePreferenceView(previousGame, nextGame) {
-  if (previousGame?.status !== "CHOOSING" || nextGame?.status !== "CHOOSING") return false;
-  if (previousGame.self?.finishedPreferencePhase || nextGame.self?.finishedPreferencePhase) return false;
-  const previousQuestion = previousGame.choicePhase?.current;
-  const nextQuestion = nextGame.choicePhase?.current;
-  return Boolean(
-    document.querySelector(".preference-options") &&
-    previousQuestion &&
-    nextQuestion &&
-    previousGame.self.choiceProgress === nextGame.self.choiceProgress &&
-    previousQuestion.id === nextQuestion.id &&
-    JSON.stringify(previousQuestion.options) === JSON.stringify(nextQuestion.options)
-  );
-}
-
-function canKeepWaitingScreen(previousGame, nextGame) {
-  if (!document.querySelector(".waiting-screen .mini-progress") || previousGame?.status !== nextGame?.status) return false;
-  if (nextGame.status === "ANSWERING") {
-    return Boolean(previousGame.self?.finishedAnswerPhase && nextGame.self?.finishedAnswerPhase);
-  }
-  if (nextGame.status === "GUESSING") {
-    return Boolean(previousGame.self?.finishedGuessPhase && nextGame.self?.finishedGuessPhase);
-  }
-  if (nextGame.status === "CHOOSING") {
-    return Boolean(previousGame.self?.finishedPreferencePhase && nextGame.self?.finishedPreferencePhase);
-  }
-  return false;
-}
-
-function updateWaitingProgress(game) {
-  const completed = game.status === "ANSWERING"
-    ? game.opponent?.answerProgress
-    : game.status === "CHOOSING"
-      ? game.opponent?.choiceProgress
-      : game.opponent?.guessProgress;
-  document.querySelectorAll(".waiting-screen .mini-progress i").forEach((dot, index) => {
-    dot.classList.toggle("done", index < (completed || 0));
-  });
-}
-
-function selectGuessOption(optionId) {
-  state.pendingOptionId = optionId;
-  root.querySelectorAll(".answer-option").forEach((option) => {
-    option.classList.toggle("selected", option.dataset.optionId === optionId);
-  });
-  const lockButton = root.querySelector('[data-action="lock-guess"]');
-  if (lockButton) lockButton.disabled = false;
-}
-
-function selectPreferenceOption(optionId) {
-  state.pendingPreferenceId = optionId;
-  root.querySelectorAll(".preference-option").forEach((option) => {
-    option.classList.toggle("selected", option.dataset.optionId === optionId);
-  });
-  const lockButton = root.querySelector('[data-action="lock-preference"]');
-  if (lockButton) lockButton.disabled = false;
-}
-
-function clearSession() {
-  state.session = null;
-  state.game = null;
-  state.pendingOptionId = null;
-  state.pendingPreferenceId = null;
-  state.answerDrafts = {};
-  state.discardedAnswerDraftKey = null;
-  localStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(ANSWER_DRAFTS_KEY);
-}
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-  else document.exitFullscreen?.();
-}
-
-function resizeConfetti() {
-  const scale = Math.min(devicePixelRatio || 1, 2);
-  confettiCanvas.width = innerWidth * scale;
-  confettiCanvas.height = innerHeight * scale;
-  confettiContext.setTransform(scale, 0, 0, scale, 0, 0);
-}
-
-function burstConfetti(count) {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const colors = ["#9d62ff", "#f15ea8", "#ff9e5e", "#53d6a2", "#ffffff"];
-  for (let index = 0; index < count; index += 1) {
-    state.confetti.push({ x: innerWidth / 2, y: innerHeight * .28, vx: (Math.random() - .5) * 11, vy: -4 - Math.random() * 9, gravity: .19, rotation: Math.random() * Math.PI, spin: (Math.random() - .5) * .25, color: colors[index % colors.length], life: 100 + Math.random() * 50 });
-  }
-  requestAnimationFrame(drawConfetti);
-}
-
-function drawConfetti() {
-  confettiContext.clearRect(0, 0, innerWidth, innerHeight);
-  state.confetti = state.confetti.filter((piece) => piece.life > 0 && piece.y < innerHeight + 30);
-  for (const piece of state.confetti) {
-    piece.x += piece.vx;
-    piece.y += piece.vy;
-    piece.vy += piece.gravity;
-    piece.rotation += piece.spin;
-    piece.life -= 1;
-    confettiContext.save();
-    confettiContext.translate(piece.x, piece.y);
-    confettiContext.rotate(piece.rotation);
-    confettiContext.fillStyle = piece.color;
-    confettiContext.fillRect(-4, -2, 8, 4);
-    confettiContext.restore();
-  }
-  if (state.confetti.length) requestAnimationFrame(drawConfetti);
-}
-
-window.addEventListener("resize", resizeConfetti);
-resizeConfetti();
-
-window.render_game_to_text = () => JSON.stringify({
-  coordinateSystem: "DOM card interface; viewport origin top-left, x right, y down",
-  screen: state.game?.status || state.entryMode,
-  roomCode: state.game?.roomCode || null,
-  gameMode: state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null),
-  topicTone: (state.game?.mode?.id || (state.entryMode === "create" ? state.createMode : null)) === "would-you-rather"
-    ? null
-    : state.game?.tone?.id || (state.entryMode === "create" ? state.createTone : null),
-  choiceDeck: state.game?.choiceDeck?.id || (state.entryMode === "create" && state.createMode === "would-you-rather" ? state.createChoiceDeck : null),
-  selectedQuestionCount: state.entryMode === "create" ? state.createQuestionCount : null,
-  totalQuestions: state.game?.totalQuestions || null,
-  self: state.game ? {
-    name: state.game.self.name,
-    answerProgress: state.game.self.answerProgress,
-    guessProgress: state.game.self.guessProgress,
-    choiceProgress: state.game.self.choiceProgress,
-    score: state.game.self.score,
-    ready: state.game.self.ready
-  } : null,
-  opponent: state.game?.opponent ? {
-    name: state.game.opponent.name,
-    connected: state.game.opponent.connected,
-    answerProgress: state.game.opponent.answerProgress,
-    guessProgress: state.game.opponent.guessProgress,
-    choiceProgress: state.game.opponent.choiceProgress
-  } : null,
-  currentTopic: state.game?.answerPhase?.currentTopic?.text || state.game?.guessPhase?.current?.topicText || null,
-  currentChoiceQuestion: state.game?.choicePhase?.current?.prompt || null,
-  visiblePreferenceOptions: state.game?.choicePhase?.current?.options?.map((option) => option.text) || [],
-  selectedPreferenceId: state.pendingPreferenceId,
-  currentAnswerDraft: document.getElementById("answerInput")?.value || null,
-  currentAnswerWordCount: document.getElementById("answerInput") ? countWords(document.getElementById("answerInput").value) : null,
-  activeElement: document.activeElement?.id || null,
-  visibleAnswerOptions: state.game?.guessPhase?.current?.options?.map((option) => option.text) || [],
-  revealedAnswer: state.game?.guessPhase?.reveal?.realAnswer || null,
-  selectedOptionId: state.pendingOptionId,
-  reviewOpen: Boolean(state.review),
-  compatibilityReport: state.game?.results?.compatibility ? {
-    overall: state.game.results.compatibility.overall,
-    tier: state.game.results.compatibility.tier,
-    answerAlignment: state.game.results.compatibility.answerAlignment,
-    mutualKnowledge: state.game.results.compatibility.mutualKnowledge,
-    balance: state.game.results.compatibility.balance,
-    categories: state.game.results.compatibility.categories.map(({ label, score }) => ({ label, score }))
-  } : null,
-  wouldYouRatherReport: state.game?.results?.wouldYouRather ? {
-    matchPercent: state.game.results.wouldYouRather.matchPercent,
-    matchCount: state.game.results.wouldYouRather.matchCount,
-    differenceCount: state.game.results.wouldYouRather.differenceCount,
-    totalQuestions: state.game.results.wouldYouRather.totalQuestions,
-    categories: state.game.results.wouldYouRather.categories.map(({ label, score, matchCount, questionCount }) => ({ label, score, matchCount, questionCount }))
-  } : null,
-  renderCount: state.renderCount
+root.addEventListener("change", (e) => {
+  if (e.target.closest("#promotion-form")) previewPromotion();
+  if (e.target.closest("#join-form")) previewRestaurant();
 });
-
-window.advanceTime = (milliseconds) => new Promise((resolve) => setTimeout(resolve, Math.min(milliseconds, 50)));
-
-render();
+window.render_game_to_text = () =>
+  JSON.stringify({
+    page,
+    theme,
+    coordinateSystem:
+      "Canvas origin top-left; x right, y down. Gameplay uses HTML form controls.",
+    user: user
+      ? { name: user.name, badges: user.badges, avatar: user.avatar }
+      : null,
+    game: game
+      ? {
+          code: game.code,
+          round: game.round,
+          phase: game.phase,
+          paused: game.paused,
+          host: game.host,
+          player: game.player,
+          board: game.board,
+          availableItems: game.catalog.length,
+        }
+      : null,
+    selected,
+  });
+window.advanceTime = () => {
+  draw();
+};
+document.addEventListener("keydown", (e) => {
+  if (
+    e.key.toLowerCase() === "f" &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey &&
+    !["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)
+  ) {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => {});
+  }
+});
+let publicRoom = new URLSearchParams(location.search).get("board");
+async function publicView() {
+  const data = await api("/leaderboard?room=" + encodeURIComponent(publicRoom));
+  root.innerHTML = `<div class="content"><div class="row between">${brand}<div class="row">${themeButton()}<a class="btn ghost" href="/">Owner login</a></div></div><div class="page-heading" style="margin-top:40px"><div><span class="eyebrow">LIVE CLASSROOM LEADERBOARD</span><h1>${esc(data.name)}</h1><p class="muted">Round ${data.round} / 10 · ${esc(data.phase)} · Updated after every round</p></div></div><div class="card">${leaderboard(data.board)}</div></div>`;
+}
+(async () => {
+  try {
+    if (publicRoom) {
+      await publicView();
+      return;
+    }
+    await refreshMe();
+  } catch {}
+  render();
+})();
+setInterval(async () => {
+  if (pendingDrafts || requestBusy) return;
+  try {
+    if (publicRoom) return await publicView();
+    if (!user) return;
+    if (game && ["game", "board"].includes(page)) {
+      const next = await api("/games/" + game.code);
+      if (next.version !== game.version) {
+        const editing = ["INPUT", "SELECT", "TEXTAREA"].includes(
+          document.activeElement.tagName,
+        );
+        if (
+          editing &&
+          next.phase === game.phase &&
+          next.round === game.round &&
+          next.paused === game.paused &&
+          next.player?.skippedRound === game.player?.skippedRound
+        )
+          return;
+        apply(next);
+        render();
+      }
+    }
+    if (page === "global") {
+      boardData = (await api("/leaderboard")).board;
+      render();
+    }
+  } catch {
+    /* Keep saved UI visible through a brief network interruption. */
+  }
+}, 2500);

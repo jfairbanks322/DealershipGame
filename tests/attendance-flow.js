@@ -1,0 +1,16 @@
+'use strict';
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
+(async()=>{const browser=await chromium.launch({headless:true}),base=process.env.TEST_URL||'http://127.0.0.1:3198',suffix=Date.now().toString(36),errors=[];
+async function api(c,url,data){const r=await c.request.post(base+'/api'+url,{data});assert.equal(r.status(),200,await r.text());return r.json();}
+try{const contexts=await Promise.all([0,1,2].map(()=>browser.newContext({viewport:{width:1440,height:1000}})));for(let i=0;i<3;i++)await api(contexts[i],'/register',{name:['Teacher','Active owner','Returning owner'][i],username:`attendance_${i}_${suffix}`,password:'classroom-password'});
+let g=await api(contexts[0],'/games',{name:'Attendance practice',teacherKey:'classroom-local'}),url='/games/'+g.code;
+await api(contexts[1],url+'/join',{restaurant:'Fry Society'});await api(contexts[2],url+'/join',{restaurant:'Taco Takeover'});
+g=await (await contexts[0].request.get(base+'/api'+url)).json();g=await api(contexts[0],url+'/start',{version:g.version});
+await api(contexts[1],url+'/check',{id:'1',markup:'100',amount:'2.40',price:'4.80'});await api(contexts[1],url+'/ready',{});await api(contexts[2],url+'/draft',{id:'1',markup:'100',amount:'2.10'});
+const t=await contexts[0].newPage(),s=await contexts[2].newPage();for(const p of [t,s]){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await p.goto(base);await p.locator('[data-open]').click();}
+await s.locator('[name=amount]').focus();await t.locator('[data-control=skip]').click();await t.locator('[data-control=restore]').waitFor();await s.getByText('Your teacher skipped this round for your restaurant.',{exact:false}).waitFor();assert.equal(await s.locator('#pricing-form').count(),0);
+await t.locator('[data-control=restore]').click();await s.locator('#pricing-form').waitFor();assert.equal(await s.locator('[name=amount]').inputValue(),'2.10');
+await t.locator('[data-control=skip]').click();await t.locator('[data-control=restore]').waitFor();fs.mkdirSync('output/business-math-attendance',{recursive:true});await t.screenshot({path:'output/business-math-attendance/teacher.png',fullPage:true});
+await t.locator('[data-control=run]').click();await s.getByRole('heading',{name:'Your restaurant sat this round out.'}).waitFor();await s.setViewportSize({width:390,height:844});await s.screenshot({path:'output/business-math-attendance/skipped-mobile.png',fullPage:true});assert.ok(await s.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+await t.locator('[data-control=next]').click();await s.locator('#pricing-form').waitFor();assert.equal(await s.locator('[name=amount]').inputValue(),'2.10');await s.locator('[name=amount]').fill('2.40');await s.locator('[name=price]').fill('4.80');await s.locator('#pricing-form .btn').first().click();await s.locator('.feedback.success').waitFor();await s.locator('[data-action=ready]').click();await s.getByRole('heading',{name:'✓ Your restaurant is ready.'}).waitFor();assert.deepEqual(errors,[]);console.log('PASS: teacher skip/restore, student lock, skipped results, mobile layout, saved draft return and next-round submission.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
