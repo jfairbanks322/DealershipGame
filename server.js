@@ -17,7 +17,7 @@ const http = require("node:http"),
 const { promisify } = require("node:util");
 const scrypt = promisify(crypto.scrypt);
 const { openStore } = require("./lib/store"),
-  { badges, sum } = require("./lib/achievements");
+  { badges, sum, evaluateBonus } = require("./lib/achievements");
 const {
   insist,
   newPlayer,
@@ -63,6 +63,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
   const save = (g) => {
     g.version++;
     for (const p of Object.values(g.players)) {
+      evaluateBonus(p);
       const u = userById(p.userId);
       const earned = [...new Set([...u.badges, ...p.badges])];
       if (earned.length >= 25 && !earned.includes(50)) earned.push(50);
@@ -140,6 +141,15 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       throw e;
     }
   }
+  // Award new cosmetic badges from retained events in existing games.
+  transaction(() => {
+    for (const row of db.prepare("SELECT data FROM games").all()) {
+      const g = JSON.parse(row.data);
+      const before = Object.values(g.players).map(p=>p.badges.length).join(",");
+      Object.values(g.players).forEach(evaluateBonus);
+      if (before !== Object.values(g.players).map(p=>p.badges.length).join(",")) save(g);
+    }
+  });
   const files = {
     "/": ["index.html", "text/html"],
     "/index.html": ["index.html", "text/html"],

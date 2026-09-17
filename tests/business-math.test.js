@@ -8,10 +8,10 @@ const { catalog, promotions } = require("../lib/catalog"),
   { badges } = require("../lib/achievements"),
   { pricing, newPlayer, simulate, deal } = require("../lib/game"),
   { createApp } = require("../server");
-test("catalog progression and 50 distinct achievements", () => {
+test("catalog progression and 70 distinct achievements", () => {
   assert.equal(catalog.length, 34);
-  assert.equal(badges.length, 50);
-  assert.equal(new Set(badges.map((x) => x.name)).size, 50);
+  assert.equal(badges.length, 70);
+  assert.equal(new Set(badges.map((x) => x.name)).size, 70);
   assert.equal(promotions.length, 11);
   for (let r = 1; r <= 10; r++)
     assert.equal(

@@ -154,7 +154,7 @@ const fs = require("node:fs");
     }
     await a.locator("[data-action=badges]").click();
     await a.locator(".badge-grid").waitFor();
-    assert.equal(await a.locator(".badge").count(), 50);
+    assert.equal(await a.locator(".badge").count(), 70);
     await a.locator('[data-feature="46"]').click();
     await a
       .locator('[data-feature="46"]')
@@ -180,7 +180,7 @@ const fs = require("node:fs");
     await waitRound(a, 10, "complete");
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: real browser registration, customization, unsaved input reset, 10 multiplayer rounds, math penalties, promotion, responsive layout, 50 badges, featured badge, public/career leaderboards and re-login.",
+      "PASS: real browser registration, customization, unsaved input reset, 10 multiplayer rounds, math penalties, promotion, responsive layout, 70 badges, featured badge, public/career leaderboards and re-login.",
     );
   } finally {
     await browser.close();
