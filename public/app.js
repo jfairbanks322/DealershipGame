@@ -103,6 +103,7 @@ function rememberBadges(ids) {
 }
 function apply(g) {
   if (game && (g.code !== game.code || g.round !== game.round || (g.phase === "lobby" && game.phase !== "lobby"))) { pricingInput = {}; selected = null; feedback = null; }
+  if (g.phase === "lobby") { tutorialStep = 0; tutorialReplay = false; }
   game = g;
   if (g.player) rememberBadges(g.player.badges);
   if (selected && !g.catalog.some((x) => x.id === selected)) selected = null;
@@ -140,6 +141,26 @@ function stat(label, value, note) {
 }
 function leaderboard(rows = game.board) {
   return `<div class="table-wrap"><table><thead><tr><th>Rank</th><th>Restaurant</th><th>Owner</th><th>Total profit</th><th>Last round</th><th>Units served</th><th>Status</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.userId === user?.id ? "me" : ""}"><td><strong>${r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : "#" + r.rank}</strong>${r.previousRank != null ? `<small>${r.previousRank === r.rank ? "—" : r.previousRank > r.rank ? "↑ " + (r.previousRank - r.rank) : "↓ " + (r.rank - r.previousRank)}</small>` : ""}</td><td><strong>${esc(r.icon)} ${esc(r.restaurant)}</strong>${r.featured ? `<small>${esc(r.featuredName || badgeDefs.find((b) => b.id === r.featured)?.name || "Badge earned")}</small>` : ""}</td><td><span class="owner-cell">${avatarArt(r.avatar)}${esc(r.owner)}</span></td><td><strong>${cash(r.profit)}</strong></td><td class="${r.last < 0 ? "negative" : "positive"}">${cash(r.last)}</td><td>${r.units}</td><td>${game?.phase === "planning" ? (r.skipped ? "Skipped this round" : r.ready ? "✓ Submitted" : "Planning") : "—"}</td></tr>`).join("")}</tbody></table>${rows.length ? "" : '<div class="empty">Waiting for the first restaurant.</div>'}</div>`;
+}
+let tutorialStep = 0, tutorialReplay = false, tutorialRoom = null;
+function tutorial() {
+  if (!game?.player || game.host || game.phase !== "planning") return "";
+  if (tutorialRoom !== game.code) { tutorialRoom = game.code; tutorialStep = 0; tutorialReplay = false; }
+  const show = tutorialReplay || (game.round === 1 && !game.player.tutorialSeen);
+  if (!show) return '<div class="tutorial-help"><button class="btn ghost small" data-tutorial="replay">How to play</button></div>';
+  const steps = isSupply() ? [
+    ["Read the market", "Start with today’s market card. A lunch rush may bring more customers; a supplier shortage can raise your costs. Your goal is to earn profit by matching price and stock to demand."],
+    ["Choose one menu item", "Pick one of the five starting items below. Each round you must add exactly one new item. More choices unlock later, and earlier choices stay available."],
+    ["Set your price and stock", "Enter a selling price and how many units to prepare, then choose Save price & stock. Lower prices tend to attract more buyers. You pay for every unit prepared, even leftovers. The game does the math for you."],
+    ["Submit, then learn from the results", "Choose Submit round 1 when you’re ready. Your teacher runs the round after the class submits. Review profit, missed sales, and leftovers. Next round, add one item and adjust your existing prices or stock if you want."]
+  ] : [
+    ["Build your restaurant", "Your goal is to earn profit over ten rounds. Start by choosing one of the five available menu items. Each round you must add exactly one new item; more choices unlock as you play."],
+    ["Choose your markup", "The item’s cost is fixed. Choose a markup percentage, then calculate the markup amount and selling price. For example: $2.00 cost × 50% = $1.00 markup; $2.00 + $1.00 = $3.00 selling price."],
+    ["Check and save your price", "Enter your markup percentage, markup amount, and selling price, then choose Check math & save price. Both answers must be correct to save. Rounds 1–5 have no math penalties; later rounds have at most one penalty per round."],
+    ["Submit and watch your business grow", "Choose Submit round 1 once your new item is saved. Your teacher simulates customer sales. Review your profit, then add one new item next round and adjust existing prices if you want. Promotions unlock in round 3."]
+  ];
+  const step = steps[tutorialStep];
+  return `<section class="card tutorial-card" aria-labelledby="tutorial-title"><div class="row between"><span class="eyebrow">QUICK START · ${isSupply() ? "SUPPLY & DEMAND" : "COST & MARKUP"} · ${tutorialStep + 1} / ${steps.length}</span><button class="btn ghost small" data-tutorial="skip">Skip tutorial</button></div><div aria-live="polite"><h2 id="tutorial-title">${step[0]}</h2><p>${step[1]}</p></div><div class="row between"><span class="tiny muted">You can reopen this guide with How to play.</span><div class="row">${tutorialStep ? '<button class="btn secondary small" data-tutorial="back">Back</button>' : ''}<button class="btn orange small" data-tutorial="${tutorialStep === steps.length - 1 ? 'done' : 'next'}">${tutorialStep === steps.length - 1 ? 'Let’s play' : 'Next →'}</button></div></div></section>`;
 }
 function gameManagement() {
   return `<section class="card" style="margin-top:20px"><h3>Manage this game</h3><p class="muted">Reset returns everyone to the round-one lobby, keeping the room code, lesson, and restaurants. Delete permanently removes the room. Both clear this game’s results and global leaderboard scores. Accounts and earned badges stay saved.</p><div class="row"><button class="btn secondary" data-manage="reset">Reset game</button><button class="btn secondary" data-manage="delete">Delete game</button></div></section>`;
@@ -402,7 +423,7 @@ function render() {
                     ? `${heading()}<div class="row" style="margin-bottom:20px"><button class="btn secondary" data-action="projector">${projector ? "Exit projector view" : "Projector view"}</button><button class="btn ghost" data-action="copy-board">Copy public leaderboard link</button></div><div class="card">${leaderboard()}</div>`
                     : game.host
                       ? teacher()
-                      : student(),
+                      : tutorial() + student(),
         );
   draw();
   previewPromotion();
@@ -483,6 +504,21 @@ root.addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
   if (!btn || btn.disabled) return;
   try {
+    if (btn.dataset.tutorial) {
+      const action = btn.dataset.tutorial;
+      if (action === "next") tutorialStep = Math.min(3, tutorialStep + 1);
+      if (action === "back") tutorialStep = Math.max(0, tutorialStep - 1);
+      if (action === "replay") { tutorialStep = 0; tutorialReplay = true; }
+      if (action === "done" || action === "skip") {
+        btn.disabled = true;
+        apply(await api(`/games/${game.code}/tutorial`, {}));
+        tutorialStep = 0; tutorialReplay = false;
+      }
+      render();
+      const focus = root.querySelector('[data-tutorial="next"], [data-tutorial="done"], [data-tutorial="replay"]');
+      focus?.focus({ preventScroll: true });
+      return;
+    }
     if (btn.dataset.badgeFilter) {
       badgeFilter = btn.dataset.badgeFilter;
       render();
@@ -771,6 +807,7 @@ window.render_game_to_text = () =>
         }
       : null,
     selected,
+    tutorial: root.querySelector(".tutorial-card") ? { step: tutorialStep + 1, total: 4, lesson: game.lesson.id } : null,
   });
 window.advanceTime = () => {
   draw();

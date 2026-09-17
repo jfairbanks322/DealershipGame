@@ -472,6 +472,12 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (action === "tutorial") {
+          insist(p, "Join the room first.");
+          p.tutorialSeen = true;
+          save(g);
+          return view(g, u);
+        }
         if (action === "reset" || action === "delete") {
           insist(g.host === u.id, "Only the teacher who owns this game can reset or delete it.");
           insist(b.version === g.version, "The room changed. Refresh and try again.");

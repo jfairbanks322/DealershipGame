@@ -105,3 +105,7 @@ Ten announced market events vary customer traffic, input costs and price sensiti
 ### Reset or delete a classroom
 
 The room owner's teacher dashboard includes **Manage this game** for both lessons. Type the room code to confirm either action. Reset keeps the code, lesson settings, and restaurant roster, clearing menus and round progress and returning to the round-one lobby. Delete removes the classroom entirely. Both remove that classroom's completed-game career scores; other games, accounts, and earned badges remain. Download results before clearing a game if you need a copy. Stale confirmations are rejected when the room has changed.
+
+### Student quick start
+
+When round one opens, each student sees a four-step guide for their selected lesson. They can skip it or reopen **How to play** during planning. Completion is saved with their classroom progress across logins and devices. Resetting the classroom makes the guide available automatically again.

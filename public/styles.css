@@ -1674,3 +1674,8 @@ body {
     width: 100%;
   }
 }
+
+.tutorial-card { margin-bottom: 24px; border: 2px solid var(--orange, #da583b); }
+.tutorial-card h2 { margin-top: 14px; }
+.tutorial-card p { max-width: 760px; line-height: 1.7; }
+.tutorial-help { margin-bottom: 12px; text-align: right; }
