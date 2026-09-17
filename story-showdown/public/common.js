@@ -10,7 +10,8 @@
     "Poetry — Free verse": "≈", "Finish the story": "…", "Connect the start and end": "↝",
     "Science fiction": "⌁", "Fantasy": "✧", "Realistic fiction": "◌", "Dialogue challenges": "“ ”",
     "Plot twists": "↻", "Character challenges": "◇", "Setting descriptions": "▣",
-    "Perspective changes": "◐", "Extremely strange or absurd scenarios": "?!", "Custom": "✎"
+    "Perspective changes": "◐", "Extremely strange or absurd scenarios": "?!", "Description Lab": "◈",
+    "Character Lab — Hero": "⚔", "Character Lab — Villain": "♜", "Custom": "✎"
   };
 
   function resizeCanvas() {
@@ -136,6 +137,9 @@
       totalRounds: source.totalRounds || 0,
       timerSeconds: round ? Math.max(0, Math.ceil(remainingSeconds(round))) : null,
       prompt: round?.prompt?.text || null,
+      roundFormat: round?.prompt?.format || null,
+      promptSource: round?.prompt?.source || null,
+      successTargets: round?.prompt?.criteria || [],
       submissionCount: round?.submissionCount ?? null,
       voterCount: round?.voterCount ?? null,
       presentation: round ? { index: round.presentationIndex, count: round.presentationCount, currentLabel: round.currentEntry?.label || null } : null,

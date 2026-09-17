@@ -183,17 +183,111 @@ const LENGTHS = [
   { responseLength: "long", timerSeconds: 360, suggestion: "3–5 paragraphs" }
 ];
 
-const prompts = Object.entries(CATEGORIES).flatMap(([category, texts], categoryIndex) =>
+const ROUND_FORMATS = Object.freeze([
+  { id: "story", label: "Story Spark", icon: "✦", summary: "Write from a genre or story prompt.", sourceLabel: "Prompt", writingLabel: "Your response", placeholder: "Start writing here…" },
+  { id: "vivid", label: "Make It Vivid", icon: "◈", summary: "Transform a plain sentence into a sensory scene.", sourceLabel: "Plain description", writingLabel: "Your vivid rewrite", placeholder: "Let the reader see, hear, and feel the moment…" },
+  { id: "hero", label: "Create the Hero", icon: "⚔", summary: "Invent a protagonist built for a specific scenario.", sourceLabel: "Scenario", writingLabel: "Your protagonist", placeholder: "Show who this hero is beneath the obvious answer…" },
+  { id: "villain", label: "Create the Villain", icon: "♜", summary: "Design a layered antagonist with believable motives.", sourceLabel: "Scenario", writingLabel: "Your antagonist", placeholder: "Create a villain who believes they are making the right choice…" }
+]);
+
+const WORKSHOP_PROMPTS = {
+  vivid: [
+    "The hallway was crowded and noisy.",
+    "A storm moved over the town.",
+    "The old house looked frightening.",
+    "She was nervous before the audition.",
+    "The kitchen smelled good.",
+    "The team celebrated after the final whistle.",
+    "The forest was quiet at night.",
+    "He opened the mysterious box.",
+    "The city was busy in the morning."
+  ],
+  hero: [
+    "At sunrise, everyone in town forgets the previous day—except one person.",
+    "An underwater city has twelve hours of oxygen left, and the escape route has vanished.",
+    "At a school where every lie becomes visible, someone is being framed by a truth.",
+    "The royal crown disappears on the morning it must choose the next ruler.",
+    "A young Mars colony receives a rescue signal from a place where nobody has ever lived.",
+    "A championship team loses its coach minutes before the final game begins.",
+    "Books are vanishing from a library, along with every reader’s memory of them.",
+    "Two rival cities must share the only bridge before a once-in-a-century flood arrives.",
+    "The smallest dragon in the kingdom is the only creature who can enter a collapsing mountain."
+  ],
+  villain: [
+    "A city has learned how to buy and sell time, but only one person controls the price.",
+    "An enchanted forest is being made perfectly safe, one wild creature at a time.",
+    "A school’s new principal can guarantee success—but only by choosing every student’s future.",
+    "A celebrated inventor promises to end loneliness with companions who never disagree.",
+    "The keeper of a magical archive has begun erasing every story that causes conflict.",
+    "A space station commander refuses to let anyone return to a damaged Earth.",
+    "The kingdom’s most beloved hero wants to outlaw fear, sadness, and every other painful emotion.",
+    "A famous detective secretly creates mysteries so the city will always need them.",
+    "The guardian of a perfect virtual world will do anything to stop its citizens from waking up."
+  ]
+};
+
+const storyPrompts = Object.entries(CATEGORIES).flatMap(([category, texts], categoryIndex) =>
   texts.map((text, index) => {
     const length = LENGTHS[(categoryIndex + index) % LENGTHS.length];
     return {
       id: `starter-${categoryIndex + 1}-${index + 1}`,
       text,
       category,
+      format: "story",
+      source: "",
+      criteria: [],
+      writingLabel: "Your response",
+      placeholder: "Start writing here…",
       difficulty: ["accessible", "intermediate", "challenge"][(index + categoryIndex) % 3],
       ...length
     };
   })
 );
 
-module.exports = { prompts, categories: Object.keys(CATEGORIES) };
+const WORKSHOP_DETAILS = {
+  vivid: {
+    category: "Description Lab",
+    task: "Rewrite the plain description as a vivid scene. Keep the same basic event, but make the reader experience it.",
+    criteria: ["Sensory detail", "Precise verbs", "Fresh comparison"],
+    suggestions: ["4–6 vivid sentences", "1 sensory paragraph", "2 layered paragraphs"]
+  },
+  hero: {
+    category: "Character Lab — Hero",
+    task: "Create the main character for this scenario. Give them a goal, a fear, a contradiction, and one choice only they would make.",
+    criteria: ["Clear motivation", "Strength and flaw", "Memorable detail"],
+    suggestions: ["1 character snapshot", "1–2 focused paragraphs", "A full character profile"]
+  },
+  villain: {
+    category: "Character Lab — Villain",
+    task: "Create the antagonist for this scenario. Give them a believable goal, a persuasive reason, a dangerous flaw, and a line they refuse to cross.",
+    criteria: ["Believable motive", "Threat and humanity", "Distinctive presence"],
+    suggestions: ["1 character snapshot", "1–2 focused paragraphs", "A full character profile"]
+  }
+};
+
+const workshopPrompts = Object.entries(WORKSHOP_PROMPTS).flatMap(([format, sources], formatIndex) => {
+  const details = WORKSHOP_DETAILS[format];
+  const roundFormat = ROUND_FORMATS.find((item) => item.id === format);
+  return sources.map((source, index) => {
+    const lengthIndex = (formatIndex + index) % LENGTHS.length;
+    const length = LENGTHS[lengthIndex];
+    return {
+      id: `${format}-${index + 1}`,
+      format,
+      source,
+      text: details.task,
+      category: details.category,
+      criteria: details.criteria,
+      writingLabel: roundFormat.writingLabel,
+      placeholder: roundFormat.placeholder,
+      difficulty: ["accessible", "intermediate", "challenge"][(index + formatIndex) % 3],
+      responseLength: length.responseLength,
+      timerSeconds: length.timerSeconds,
+      suggestion: details.suggestions[lengthIndex]
+    };
+  });
+});
+
+const prompts = [...storyPrompts, ...workshopPrompts];
+
+module.exports = { prompts, categories: Object.keys(CATEGORIES), roundFormats: ROUND_FORMATS };

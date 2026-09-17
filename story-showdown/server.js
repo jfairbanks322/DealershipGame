@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const { prompts: starterPrompts, categories } = require("./prompts");
+const { prompts: starterPrompts, categories, roundFormats } = require("./prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("./public/avatars");
 const {
   COOP_STORY_FRAMES, COOP_TOPICS, COOP_SECTIONS, coopFrameById, coopTopicById, coopSectionsForFrame,
@@ -249,9 +249,31 @@ function updateRanks(game) {
   });
 }
 
+function normalizePrompt(input = {}, fallbackDuration = 240) {
+  const roundFormat = roundFormats.find((item) => item.id === input.format) || roundFormats[0];
+  return {
+    id: cleanText(input.id, 80) || `custom-${token(6)}`,
+    format: roundFormat.id,
+    formatLabel: roundFormat.label,
+    formatIcon: roundFormat.icon,
+    sourceLabel: roundFormat.sourceLabel,
+    source: roundFormat.id === "story" ? "" : cleanText(input.source, 1200),
+    text: cleanText(input.text, 1200),
+    category: cleanText(input.category, 80) || (roundFormat.id === "story" ? "Custom" : roundFormat.label),
+    criteria: Array.isArray(input.criteria) ? input.criteria.slice(0, 4).map((item) => cleanText(item, 60)).filter(Boolean) : [],
+    writingLabel: cleanText(input.writingLabel, 60) || roundFormat.writingLabel,
+    placeholder: cleanText(input.placeholder, 180) || roundFormat.placeholder,
+    difficulty: cleanText(input.difficulty, 30) || "teacher choice",
+    responseLength: ["short", "medium", "long"].includes(input.responseLength) ? input.responseLength : "medium",
+    suggestion: cleanText(input.suggestion, 80) || "Teacher-selected length",
+    timerSeconds: Math.max(30, Math.min(900, Number(input.timerSeconds) || fallbackDuration))
+  };
+}
+
 function promptPool(game, filters = {}) {
   const all = [...starterPrompts, ...game.customPrompts];
   return all.filter((prompt) =>
+    (!filters.format || filters.format === "all" || (prompt.format || "story") === filters.format) &&
     (!filters.category || filters.category === "all" || prompt.category === filters.category) &&
     (!filters.responseLength || filters.responseLength === "all" || prompt.responseLength === filters.responseLength)
   );
@@ -265,11 +287,12 @@ function randomPrompt(game, filters = {}) {
 }
 
 function makeRound(game, prompt, duration) {
+  const normalizedPrompt = normalizePrompt(prompt, game.settings.defaultDuration);
   return {
     id: token(8),
     number: game.roundNumber,
-    prompt: { ...prompt, text: cleanText(prompt.text, 1200) },
-    durationSeconds: Math.max(30, Math.min(900, Number(duration) || prompt.timerSeconds || game.settings.defaultDuration)),
+    prompt: normalizedPrompt,
+    durationSeconds: Math.max(30, Math.min(900, Number(duration) || normalizedPrompt.timerSeconds || game.settings.defaultDuration)),
     startedAt: null,
     endsAt: null,
     pausedRemainingMs: null,
@@ -752,6 +775,7 @@ function teacherSnapshot(game) {
   if (["pre_round", "leaderboard", "final"].includes(game.phase)) snapshot.playerLeaderboards = playerLeaderboards(game);
   snapshot.promptBank = starterPrompts;
   snapshot.categories = categories;
+  snapshot.roundFormats = roundFormats;
   snapshot.customPrompts = game.customPrompts;
   snapshot.draftPrompt = game.draftPrompt;
   snapshot.roundHistory = game.roundHistory.map((round) => ({
@@ -1068,29 +1092,13 @@ io.on("connection", (socket) => {
   teacherHandler(socket, "teacher:select-prompt", (game, payload) => {
     const prompt = payload.prompt || starterPrompts.find((item) => item.id === payload.promptId) || game.customPrompts.find((item) => item.id === payload.promptId);
     if (!prompt) throw new Error("Prompt not found.");
-    game.draftPrompt = {
-      id: cleanText(prompt.id, 80) || `custom-${token(6)}`,
-      text: cleanText(prompt.text, 1200),
-      category: cleanText(prompt.category, 80) || "Custom",
-      difficulty: cleanText(prompt.difficulty, 30) || "teacher choice",
-      responseLength: ["short", "medium", "long"].includes(prompt.responseLength) ? prompt.responseLength : "medium",
-      suggestion: cleanText(prompt.suggestion, 80) || "Teacher-selected length",
-      timerSeconds: Math.max(30, Math.min(900, Number(prompt.timerSeconds) || game.settings.defaultDuration))
-    };
+    game.draftPrompt = normalizePrompt(prompt, game.settings.defaultDuration);
   });
 
   teacherHandler(socket, "teacher:save-custom-prompt", (game, payload) => {
-    const text = cleanText(payload.prompt?.text, 1200);
-    if (text.length < 10) throw new Error("Custom prompts need at least 10 characters.");
-    const prompt = {
-      id: `custom-${token(6)}`,
-      text,
-      category: cleanText(payload.prompt.category, 80) || "Custom",
-      difficulty: cleanText(payload.prompt.difficulty, 30) || "teacher choice",
-      responseLength: ["short", "medium", "long"].includes(payload.prompt.responseLength) ? payload.prompt.responseLength : "medium",
-      suggestion: cleanText(payload.prompt.suggestion, 80) || "Teacher-selected length",
-      timerSeconds: Math.max(30, Math.min(900, Number(payload.prompt.timerSeconds) || game.settings.defaultDuration))
-    };
+    const prompt = normalizePrompt({ ...payload.prompt, id: `custom-${token(6)}` }, game.settings.defaultDuration);
+    if (prompt.text.length < 10) throw new Error("Custom prompts need at least 10 characters.");
+    if (prompt.format !== "story" && prompt.source.length < 10) throw new Error("Add a plain description or scenario with at least 10 characters.");
     game.customPrompts.push(prompt);
     game.draftPrompt = prompt;
     return { prompt };
@@ -1101,6 +1109,7 @@ io.on("connection", (socket) => {
     if (game.roundNumber >= game.settings.totalRounds) throw new Error("All scheduled rounds are complete.");
     const prompt = payload.prompt || game.draftPrompt || randomPrompt(game, payload.filters || {});
     if (!cleanText(prompt.text, 1200)) throw new Error("Choose or enter a prompt first.");
+    if ((prompt.format || "story") !== "story" && !cleanText(prompt.source, 1200)) throw new Error("Choose or enter a plain description or scenario first.");
     game.roundNumber += 1;
     for (const team of game.teams) team.lastRoundPoints = 0;
     for (const player of Object.values(game.players)) player.draftText = "";
@@ -1357,7 +1366,7 @@ io.on("connection", (socket) => {
 });
 
 function exportRows(game) {
-  const rows = [["Round", "Prompt", "Entry", "Student", "Team", "Response", "Placement", "Votes", "Points", "Team total"]];
+  const rows = [["Round", "Round format", "Source or scenario", "Prompt", "Entry", "Student", "Team", "Response", "Placement", "Votes", "Points", "Team total"]];
   for (const round of game.roundHistory) {
     const bySubmission = new Map((round.results || []).map((result) => [result.submissionId, result]));
     for (const submission of Object.values(round.submissions || {})) {
@@ -1365,7 +1374,7 @@ function exportRows(game) {
       const team = game.teams.find((item) => item.id === submission.teamId);
       const result = bySubmission.get(submission.id);
       rows.push([
-        round.number, round.prompt.text, labelFor((round.presentationOrder || []).indexOf(submission.id)), player?.name || "Former student",
+        round.number, round.prompt.formatLabel || "Story Spark", round.prompt.source || "", round.prompt.text, labelFor((round.presentationOrder || []).indexOf(submission.id)), player?.name || "Former student",
         team?.name || "Unknown", submission.text, result?.placement || "", result?.votes ?? "", result?.points || 0, team?.score || 0
       ]);
     }
@@ -1402,7 +1411,7 @@ app.get("/api/games/:code/print", (req, res) => {
   try {
     const game = requireTeacher(req.params.code, req.query.token);
     const rounds = game.roundHistory.map((round) => `
-      <section><h2>Round ${round.number}</h2><p class="prompt">${escapeHtml(round.prompt.text)}</p>
+      <section><h2>Round ${round.number} · ${escapeHtml(round.prompt.formatLabel || "Story Spark")}</h2>${round.prompt.source ? `<p><b>${escapeHtml(round.prompt.sourceLabel || "Scenario")}:</b> ${escapeHtml(round.prompt.source)}</p>` : ""}<p class="prompt">${escapeHtml(round.prompt.text)}</p>
       ${Object.values(round.submissions || {}).map((submission) => {
         const player = game.players[submission.playerId];
         const team = game.teams.find((item) => item.id === submission.teamId);

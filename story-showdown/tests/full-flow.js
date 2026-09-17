@@ -93,7 +93,8 @@ async function main() {
   assert.match(created.code, /^[A-Z2-9]{5}$/);
   assert.equal(created.state.settings.teamCount, 4);
   assert.equal(created.state.teams.length, 4);
-  assert.equal(created.state.promptBank.length, 144);
+  assert.equal(created.state.promptBank.length, 171);
+  assert.deepEqual(created.state.roundFormats.map((format) => format.id), ["story", "vivid", "hero", "villain"]);
   await rejected(teacher, "teacher:lock-joining", { code: created.code, teacherToken: "wrong", locked: true }, /authorization/i);
 
   const players = [];
@@ -203,8 +204,13 @@ async function main() {
   await teacherAction(teacher, auth, "teacher:open-prompt-lab");
   const customPrompt = {
     id: "teacher-integration-prompt",
-    text: "A polite goose audits the school talent show. Write the principal's response.",
-    category: "Teacher challenge",
+    format: "villain",
+    source: "A famous school mascot can guarantee victory, but only by choosing every player's future.",
+    text: "Create the antagonist for this scenario. Give them a believable goal, a persuasive reason, and one line they refuse to cross.",
+    category: "Character Lab — Villain",
+    criteria: ["Believable motive", "Threat and humanity", "Distinctive presence"],
+    writingLabel: "Your antagonist",
+    placeholder: "Create a villain who believes they are making the right choice…",
     difficulty: "teacher choice",
     responseLength: "medium",
     suggestion: "Aim for 150–250 words",
@@ -215,10 +221,15 @@ async function main() {
   assert.equal(teacherState.draftPrompt.text, "");
   await teacherAction(teacher, auth, "teacher:save-custom-prompt", { prompt: customPrompt });
   teacherState = await waitFor(teacher, (s) => s.draftPrompt?.text === customPrompt.text && s.customPrompts.length === 1, "saved teacher prompt");
-  assert.equal(teacherState.draftPrompt.category, "Teacher challenge");
+  assert.equal(teacherState.draftPrompt.category, "Character Lab — Villain");
+  assert.equal(teacherState.draftPrompt.format, "villain");
+  assert.equal(teacherState.draftPrompt.source, customPrompt.source);
   await teacherAction(teacher, auth, "teacher:start-round", { prompt: teacherState.draftPrompt, durationSeconds: 30 });
-  await waitFor(players[0], (s) => s.phase === "writing" && s.round.number === 2, "second writing phase");
-  for (let i = 0; i < players.length; i += 1) await action(players[i], "student:draft", { text: `Round two response ${i + 1}: a polite goose audits the talent show.` });
+  const villainRound = await waitFor(players[0], (s) => s.phase === "writing" && s.round.number === 2, "second writing phase");
+  assert.equal(villainRound.round.prompt.formatLabel, "Create the Villain");
+  assert.equal(villainRound.round.prompt.source, customPrompt.source);
+  assert.equal(villainRound.round.prompt.criteria.length, 3);
+  for (let i = 0; i < players.length; i += 1) await action(players[i], "student:draft", { text: `Round two response ${i + 1}: the mascot believes total control is the only path to victory.` });
   const internal = games.get(created.code);
   internal.currentRound.endsAt = Date.now() - 1;
   teacherState = await waitFor(teacher, (s) => s.phase === "review", "server timer expiration");

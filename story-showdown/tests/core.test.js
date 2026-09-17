@@ -2,20 +2,20 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { prompts, categories } = require("../prompts");
+const { prompts, categories, roundFormats } = require("../prompts");
 const { AVATAR_CHOICES, normalizeAvatarId, avatarFor } = require("../public/avatars");
 const {
   COOP_STORY_FRAMES, COOP_TOPIC_GROUPS, COOP_TOPICS, COOP_SECTIONS, coopFrameById, coopTopicById, coopSectionsForFrame,
   normalizeCoopSentence, formatCoopAnswer, buildCoopStory, coopStoryText
 } = require("../public/coop");
 
-test("starter bank contains 144 fully described prompts across the expanded category set", () => {
+test("starter bank contains 171 fully described prompts across four round formats", () => {
   const requestedCategories = [
     "Poetry — Rhyming", "Poetry — Free verse", "Suspense and mystery", "Comedy", "Fantasy",
     "Finish the story", "Connect the start and end"
   ];
   assert.equal(categories.length, 16);
-  assert.equal(prompts.length, 144);
+  assert.equal(prompts.length, 171);
   assert.equal(new Set(prompts.map((prompt) => prompt.id)).size, prompts.length);
   for (const category of categories) assert.equal(prompts.filter((prompt) => prompt.category === category).length, 9);
   for (const category of requestedCategories) assert.ok(categories.includes(category));
@@ -27,7 +27,20 @@ test("starter bank contains 144 fully described prompts across the expanded cate
     assert.ok(["short", "medium", "long"].includes(prompt.responseLength));
     assert.ok([120, 240, 360].includes(prompt.timerSeconds));
     assert.ok(prompt.suggestion);
+    assert.ok(["story", "vivid", "hero", "villain"].includes(prompt.format));
   }
+  assert.deepEqual(roundFormats.map((format) => format.id), ["story", "vivid", "hero", "villain"]);
+  assert.ok(roundFormats.every((format) => format.label && format.icon && format.summary && format.writingLabel && format.placeholder));
+  assert.equal(prompts.filter((prompt) => prompt.format === "story").length, 144);
+  for (const format of ["vivid", "hero", "villain"]) {
+    const formatPrompts = prompts.filter((prompt) => prompt.format === format);
+    assert.equal(formatPrompts.length, 9);
+    assert.ok(formatPrompts.every((prompt) => prompt.source.length >= 20));
+    assert.ok(formatPrompts.every((prompt) => prompt.criteria.length === 3));
+  }
+  assert.ok(prompts.filter((prompt) => prompt.format === "vivid").every((prompt) => /rewrite/i.test(prompt.text)));
+  assert.ok(prompts.filter((prompt) => prompt.format === "hero").every((prompt) => /main character/i.test(prompt.text)));
+  assert.ok(prompts.filter((prompt) => prompt.format === "villain").every((prompt) => /antagonist/i.test(prompt.text)));
 });
 
 test("avatar choices are unique, labeled, and safely normalized", () => {

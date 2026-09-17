@@ -298,6 +298,22 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .team-card li { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
 
 .prompt-lab { display: grid; gap: 16px; }
+.round-format-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.round-format-card { --format-accent: var(--purple); position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 10px; min-height: 105px; padding: 14px; border: 1px solid var(--line); border-top: 5px solid var(--format-accent); border-radius: 17px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--format-accent) 6%, var(--surface))); color: var(--ink); text-align: left; box-shadow: var(--shadow-small); transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; }
+.round-format-card.format-vivid { --format-accent: var(--teal); }
+.round-format-card.format-hero { --format-accent: var(--sky); }
+.round-format-card.format-villain { --format-accent: var(--pink); }
+.round-format-card:hover, .round-format-card.active { transform: translateY(-3px); border-color: var(--format-accent); box-shadow: 0 10px 24px color-mix(in srgb, var(--format-accent) 17%, transparent); }
+.round-format-card.active { background: linear-gradient(145deg, color-mix(in srgb, var(--format-accent) 14%, var(--surface)), var(--surface)); }
+.round-format-card > span { grid-row: 1 / span 2; display: grid; place-items: center; width: 39px; height: 39px; border-radius: 12px; background: var(--format-accent); color: white; font-size: 19px; font-weight: 900; }
+.round-format-card b { align-self: end; font: 800 17px/1 "League Spartan", sans-serif; }
+.round-format-card small { grid-column: 2; color: var(--muted); line-height: 1.25; }
+.format-explainer { --format-accent: var(--teal); display: flex; align-items: center; gap: 13px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--format-accent) 38%, var(--line)); border-radius: 16px; background: color-mix(in srgb, var(--format-accent) 8%, var(--surface)); }
+.format-explainer.format-hero { --format-accent: var(--sky); }
+.format-explainer.format-villain { --format-accent: var(--pink); }
+.format-explainer > span { display: grid; place-items: center; flex: 0 0 auto; width: 46px; height: 46px; border-radius: 14px; background: var(--format-accent); color: white; font-size: 23px; }
+.format-explainer b { font: 800 20px/1 "League Spartan", sans-serif; }
+.format-explainer p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .category-rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 9px; overflow-x: auto; padding: 2px 2px 10px; scroll-snap-type: x proximity; scrollbar-color: var(--purple) transparent; }
 .category-card { scroll-snap-align: start; display: grid; grid-template-columns: 36px 1fr; gap: 9px; align-items: center; min-height: 58px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface-2) 55%, var(--surface))); color: var(--ink); text-align: left; box-shadow: 0 5px 14px color-mix(in srgb, var(--purple) 6%, transparent); transition: transform .16s ease, border-color .16s ease; }
 .category-card:hover, .category-card.active { transform: translateY(-2px); border-color: var(--purple); }
@@ -305,9 +321,16 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .category-card span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; font-size: 16px; font-weight: 900; }
 .category-card b { font-size: 12px; line-height: 1.15; }
 .prompt-filters { display: grid; grid-template-columns: 1.5fr .8fr auto auto; gap: 10px; }
+.prompt-filters.workshop { grid-template-columns: minmax(140px, .8fr) auto auto; }
 .prompt-preview { padding: 22px; border: 1px solid color-mix(in srgb, var(--purple) 16%, var(--line)); border-radius: 19px; background: linear-gradient(145deg, color-mix(in srgb, var(--surface-2) 80%, var(--surface)), var(--surface)); box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent); }
+.prompt-preview.format-vivid { border-color: color-mix(in srgb, var(--teal) 40%, var(--line)); }
+.prompt-preview.format-hero { border-color: color-mix(in srgb, var(--sky) 40%, var(--line)); }
+.prompt-preview.format-villain { border-color: color-mix(in srgb, var(--pink) 40%, var(--line)); }
 .prompt-title-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .prompt-title-row .section-kicker { margin-bottom: 0; }
+.prompt-badge-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.round-format-badge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--teal) 28%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--teal) 7%, var(--surface)); color: var(--ink); font-size: 11px; font-weight: 900; letter-spacing: .03em; }
+.round-format-badge b { color: var(--teal); font-size: 16px; }
 .prompt-category-badge, .difficulty-badge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--purple) 20%, var(--line)); border-radius: 999px; background: var(--surface); color: var(--purple); font-size: 11px; font-weight: 900; letter-spacing: .03em; }
 .prompt-category-badge b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--purple), var(--pink)); color: white; }
 .difficulty-badge { color: var(--muted); text-transform: uppercase; }
@@ -317,6 +340,16 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .meta-tag { padding: 6px 10px; border: 1px solid color-mix(in srgb, var(--purple) 20%, var(--line)); border-radius: 999px; color: var(--muted); background: color-mix(in srgb, var(--surface) 88%, transparent); font-size: 11px; font-weight: 800; }
 .prompt-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 .prompt-editor .wide { grid-column: 1 / -1; }
+.challenge-source-field textarea { min-height: 92px; font: 800 20px/1.3 "League Spartan", sans-serif; }
+.challenge-source { margin: 15px 0; padding: 16px 18px; border-left: 5px solid var(--teal); border-radius: 14px; background: color-mix(in srgb, var(--teal) 9%, var(--surface)); }
+.challenge-source span, .projector-source span { display: block; margin-bottom: 6px; color: var(--teal); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.challenge-source strong { font: 800 clamp(21px, 4vw, 30px)/1.25 "League Spartan", sans-serif; }
+.challenge-criteria { display: flex; flex-wrap: wrap; gap: 7px; }
+.challenge-criteria span { padding: 7px 10px; border-radius: 999px; background: color-mix(in srgb, var(--teal) 10%, var(--surface)); color: color-mix(in srgb, var(--teal) 65%, var(--ink)); font-size: 11px; font-weight: 900; }
+.challenge-criteria.centered { justify-content: center; margin: 16px auto 4px; }
+.projector-source { width: min(850px, 100%); margin: 22px auto 15px; padding: 17px 21px; border: 1px solid color-mix(in srgb, var(--teal) 33%, var(--line)); border-radius: 16px; background: color-mix(in srgb, var(--teal) 8%, var(--surface)); }
+.projector-source strong { font: 800 clamp(23px, 3.4vw, 39px)/1.15 "League Spartan", sans-serif; }
+.challenge-projector .projector-copy { font-size: clamp(20px, 2.7vw, 31px); color: var(--muted); }
 
 .projector-stage { position: relative; isolation: isolate; min-height: 390px; display: grid; place-items: center; text-align: center; padding: clamp(30px, 6vw, 75px); border-radius: calc(var(--radius) + 4px); background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--pink) 13%, transparent), transparent 28%), radial-gradient(circle at 90% 90%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 30%), linear-gradient(145deg, var(--surface-2), var(--surface)); border: 1px solid color-mix(in srgb, var(--purple) 22%, var(--line)); box-shadow: var(--shadow); overflow: hidden; }
 .projector-stage::before, .projector-stage::after { content: ""; position: absolute; z-index: -1; width: 130px; height: 130px; border: 2px solid color-mix(in srgb, var(--purple) 13%, transparent); border-radius: 38px; transform: rotate(24deg); }
@@ -397,6 +430,10 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .student-writing { display: grid; gap: 16px; }
 .student-prompt { position: relative; overflow: hidden; padding: 24px; border: 1px solid color-mix(in srgb, var(--purple) 20%, var(--line)); border-left: 7px solid var(--purple); border-radius: 20px; background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--pink) 12%, transparent), transparent 35%), linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--surface-2) 40%, var(--surface))); box-shadow: var(--shadow); }
 .student-prompt h2 { margin: 8px 0; font: 800 clamp(24px, 5vw, 38px)/1.15 "League Spartan", sans-serif; }
+.student-prompt.format-vivid { border-left-color: var(--teal); }
+.student-prompt.format-hero { border-left-color: var(--sky); }
+.student-prompt.format-villain { border-left-color: var(--pink); }
+.challenge-prompt .challenge-criteria { margin-top: 14px; }
 .writing-desk { padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--teal) 3%, var(--surface))); box-shadow: var(--shadow-small); }
 .desk-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; }
 .desk-heading span { color: var(--teal); font-size: 12px; font-weight: 900; }
@@ -589,6 +626,7 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
   .dashboard-aside { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .dashboard-aside .panel { margin: 0; }
   .prompt-filters { grid-template-columns: 1fr 1fr; }
+  .round-format-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .coop-prompt-grid { grid-template-columns: 1fr; }
 }
 
@@ -603,6 +641,9 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
   .path-card { min-height: 220px; }
   .game-header { grid-template-columns: 1fr; align-items: start; }
   .prompt-filters { grid-template-columns: 1fr; }
+  .prompt-filters.workshop, .round-format-grid { grid-template-columns: 1fr; }
+  .round-format-card { min-height: 88px; }
+  .prompt-badge-row { justify-content: flex-start; }
   .category-rail { grid-auto-columns: minmax(138px, 44vw); }
   .genre-cloud { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; padding: 2px 2px 8px; }
   .genre-cloud span { white-space: nowrap; }
