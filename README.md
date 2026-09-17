@@ -91,3 +91,13 @@ TEST_URL=http://localhost:3040 node tests/browser-flow.js
 The current game is published as `cost-markup-v1`. Every game stores its lesson version and a snapshot of its rules/catalog/promotions. Pricing checks, submission requirements, and promotion accounting now have lesson-level entry points. Career scores are tagged and compared by lesson version. No new discount exercises are enabled yet. See [lesson-development.md](docs/lesson-development.md) for the module contract and the remaining steps to add next week’s lesson without changing existing games.
 
 Classroom load regression (`npm test`) exercises 40 concurrent owner accounts through ten rounds, with concurrent pricing/submission/polling requests, skip/restore authorization, stale teacher controls, and return after a missed round. This is an API load simulation on one local machine, not a guarantee of Railway or school-network performance. Browser attendance coverage is in `tests/attendance-flow.js`.
+
+## Supply & Demand lesson
+
+Choose **Supply & Demand** in the teacher's Lesson dropdown when creating a new classroom. Cost & Markup remains the default and existing rooms retain their original lesson. Accounts and cosmetic badges are shared; career leaderboards have a lesson selector and separate scores.
+
+Supply & Demand runs ten rounds. Add one new item each round, choose its selling price and units to prepare, and optionally adjust existing menu decisions. No calculation answers, math penalties, or promotions are used. Prices and stock carry forward until changed; inventory is prepared fresh each round. Students pay for all prepared units, and leftovers expire. Sales are limited by stock. Round reports show wanted, prepared, sold, leftover units, missed sales and profit with a discussion prompt.
+
+Ten announced market events vary customer traffic, input costs and price sensitivity. Competing restaurants selling the same item influence demand modestly through their relative prices; this is a simplified teaching simulation, not a fixed-size shared customer market. Supply mode awards basic participation/sales/profit/completion badges, not math-check badges. Teachers retain pause, skip/restore, public leaderboard and export controls.
+
+`tests/supply-demand.test.js` verifies economics, ten-round play and score separation; `tests/supply-flow.js` covers teacher selection and browser gameplay.

@@ -110,6 +110,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       code: g.code,
       name: g.name,
       lesson: { id: g.lessonId || DEFAULT_LESSON, label: lessonFor(g).label },
+      market: lessonFor(g).market?.(g) || null,
       rules: {
         totalRounds: rulesFor(g).totalRounds,
         practiceRounds: rulesFor(g).practiceRounds,
@@ -340,7 +341,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
         });
       }
       if (!u && url.pathname === "/api/me" && req.method === "GET")
-        return send(200, { user: null, games: [], badges });
+        return send(200, { user: null, games: [], badges, lessons: publishedLessons() });
       if (!u) return send(401, { error: "Please log in to continue." });
       if (url.pathname === "/api/me" && req.method === "GET") {
         const games = db
@@ -435,6 +436,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           version: 0,
         };
         initializeLesson(g, b.lessonId || DEFAULT_LESSON);
+        if (rulesFor(g).mathChecks === false) g.penalty = 0;
         transaction(() => save(g));
         return send(200, view(g, u));
       }
