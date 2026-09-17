@@ -101,3 +101,7 @@ Supply & Demand runs ten rounds. Add one new item each round, choose its selling
 Ten announced market events vary customer traffic, input costs and price sensitivity. Competing restaurants selling the same item influence demand modestly through their relative prices; this is a simplified teaching simulation, not a fixed-size shared customer market. Supply mode awards basic participation/sales/profit/completion badges, not math-check badges. Teachers retain pause, skip/restore, public leaderboard and export controls.
 
 `tests/supply-demand.test.js` verifies economics, ten-round play and score separation; `tests/supply-flow.js` covers teacher selection and browser gameplay.
+
+### Reset or delete a classroom
+
+The room owner's teacher dashboard includes **Manage this game** for both lessons. Type the room code to confirm either action. Reset keeps the code, lesson settings, and restaurant roster, clearing menus and round progress and returning to the round-one lobby. Delete removes the classroom entirely. Both remove that classroom's completed-game career scores; other games, accounts, and earned badges remain. Download results before clearing a game if you need a copy. Stale confirmations are rejected when the room has changed.

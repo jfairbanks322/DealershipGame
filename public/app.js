@@ -86,7 +86,7 @@ async function api(path, body) {
     keepalive: body !== undefined,
   });
   const value = await res.json();
-  if (!res.ok) throw new Error(value.error || "Request failed.");
+  if (!res.ok) { const error = new Error(value.error || "Request failed."); error.status = res.status; throw error; }
   return value;
 }
 function rememberBadges(ids) {
@@ -102,7 +102,7 @@ function rememberBadges(ids) {
   }
 }
 function apply(g) {
-  if (game && (g.code !== game.code || g.round !== game.round)) { pricingInput = {}; selected = null; feedback = null; }
+  if (game && (g.code !== game.code || g.round !== game.round || (g.phase === "lobby" && game.phase !== "lobby"))) { pricingInput = {}; selected = null; feedback = null; }
   game = g;
   if (g.player) rememberBadges(g.player.badges);
   if (selected && !g.catalog.some((x) => x.id === selected)) selected = null;
@@ -141,9 +141,12 @@ function stat(label, value, note) {
 function leaderboard(rows = game.board) {
   return `<div class="table-wrap"><table><thead><tr><th>Rank</th><th>Restaurant</th><th>Owner</th><th>Total profit</th><th>Last round</th><th>Units served</th><th>Status</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.userId === user?.id ? "me" : ""}"><td><strong>${r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : "#" + r.rank}</strong>${r.previousRank != null ? `<small>${r.previousRank === r.rank ? "—" : r.previousRank > r.rank ? "↑ " + (r.previousRank - r.rank) : "↓ " + (r.rank - r.previousRank)}</small>` : ""}</td><td><strong>${esc(r.icon)} ${esc(r.restaurant)}</strong>${r.featured ? `<small>${esc(r.featuredName || badgeDefs.find((b) => b.id === r.featured)?.name || "Badge earned")}</small>` : ""}</td><td><span class="owner-cell">${avatarArt(r.avatar)}${esc(r.owner)}</span></td><td><strong>${cash(r.profit)}</strong></td><td class="${r.last < 0 ? "negative" : "positive"}">${cash(r.last)}</td><td>${r.units}</td><td>${game?.phase === "planning" ? (r.skipped ? "Skipped this round" : r.ready ? "✓ Submitted" : "Planning") : "—"}</td></tr>`).join("")}</tbody></table>${rows.length ? "" : '<div class="empty">Waiting for the first restaurant.</div>'}</div>`;
 }
+function gameManagement() {
+  return `<section class="card" style="margin-top:20px"><h3>Manage this game</h3><p class="muted">Reset returns everyone to the round-one lobby, keeping the room code, lesson, and restaurants. Delete permanently removes the room. Both clear this game’s results and global leaderboard scores. Accounts and earned badges stay saved.</p><div class="row"><button class="btn secondary" data-manage="reset">Reset game</button><button class="btn secondary" data-manage="delete">Delete game</button></div></section>`;
+}
 function teacher() {
   const ready = game.board.filter((x) => x.ready).length;
-  return `${heading()}${isSupply()?marketCard():""}${game.paused ? '<div class="notice">This game is paused. Saved work will be waiting when you resume.</div>' : ""}<div class="stats">${stat("Room code", game.code, "Share this code with students")}${stat("Restaurants", game.board.length, "Up to 100 owners")}${stat("Submitted", `${ready} / ${game.board.length}`, "Submit or skip each owner to simulate")}${isSupply()?stat("Mode", "Strategy", "No calculation answers or math penalties"):stat("Math penalty", cash(game.penalty), "Once per round, starting round 6")}</div><div class="card row between"><div><h2 style="margin-bottom:5px">${game.phase === "lobby" ? "Ready to open?" : game.phase === "planning" ? "Let the owners make their move." : game.phase === "complete" ? "Competition complete." : "Time for a business debrief."}</h2><p class="muted" style="margin:0">${game.phase === "planning" ? "Submitted plans are locked until an owner reopens them." : "Discuss the results together before continuing."}</p></div><div class="row">${game.phase === "lobby" ? '<button class="btn" data-control="start">Start round 1 →</button>' : ""}${game.phase === "planning" ? `<button class="btn orange" data-control="run" ${!game.board.length || game.board.some((r) => !r.ready && !r.skipped) || !ready || game.paused ? "disabled" : ""}>Simulate round ${game.round} →</button>` : ""}${game.phase === "results" ? `<button class="btn" data-control="next" ${game.paused ? "disabled" : ""}>Open round ${game.round + 1} →</button>` : ""}${game.phase !== "complete" ? `<button class="btn ghost" data-control="pause">${game.paused ? "Resume" : "Pause"}</button>` : ""}</div></div>${game.phase === "planning" ? `<section class="card" style="margin-top:20px"><h2>Round attendance</h2><p class="muted">Skip an absent or unfinished owner for this round. They make no sales and receive no math penalty. Saved menu stays available. Restore them before simulating if they return. At least one owner must submit.</p><div class="stack">${game.board.filter((r) => !r.ready).map((r) => `<div class="row between"><span><strong>${esc(r.owner)}</strong> · ${esc(r.restaurant)}${r.skipped ? ' · Skipped' : ''}</span><button class="btn ghost small" data-control="${r.skipped ? 'restore' : 'skip'}" data-owner="${esc(r.userId)}" ${game.paused ? 'disabled' : ''}>${r.skipped ? 'Restore this round' : 'Skip this round'}</button></div>`).join('') || '<p>Everyone has submitted.</p>'}</div></section>` : ''}<div class="section-title"><h2>Classroom leaderboard</h2><div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div></div><div class="card">${leaderboard()}</div><div class="card soft" style="margin-top:20px"><h3>Round rhythm</h3><p class="muted" style="margin:0">${isSupply()?"One new item per round. Students choose price and stock, react to market changes, and review shortages and leftovers. All prepared food costs money. No math checks or promotions in this lesson.":"One new item per round. Five choices in round 1, five more in round 2, then three each round. Promotions start in round 3. Math checks have unlimited free retries in rounds 1–5; later rounds apply only one penalty."}</p></div>`;
+  return `${heading()}${gameManagement()}${isSupply()?marketCard():""}${game.paused ? '<div class="notice">This game is paused. Saved work will be waiting when you resume.</div>' : ""}<div class="stats">${stat("Room code", game.code, "Share this code with students")}${stat("Restaurants", game.board.length, "Up to 100 owners")}${stat("Submitted", `${ready} / ${game.board.length}`, "Submit or skip each owner to simulate")}${isSupply()?stat("Mode", "Strategy", "No calculation answers or math penalties"):stat("Math penalty", cash(game.penalty), "Once per round, starting round 6")}</div><div class="card row between"><div><h2 style="margin-bottom:5px">${game.phase === "lobby" ? "Ready to open?" : game.phase === "planning" ? "Let the owners make their move." : game.phase === "complete" ? "Competition complete." : "Time for a business debrief."}</h2><p class="muted" style="margin:0">${game.phase === "planning" ? "Submitted plans are locked until an owner reopens them." : "Discuss the results together before continuing."}</p></div><div class="row">${game.phase === "lobby" ? '<button class="btn" data-control="start">Start round 1 →</button>' : ""}${game.phase === "planning" ? `<button class="btn orange" data-control="run" ${!game.board.length || game.board.some((r) => !r.ready && !r.skipped) || !ready || game.paused ? "disabled" : ""}>Simulate round ${game.round} →</button>` : ""}${game.phase === "results" ? `<button class="btn" data-control="next" ${game.paused ? "disabled" : ""}>Open round ${game.round + 1} →</button>` : ""}${game.phase !== "complete" ? `<button class="btn ghost" data-control="pause">${game.paused ? "Resume" : "Pause"}</button>` : ""}</div></div>${game.phase === "planning" ? `<section class="card" style="margin-top:20px"><h2>Round attendance</h2><p class="muted">Skip an absent or unfinished owner for this round. They make no sales and receive no math penalty. Saved menu stays available. Restore them before simulating if they return. At least one owner must submit.</p><div class="stack">${game.board.filter((r) => !r.ready).map((r) => `<div class="row between"><span><strong>${esc(r.owner)}</strong> · ${esc(r.restaurant)}${r.skipped ? ' · Skipped' : ''}</span><button class="btn ghost small" data-control="${r.skipped ? 'restore' : 'skip'}" data-owner="${esc(r.userId)}" ${game.paused ? 'disabled' : ''}>${r.skipped ? 'Restore this round' : 'Skip this round'}</button></div>`).join('') || '<p>Everyone has submitted.</p>'}</div></section>` : ''}<div class="section-title"><h2>Classroom leaderboard</h2><div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div></div><div class="card">${leaderboard()}</div><div class="card soft" style="margin-top:20px"><h3>Round rhythm</h3><p class="muted" style="margin:0">${isSupply()?"One new item per round. Students choose price and stock, react to market changes, and review shortages and leftovers. All prepared food costs money. No math checks or promotions in this lesson.":"One new item per round. Five choices in round 1, five more in round 2, then three each round. Promotions start in round 3. Math checks have unlimited free retries in rounds 1–5; later rounds apply only one penalty."}</p></div>`;
 }
 function pricingPanel(p) {
   const item = game.catalog.find((x) => x.id === selected);
@@ -539,6 +542,20 @@ root.addEventListener("click", async (e) => {
       return;
     }
     if (btn.dataset.open) return await openGame(btn.dataset.open);
+    if (btn.dataset.manage) {
+      const action = btn.dataset.manage, code = game.code, version = game.version;
+      const confirmation = prompt(`${action === "reset" ? "Reset this game to the round-one lobby?" : "Permanently delete this game?"} This clears its results and global leaderboard scores. Accounts and earned badges stay saved. Type ${code} to confirm.`);
+      if (confirmation === null) return;
+      if (confirmation.trim().toUpperCase() !== code) { toast("Room code did not match. Nothing changed."); return; }
+      btn.disabled = true;
+      const result = await api(`/games/${code}/${action}`, { version, confirmCode: code });
+      selected = null; pricingInput = {}; feedback = null;
+      if (result.deleted) { game = null; page = "home"; await refreshMe(); }
+      else apply(result);
+      render();
+      toast(action === "reset" ? "Game reset. Students are back in the lobby." : "Game deleted.");
+      return;
+    }
     if (btn.dataset.control) {
       btn.disabled = true;
       await actionRoom(btn.dataset.control, { version: game.version, userId: btn.dataset.owner });
@@ -772,7 +789,13 @@ document.addEventListener("keydown", (e) => {
 });
 let publicRoom = new URLSearchParams(location.search).get("board");
 async function publicView() {
-  const data = await api("/leaderboard?room=" + encodeURIComponent(publicRoom));
+  let data;
+  try { data = await api("/leaderboard?room=" + encodeURIComponent(publicRoom)); }
+  catch (error) {
+    if (error.status !== 404) throw error;
+    root.innerHTML = `<main class="content"><section class="card"><h1>Game unavailable</h1><p>This room was deleted or its code is incorrect.</p><a class="btn" href="/">Return to home</a></section></main>`;
+    return;
+  }
   root.innerHTML = `<div class="content"><div class="row between">${brand}<div class="row">${themeButton()}<a class="btn ghost" href="/">Owner login</a></div></div><div class="page-heading" style="margin-top:40px"><div><span class="eyebrow">LIVE CLASSROOM LEADERBOARD</span><h1>${esc(data.name)}</h1><p class="muted">Round ${data.round} / 10 · ${esc(data.phase)} · Updated after every round</p></div></div><div class="card">${leaderboard(data.board)}</div></div>`;
 }
 (async () => {
@@ -812,7 +835,11 @@ setInterval(async () => {
       boardData = (await api("/leaderboard?lessonId=" + encodeURIComponent(boardLesson))).board;
       render();
     }
-  } catch {
+  } catch (error) {
+    if (error.status === 404 && game) {
+      game = null; selected = null; pricingInput = {}; feedback = null; page = "home";
+      await refreshMe(); render(); toast("This game was deleted by its teacher.");
+    }
     /* Keep saved UI visible through a brief network interruption. */
   }
 }, 2500);

@@ -54,7 +54,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       .all(id, lessonId);
   const load = (code) => {
     const row = db.prepare("SELECT data FROM games WHERE code=?").get(code);
-    insist(row, "Game not found. Check the room code.");
+    if (!row) { const error = new Error("This game was deleted or the room code is incorrect."); error.status = 404; throw error; }
     const g = JSON.parse(row.data);
     if (!g.lessonId) initializeLesson(g);
     getLesson(g.lessonId);
@@ -472,6 +472,24 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (action === "reset" || action === "delete") {
+          insist(g.host === u.id, "Only the teacher who owns this game can reset or delete it.");
+          insist(b.version === g.version, "The room changed. Refresh and try again.");
+          insist(b.confirmCode === g.code, "Enter the room code to confirm.");
+          db.prepare("DELETE FROM careers WHERE game=?").run(g.code);
+          if (action === "delete") {
+            db.prepare("DELETE FROM games WHERE code=?").run(g.code);
+            return { deleted: true, code: g.code };
+          }
+          g.phase = "lobby";
+          g.round = 1;
+          g.paused = false;
+          for (const [id, owner] of Object.entries(g.players)) {
+            g.players[id] = newPlayer(userById(id), owner.restaurant, owner.icon, owner.color);
+          }
+          save(g);
+          return view(g, u);
+        }
         if (action === "join") {
           if (!p) {
             insist(
