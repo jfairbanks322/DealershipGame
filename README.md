@@ -19,7 +19,7 @@ Open [localhost:3040](http://localhost:3040). Register an account. Use **Teacher
 5. Teacher simulates once everyone is ready, discusses the results, then opens the next round.
 6. Round 10 completes the game and records career results automatically.
 
-You can pause and resume. Accounts, sessions, completed reports, unfinished pricing drafts, ready status, and penalties are stored in SQLite. Log in and select a saved game to reopen it. Pricing drafts are distinct from validated menu prices. A student cannot submit with an unfinished draft.
+You can pause and resume. Accounts, sessions, completed reports, checked menu prices, ready status, and penalties are stored in SQLite. Log in and select a saved game to reopen it. Unfinished calculations do not save. Only a correct math check saves a menu price. Each round allows exactly one new item; existing menu prices can still be adjusted. Legacy unfinished drafts do not block submission.
 
 ## Included
 
@@ -36,7 +36,7 @@ You can pause and resume. Accounts, sessions, completed reports, unfinished pric
 - Universal career-profit and best-game rankings based only on completed games.
 - 50 server-awarded account badges; feature up to three, with the first displayed on the classroom board.
 - Teacher pause/resume, readiness dashboard, round attendance controls, and CSV export of round results.
-- During planning, teachers can skip an unsubmitted owner for the current round and restore them before simulation. Skipped rounds have no sales, expenses, or math penalty; saved menu and drafts remain. Participation resets next round, with one new menu item required that round rather than catch-up items. At least one owner must submit; all other owners must submit or be skipped. CSV exports mark skipped rounds.
+- During planning, teachers can skip an unsubmitted owner for the current round and restore them before simulation. Skipped rounds have no sales, expenses, or math penalty; saved menu remains. Participation resets next round, with one new menu item required that round rather than catch-up items. At least one owner must submit; all other owners must submit or be skipped. CSV exports mark skipped rounds.
 - Light/dark toggle remembers the browser preference and starts from the device theme. Switching themes preserves in-progress form entries.
 - Twelve original vector mascot avatars, selectable at registration or from My avatar, saved to accounts and displayed on leaderboards. Existing accounts receive the Chef Sprout avatar through an additive database migration.
 - Responsive desktop/mobile interface and keyboard-accessible forms. Press F outside form fields for fullscreen; Esc exits.
@@ -88,6 +88,6 @@ TEST_URL=http://localhost:3040 node tests/browser-flow.js
 
 ## Curriculum expansion
 
-The current game is published as `cost-markup-v1`. Every game stores its lesson version and a snapshot of its rules/catalog/promotions. Pricing checks, draft fields, submission requirements, and promotion accounting now have lesson-level entry points. Career scores are tagged and compared by lesson version. No new discount exercises are enabled yet. See [lesson-development.md](docs/lesson-development.md) for the module contract and the remaining steps to add next week’s lesson without changing existing games.
+The current game is published as `cost-markup-v1`. Every game stores its lesson version and a snapshot of its rules/catalog/promotions. Pricing checks, submission requirements, and promotion accounting now have lesson-level entry points. Career scores are tagged and compared by lesson version. No new discount exercises are enabled yet. See [lesson-development.md](docs/lesson-development.md) for the module contract and the remaining steps to add next week’s lesson without changing existing games.
 
 Classroom load regression (`npm test`) exercises 40 concurrent owner accounts through ten rounds, with concurrent pricing/submission/polling requests, skip/restore authorization, stale teacher controls, and return after a missed round. This is an API load simulation on one local machine, not a guarantee of Railway or school-network performance. Browser attendance coverage is in `tests/attendance-flow.js`.

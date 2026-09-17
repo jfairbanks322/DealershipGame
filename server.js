@@ -567,16 +567,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           } else {
             insist(!p.ready, "Reopen your submission before making changes.");
             if (action === "draft") {
-              const item = rulesFor(g).catalog.find(
-                (x) => x.id === b.id && x.round <= g.round,
-              );
-              insist(item, "Item not available.");
-              insist(
-                p.menu.some((x) => x.id === item.id) || !p.menu.some((x) => x.addedRound === g.round),
-                "Only one new item per round.",
-              );
-              if (b.discard) delete p.drafts[b.id];
-              else p.drafts[b.id] = draftFor(g, b);
+              insist(false, "Draft saving has been removed. Refresh the page and use Check math & save price.");
             } else if (action === "check") {
               const check = pricing(g, p, b);
               save(g);

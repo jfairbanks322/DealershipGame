@@ -30,7 +30,7 @@ A module exports:
 - `readyError(game, player)`: returns a blocking message or null. Extra exercises can block submission here.
 - `calculateOffer(player, entry, rules)`: returns per-order revenue, cost, units, expected value, promotion demand factor, fees, and the existing optional happy-hour accounting fields. A discount lesson can use validated discount data from the menu entry here.
 
-The existing `/check`, `/draft`, `/ready`, and simulation paths call these lesson functions. Students cannot choose a lesson version or replace a rules snapshot after joining; the teacher selects a published lesson when creating the game.
+The existing `/check`, `/ready`, and simulation paths call these lesson functions. Students cannot choose a lesson version or replace a rules snapshot after joining; the teacher selects a published lesson when creating the game.
 
 ## Adding discounts next week
 
@@ -43,3 +43,5 @@ The existing `/check`, `/draft`, `/ready`, and simulation paths call these lesso
 7. Run tests for both lesson versions, including a saved original game resumed after the new release, wrong-answer penalties, rounding, discounted sales accounting, and separate career rankings.
 
 The same player accounts, avatars, and earned badges carry across games. Career profit/best-game comparisons are isolated by lesson version. Gameplay balancing, badge eligibility for a new curriculum, and customer-demand changes still need deliberate review when implementing that new lesson.
+
+Draft autosaving has been retired. `/draft` rejects requests from older clients with a refresh instruction; unfinished inputs are not saved and do not block readiness. The old draft serialization helper is retained only for compatibility, not used by active gameplay.

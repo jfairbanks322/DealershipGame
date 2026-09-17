@@ -173,7 +173,7 @@ test("complete two-player game, auth, privacy, saves, restart, and career record
       markup: "75",
       amount: "1.",
       price: "",
-    });
+    }, 400);
     await new Promise((r) => app.server.close(r));
     app.db.close();
     app = createApp({ dbPath, teacherKey: "test-teacher" });
@@ -189,7 +189,7 @@ test("complete two-player game, auth, privacy, saves, restart, and career record
       ).avatar,
       "fox",
     );
-    assert.equal(saved.player.drafts["1"].amount, "1.");
+    assert.deepEqual(saved.player.drafts, {});
     await req("alice", url + "/ready", {}, 400);
     await req(
       "alice",

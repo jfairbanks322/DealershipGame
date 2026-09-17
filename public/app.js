@@ -41,10 +41,8 @@ let user = null,
   boardMode = "career",
   projector = false,
   requestBusy = false,
-  draftQueue = Promise.resolve(),
-  pendingDrafts = 0,
+  pricingInput = {},
   toastTimer;
-const failedDrafts = new Map();
 const esc = (x) =>
   String(x ?? "").replace(
     /[&<>"']/g,
@@ -77,19 +75,6 @@ async function api(path, body) {
   if (!res.ok) throw new Error(value.error || "Request failed.");
   return value;
 }
-async function flushDrafts() {
-  await draftQueue;
-  if (failedDrafts.size)
-    throw new Error(
-      "A draft has not saved. Check your connection and edit the field again before leaving.",
-    );
-}
-window.addEventListener("beforeunload", (event) => {
-  if (pendingDrafts || failedDrafts.size) {
-    event.preventDefault();
-    event.returnValue = "";
-  }
-});
 function rememberBadges(ids) {
   if (!user) return;
   const added = ids.filter((id) => !user.badges.includes(id));
@@ -103,6 +88,7 @@ function rememberBadges(ids) {
   }
 }
 function apply(g) {
+  if (game && (g.code !== game.code || g.round !== game.round)) { pricingInput = {}; selected = null; feedback = null; }
   game = g;
   if (g.player) rememberBadges(g.player.badges);
   if (selected && !g.catalog.some((x) => x.id === selected)) selected = null;
@@ -121,7 +107,7 @@ function shell(body) {
   return `<div class="app-shell ${projector ? "projector" : ""}"><aside class="sidebar">${brand}<nav><button class="nav ${page === "profile" ? "active" : ""}" data-action="profile">◉ &nbsp; My avatar</button><button class="nav ${page === "home" ? "active" : ""}" data-action="home">▦ &nbsp; My businesses</button>${game ? `<button class="nav ${page === "game" ? "active" : ""}" data-action="game">🍔 &nbsp; ${game.host ? "Teacher dashboard" : "My restaurant"}</button><button class="nav ${page === "board" ? "active" : ""}" data-action="board">↗ &nbsp; Game leaderboard</button>` : ""}<button class="nav ${page === "global" ? "active" : ""}" data-action="global">◎ &nbsp; Global leaderboard</button><button class="nav ${page === "badges" ? "active" : ""}" data-action="badges">✦ &nbsp; Achievements</button></nav><div class="side-foot">BUILT ONE ROUND AT A TIME<hr>Good math. Bold menus.<br>Your business story.</div></aside><div><header class="topbar"><span class="muted">${game ? `ROOM <strong>${esc(game.code)}</strong> &nbsp; / &nbsp; ${esc(game.name)}` : "BUSINESS MATH / OWNER HQ"}</span><div class="row">${themeButton()}${user ? `<button class="avatar-trigger" data-action="profile" aria-label="Choose your avatar">${avatarArt(user.avatar)}</button>` : ""}<strong>${esc(user?.name || "Public view")}</strong><button class="btn ghost small" data-action="${user ? "logout" : "login-tab"}">${user ? "Log out" : "Log in"}</button></div></header><main class="content">${body}</main></div></div>`;
 }
 function home() {
-  return `<div class="page-heading"><div><span class="eyebrow">${user.teacher ? "TEACHER HEADQUARTERS" : "THE OWNER’S OFFICE"}</span><h1 style="margin-top:10px">Your next chapter.</h1><p class="muted">Join your class, reopen a business, or host a new competition.</p></div><span class="pill">${user.badges.length} / 50 BADGES</span></div><div class="grid2"><section class="card"><h2>Open your restaurant</h2><p class="muted">Get a room code from your teacher. Make the place your own.</p><form id="join-form" class="stack"><label>Room code<input name="code" maxlength="6" minlength="6" placeholder="ABC123" required style="text-transform:uppercase"></label><label>Restaurant name<select name="restaurant" required><option value="">Choose from 50 restaurant names</option>${restaurantOptions.names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label><div class="grid2"><label>Your sign<select name="icon">${restaurantOptions.signs.map((x) => `<option>${x}</option>`).join("")}</select></label><label>Restaurant color<select name="color">${restaurantOptions.colors.map((c) => `<option value="${c.value}">${c.name}</option>`).join("")}</select></label></div><div id="restaurant-preview" class="restaurant-preview"><span>🍔</span><div><strong>Pick your restaurant</strong><small>50 names · 32 signs · 16 colors</small></div></div><button class="btn">Join the kitchen →</button></form></section><section class="card soft"><span class="eyebrow">FOR TEACHERS</span><h2 style="margin-top:12px">Run the room.</h2><p class="muted">You control each round. Students’ decisions and drafts save automatically.</p><form id="host-form" class="stack"><label>Competition name<input name="name" maxlength="60" placeholder="Period 3 · Fast Food Founders" required></label>${user.teacher ? '<div class="success tiny">✓ Teacher access verified for this session.</div>' : '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" required></label>'}<label>Lesson<select name="lessonId">${lessonChoices.map((l) => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join("")}</select></label><label>One-time round penalty (rounds 6–10)<input name="penalty" type="number" min="0" max="20" step="0.01" value="5" required></label><button class="btn secondary">Create a classroom →</button></form></section></div><div class="section-title"><h2>Your saved games</h2><span class="muted tiny">Resume with the same account on any device</span></div><div class="stack">${games.length ? games.map((g) => `<button class="card row between" data-open="${g.code}" style="text-align:left;color:inherit"><span><strong>${esc(g.name)}</strong><br><span class="muted tiny">${g.code} · ${g.host ? "Teacher" : "Owner"}</span></span><span class="pill">ROUND ${g.round} · ${esc(g.phase)}</span><span>Open →</span></button>`).join("") : '<div class="card empty">Your first business story starts above.</div>'}</div>`;
+  return `<div class="page-heading"><div><span class="eyebrow">${user.teacher ? "TEACHER HEADQUARTERS" : "THE OWNER’S OFFICE"}</span><h1 style="margin-top:10px">Your next chapter.</h1><p class="muted">Join your class, reopen a business, or host a new competition.</p></div><span class="pill">${user.badges.length} / 50 BADGES</span></div><div class="grid2"><section class="card"><h2>Open your restaurant</h2><p class="muted">Get a room code from your teacher. Make the place your own.</p><form id="join-form" class="stack"><label>Room code<input name="code" maxlength="6" minlength="6" placeholder="ABC123" required style="text-transform:uppercase"></label><label>Restaurant name<select name="restaurant" required><option value="">Choose from 50 restaurant names</option>${restaurantOptions.names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label><div class="grid2"><label>Your sign<select name="icon">${restaurantOptions.signs.map((x) => `<option>${x}</option>`).join("")}</select></label><label>Restaurant color<select name="color">${restaurantOptions.colors.map((c) => `<option value="${c.value}">${c.name}</option>`).join("")}</select></label></div><div id="restaurant-preview" class="restaurant-preview"><span>🍔</span><div><strong>Pick your restaurant</strong><small>50 names · 32 signs · 16 colors</small></div></div><button class="btn">Join the kitchen →</button></form></section><section class="card soft"><span class="eyebrow">FOR TEACHERS</span><h2 style="margin-top:12px">Run the room.</h2><p class="muted">You control each round. Correctly checked prices and round results save automatically.</p><form id="host-form" class="stack"><label>Competition name<input name="name" maxlength="60" placeholder="Period 3 · Fast Food Founders" required></label>${user.teacher ? '<div class="success tiny">✓ Teacher access verified for this session.</div>' : '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" required></label>'}<label>Lesson<select name="lessonId">${lessonChoices.map((l) => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join("")}</select></label><label>One-time round penalty (rounds 6–10)<input name="penalty" type="number" min="0" max="20" step="0.01" value="5" required></label><button class="btn secondary">Create a classroom →</button></form></section></div><div class="section-title"><h2>Your saved games</h2><span class="muted tiny">Resume with the same account on any device</span></div><div class="stack">${games.length ? games.map((g) => `<button class="card row between" data-open="${g.code}" style="text-align:left;color:inherit"><span><strong>${esc(g.name)}</strong><br><span class="muted tiny">${g.code} · ${g.host ? "Teacher" : "Owner"}</span></span><span class="pill">ROUND ${g.round} · ${esc(g.phase)}</span><span>Open →</span></button>`).join("") : '<div class="card empty">Your first business story starts above.</div>'}</div>`;
 }
 function heading() {
   return `<div class="page-heading"><div><span class="eyebrow">${game.host ? "CLASSROOM CONTROL" : "YOUR RESTAURANT, YOUR RULES"}</span><h1 style="margin-top:10px">${game.host ? esc(game.name) : esc(game.player.restaurant)}</h1><p class="muted">${game.phase === "lobby" ? "The kitchen opens when your teacher starts the game." : game.phase === "complete" ? "That’s a wrap. Your ten-round business story is saved." : `Round ${game.round} of 10 · ${game.phase === "planning" ? "Make your next move." : "See what your decisions earned."}`}</p></div><span class="pill ${game.paused ? "orange" : ""}">${game.paused ? "PAUSED" : esc(game.phase.toUpperCase())}</span></div><ol class="round-rail" aria-label="Ten-round game progress">${Array.from(
@@ -143,15 +129,15 @@ function leaderboard(rows = game.board) {
 }
 function teacher() {
   const ready = game.board.filter((x) => x.ready).length;
-  return `${heading()}${game.paused ? '<div class="notice">This game is paused. Saved work will be waiting when you resume.</div>' : ""}<div class="stats">${stat("Room code", game.code, "Share this code with students")}${stat("Restaurants", game.board.length, "Up to 100 owners")}${stat("Submitted", `${ready} / ${game.board.length}`, "Submit or skip each owner to simulate")}${stat("Math penalty", cash(game.penalty), "Once per round, starting round 6")}</div><div class="card row between"><div><h2 style="margin-bottom:5px">${game.phase === "lobby" ? "Ready to open?" : game.phase === "planning" ? "Let the owners make their move." : game.phase === "complete" ? "Competition complete." : "Time for a business debrief."}</h2><p class="muted" style="margin:0">${game.phase === "planning" ? "Submitted plans are locked until an owner reopens them." : "Discuss the results together before continuing."}</p></div><div class="row">${game.phase === "lobby" ? '<button class="btn" data-control="start">Start round 1 →</button>' : ""}${game.phase === "planning" ? `<button class="btn orange" data-control="run" ${!game.board.length || game.board.some((r) => !r.ready && !r.skipped) || !ready || game.paused ? "disabled" : ""}>Simulate round ${game.round} →</button>` : ""}${game.phase === "results" ? `<button class="btn" data-control="next" ${game.paused ? "disabled" : ""}>Open round ${game.round + 1} →</button>` : ""}${game.phase !== "complete" ? `<button class="btn ghost" data-control="pause">${game.paused ? "Resume" : "Pause"}</button>` : ""}</div></div>${game.phase === "planning" ? `<section class="card" style="margin-top:20px"><h2>Round attendance</h2><p class="muted">Skip an absent or unfinished owner for this round. They make no sales and receive no math penalty. Saved menu and drafts stay available. Restore them before simulating if they return. At least one owner must submit.</p><div class="stack">${game.board.filter((r) => !r.ready).map((r) => `<div class="row between"><span><strong>${esc(r.owner)}</strong> · ${esc(r.restaurant)}${r.skipped ? ' · Skipped' : ''}</span><button class="btn ghost small" data-control="${r.skipped ? 'restore' : 'skip'}" data-owner="${esc(r.userId)}" ${game.paused ? 'disabled' : ''}>${r.skipped ? 'Restore this round' : 'Skip this round'}</button></div>`).join('') || '<p>Everyone has submitted.</p>'}</div></section>` : ''}<div class="section-title"><h2>Classroom leaderboard</h2><div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div></div><div class="card">${leaderboard()}</div><div class="card soft" style="margin-top:20px"><h3>Round rhythm</h3><p class="muted" style="margin:0">One new item per round. Five choices in round 1, five more in round 2, then three each round. Promotions start in round 3. Math checks have unlimited free retries in rounds 1–5; later rounds apply only one penalty.</p></div>`;
+  return `${heading()}${game.paused ? '<div class="notice">This game is paused. Saved work will be waiting when you resume.</div>' : ""}<div class="stats">${stat("Room code", game.code, "Share this code with students")}${stat("Restaurants", game.board.length, "Up to 100 owners")}${stat("Submitted", `${ready} / ${game.board.length}`, "Submit or skip each owner to simulate")}${stat("Math penalty", cash(game.penalty), "Once per round, starting round 6")}</div><div class="card row between"><div><h2 style="margin-bottom:5px">${game.phase === "lobby" ? "Ready to open?" : game.phase === "planning" ? "Let the owners make their move." : game.phase === "complete" ? "Competition complete." : "Time for a business debrief."}</h2><p class="muted" style="margin:0">${game.phase === "planning" ? "Submitted plans are locked until an owner reopens them." : "Discuss the results together before continuing."}</p></div><div class="row">${game.phase === "lobby" ? '<button class="btn" data-control="start">Start round 1 →</button>' : ""}${game.phase === "planning" ? `<button class="btn orange" data-control="run" ${!game.board.length || game.board.some((r) => !r.ready && !r.skipped) || !ready || game.paused ? "disabled" : ""}>Simulate round ${game.round} →</button>` : ""}${game.phase === "results" ? `<button class="btn" data-control="next" ${game.paused ? "disabled" : ""}>Open round ${game.round + 1} →</button>` : ""}${game.phase !== "complete" ? `<button class="btn ghost" data-control="pause">${game.paused ? "Resume" : "Pause"}</button>` : ""}</div></div>${game.phase === "planning" ? `<section class="card" style="margin-top:20px"><h2>Round attendance</h2><p class="muted">Skip an absent or unfinished owner for this round. They make no sales and receive no math penalty. Saved menu stays available. Restore them before simulating if they return. At least one owner must submit.</p><div class="stack">${game.board.filter((r) => !r.ready).map((r) => `<div class="row between"><span><strong>${esc(r.owner)}</strong> · ${esc(r.restaurant)}${r.skipped ? ' · Skipped' : ''}</span><button class="btn ghost small" data-control="${r.skipped ? 'restore' : 'skip'}" data-owner="${esc(r.userId)}" ${game.paused ? 'disabled' : ''}>${r.skipped ? 'Restore this round' : 'Skip this round'}</button></div>`).join('') || '<p>Everyone has submitted.</p>'}</div></section>` : ''}<div class="section-title"><h2>Classroom leaderboard</h2><div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div></div><div class="card">${leaderboard()}</div><div class="card soft" style="margin-top:20px"><h3>Round rhythm</h3><p class="muted" style="margin:0">One new item per round. Five choices in round 1, five more in round 2, then three each round. Promotions start in round 3. Math checks have unlimited free retries in rounds 1–5; later rounds apply only one penalty.</p></div>`;
 }
 function pricingPanel(p) {
   const item = game.catalog.find((x) => x.id === selected);
   if (!item)
     return `<aside class="card price-panel"><span class="eyebrow">THE PRICING DESK</span><h2>Your next best seller?</h2><p class="muted">Choose an available product to calculate its markup and selling price.</p><div class="math-note">Markup dollars = cost × markup % ÷ 100<br>Selling price = cost + markup dollars<br><strong>Round money to the nearest cent.</strong></div></aside>`;
   const entry = p.menu.find((x) => x.id === item.id),
-    draft = p.drafts[item.id] || {};
-  return `<aside class="card price-panel" id="pricing-panel"><span class="eyebrow">${entry ? "REFINE YOUR PRICE" : "BUILD YOUR MENU"}</span><div class="bigfood" style="margin-top:18px">${foodArt(item.id)}</div><h2>${esc(item.name)}</h2><p class="muted tiny">${esc(item.category)} · Customers expect about ${cash(item.expected)}</p><div class="formula"><span>Cost per unit</span><strong>${cash(item.cost)}</strong></div><form id="pricing-form" class="stack" data-item="${item.id}"><label>Your markup (%)<input name="markup" inputmode="decimal" type="number" min="0" max="500" step="0.01" value="${esc(draft.markup ?? entry?.markup ?? "")}" placeholder="Choose your markup" required></label><label>Markup amount ($)<input name="amount" inputmode="decimal" type="number" min="0" step="0.01" value="${esc(draft.amount ?? (entry ? ((entry.price - item.cost) / 100).toFixed(2) : ""))}" placeholder="Cost × markup ÷ 100" required></label><label>Selling price ($)<input name="price" inputmode="decimal" type="number" min="0" step="0.01" value="${esc(draft.price ?? (entry ? (entry.price / 100).toFixed(2) : ""))}" placeholder="Cost + markup amount" required></label><span class="save-status" id="save-status">${p.drafts[item.id] ? "Draft saved · not checked" : "Your work saves as you type"}</span><button class="btn full">Check math & save price ✓</button><button type="button" class="btn ghost small" data-action="discard">Discard unfinished changes</button></form><div class="math-note" style="margin-top:14px">${game.round <= 5 ? "Practice rounds: mistakes have no penalty." : `First wrong check this round: ${cash(game.penalty)} penalty. Further retries are free.`}<br>Round markup dollars to cents, then add to cost.</div>${feedback ? `<div class="feedback ${feedback.correct ? "success" : "error"}" role="status">${esc(feedback.message)}${feedback.penalty ? ` A ${cash(feedback.penalty)} penalty applies this round.` : ""}</div>` : ""}</aside>`;
+    input = pricingInput;
+  return `<aside class="card price-panel" id="pricing-panel"><span class="eyebrow">${entry ? "REFINE YOUR PRICE" : "BUILD YOUR MENU"}</span><div class="bigfood" style="margin-top:18px">${foodArt(item.id)}</div><h2>${esc(item.name)}</h2><p class="muted tiny">${esc(item.category)} · Customers expect about ${cash(item.expected)}</p><div class="formula"><span>Cost per unit</span><strong>${cash(item.cost)}</strong></div><form id="pricing-form" class="stack" data-item="${item.id}"><label>Your markup (%)<input name="markup" inputmode="decimal" type="number" min="0" max="500" step="0.01" value="${esc(input.markup ?? entry?.markup ?? "")}" placeholder="Choose your markup" required></label><label>Markup amount ($)<input name="amount" inputmode="decimal" type="number" min="0" step="0.01" value="${esc(input.amount ?? (entry ? ((entry.price - item.cost) / 100).toFixed(2) : ""))}" placeholder="Cost × markup ÷ 100" required></label><label>Selling price ($)<input name="price" inputmode="decimal" type="number" min="0" step="0.01" value="${esc(input.price ?? (entry ? (entry.price / 100).toFixed(2) : ""))}" placeholder="Cost + markup amount" required></label><span class="save-status" id="save-status">Only a correct math check saves your price. One new item per round.</span><button class="btn full">Check math & save price ✓</button></form><div class="math-note" style="margin-top:14px">${game.round <= 5 ? "Practice rounds: mistakes have no penalty." : `First wrong check this round: ${cash(game.penalty)} penalty. Further retries are free.`}<br>Round markup dollars to cents, then add to cost.</div>${feedback ? `<div class="feedback ${feedback.correct ? "success" : "error"}" role="status">${esc(feedback.message)}${feedback.penalty ? ` A ${cash(feedback.penalty)} penalty applies this round.` : ""}</div>` : ""}</aside>`;
 }
 function promotionPanel(p) {
   return `<section class="card" style="margin-top:22px"><div class="row between"><h2>Bring in a crowd.</h2><span class="pill">PROMOTIONS</span></div>${
@@ -181,7 +167,7 @@ function student() {
   const skipped = p.skippedRound === game.round;
   const added = p.menu.some((x) => x.addedRound === game.round);
   const locked = p.ready || game.paused || skipped;
-  return `${heading()}${skipped ? '<div class="notice">Your teacher skipped this round for your restaurant. No sales or math penalty this round. Your menu and drafts are saved; you can return next round.</div>' : ""}${game.paused ? '<div class="notice">Your teacher paused this game. Your work is saved.</div>' : ""}<div class="stats">${stat("Total profit", cash(total), "After promotions and math penalties")}${stat("Menu items", p.menu.length, `Add one product each round`)}${stat("Your rank", "#" + (game.board.find((x) => x.userId === user.id)?.rank || "—"), `Of ${game.board.length} restaurants`)}${stat("Round " + game.round, game.round <= 5 ? "Practice" : "Game on", game.round <= 5 ? "No math penalties" : `${cash(game.penalty)} max math penalty this round`)}</div>${
+  return `${heading()}${skipped ? '<div class="notice">Your teacher skipped this round for your restaurant. No sales or math penalty this round. Your checked menu prices are saved; you can return next round.</div>' : ""}${game.paused ? '<div class="notice">Your teacher paused this game. Your work is saved.</div>' : ""}<div class="stats">${stat("Total profit", cash(total), "After promotions and math penalties")}${stat("Menu items", p.menu.length, `Add one product each round`)}${stat("Your rank", "#" + (game.board.find((x) => x.userId === user.id)?.rank || "—"), `Of ${game.board.length} restaurants`)}${stat("Round " + game.round, game.round <= 5 ? "Practice" : "Game on", game.round <= 5 ? "No math penalties" : `${cash(game.penalty)} max math penalty this round`)}</div>${
     game.phase !== "planning"
       ? results(p)
       : `<div class="workspace"><div><section class="card restaurant"><canvas id="restaurant-scene" width="900" height="240" aria-label="Your personalized restaurant"></canvas><div class="restaurant-head row between"><h2>${esc(p.icon)} ${esc(p.restaurant)}</h2><span class="eyebrow">EST. ROUND 1</span></div><div class="menu-strip">${
@@ -196,7 +182,7 @@ function student() {
         }</div></section>${
           p.ready
             ? `<div class="success" style="margin-top:20px"><h3>✓ Your restaurant is ready.</h3><p>Your teacher will simulate the round after everyone submits.</p><button class="btn secondary" data-action="unready" ${game.paused ? "disabled" : ""}>Reopen my submission</button></div>`
-            : `<div class="section-title"><h2>${!added ? "Choose your next menu item" : "Your menu is ready"}</h2><span class="pill">${game.catalog.length} UNLOCKED</span></div><p class="muted tiny">Older items remain available. New items are marked below. Select a menu item above to adjust its price.</p><div class="catalog">${game.catalog
+            : `<div class="section-title"><h2>${!added ? "Choose your next menu item" : "New item added · 1 of 1"}</h2><span class="pill">${game.catalog.length} UNLOCKED</span></div><p class="muted tiny">Older items remain available. New items are marked below. Select a menu item above to adjust its price.</p><div class="catalog">${game.catalog
                 .filter((i) => !p.menu.some((x) => x.id === i.id))
                 .map(
                   (i) =>
@@ -204,24 +190,13 @@ function student() {
                 )
                 .join(
                   "",
-                )}</div>${!locked ? promotionPanel(p) : ""}<div class="card row between" style="margin-top:22px"><div><h3>Ready for the rush?</h3><span class="muted tiny">${added ? "Your new item is on the menu." : "Add one new item before submitting."}</span>${
-                Object.keys(p.drafts).length
-                  ? `<p class="tiny negative">${Object.keys(p.drafts).length} unfinished draft(s): ${Object.keys(
-                      p.drafts,
-                    )
-                      .map(
-                        (id) =>
-                          `<button class="btn ghost small" data-select="${id}">${esc(game.catalog.find((i) => i.id === id)?.name || id)}</button>`,
-                      )
-                      .join(" ")}</p>`
-                  : ""
-              }</div><button class="btn orange" data-action="ready" ${!added || Object.keys(p.drafts).length || locked ? "disabled" : ""}>Submit round ${game.round} →</button></div>`
+                )}</div>${!locked ? promotionPanel(p) : ""}<div class="card row between" style="margin-top:22px"><div><h3>Ready for the rush?</h3><span class="muted tiny">${added ? "You added your one new item for this round. You can still adjust saved menu prices." : "Add one new item before submitting."}</span></div><button class="btn orange" data-action="ready" ${!added || locked ? "disabled" : ""}>Submit round ${game.round} →</button></div>`
         }</div>${!locked ? pricingPanel(p) : '<aside class="card"><h2>Your work is saved.</h2><p class="muted">You can close the browser and log back in with this account to resume.</p></aside>'}</div>`
   }`;
 }
 function results(p) {
   const r = p.reports.at(-1);
-  if (r.skipped) return `<section class="card"><span class="eyebrow">ROUND ${r.round} · SKIPPED</span><h2>Your restaurant sat this round out.</h2><p>No sales, costs, or math penalty were applied. Your menu and unfinished work are saved.</p><p class="muted">${game.phase === 'complete' ? 'This game is complete. Your earlier results are saved.' : 'You can participate when your teacher opens the next round.'}</p></section>`;
+  if (r.skipped) return `<section class="card"><span class="eyebrow">ROUND ${r.round} · SKIPPED</span><h2>Your restaurant sat this round out.</h2><p>No sales, costs, or math penalty were applied. Your checked menu prices are saved.</p><p class="muted">${game.phase === 'complete' ? 'This game is complete. Your earlier results are saved.' : 'You can participate when your teacher opens the next round.'}</p></section>`;
   const best = [...r.items].sort((a, b) => b.profit - a.profit)[0];
   const prior = p.reports.at(-2),
     change = prior ? r.profit - prior.profit : null;
@@ -416,15 +391,14 @@ function render() {
   previewRestaurant();
 }
 async function openGame(code) {
-  await flushDrafts();
   apply(await api("/games/" + code));
   page = "game";
-  selected = Object.keys(game.player?.drafts || {})[0] || null;
+  selected = null;
+  pricingInput = {};
   feedback = null;
   render();
 }
 async function actionRoom(action, body = {}) {
-  await flushDrafts();
   const data = await api(`/games/${game.code}/${action}`, body);
   apply(data);
   render();
@@ -461,12 +435,12 @@ root.addEventListener("submit", async (e) => {
       render();
     }
     if (form.getAttribute("id") === "pricing-form") {
-      await flushDrafts();
-      const data = await api(`/games/${game.code}/check`, {
+          const data = await api(`/games/${game.code}/check`, {
         ...b,
         id: form.dataset.item,
       });
       feedback = data.check;
+      pricingInput = data.check.correct ? {} : b;
       apply(data);
       render();
     }
@@ -533,16 +507,15 @@ root.addEventListener("click", async (e) => {
       return;
     }
     if (btn.dataset.action === "profile") {
-      await flushDrafts();
-      await refreshMe();
+          await refreshMe();
       page = "profile";
       window.scrollTo(0, 0);
       render();
       return;
     }
     if (btn.dataset.select) {
-      await flushDrafts();
-      selected = btn.dataset.select;
+          selected = btn.dataset.select;
+      pricingInput = {};
       feedback = null;
       render();
       document
@@ -595,16 +568,14 @@ root.addEventListener("click", async (e) => {
       render();
     }
     if (a === "logout") {
-      await flushDrafts();
-      await api("/logout", {});
+          await api("/logout", {});
       user = null;
       game = null;
       page = "home";
       render();
     }
     if (a === "home") {
-      await flushDrafts();
-      await refreshMe();
+          await refreshMe();
       page = "home";
       projector = false;
       render();
@@ -683,12 +654,6 @@ root.addEventListener("click", async (e) => {
       btn.disabled = true;
       await actionRoom(a);
     }
-    if (a === "discard") {
-      await flushDrafts();
-      await actionRoom("draft", { id: selected, discard: true });
-      feedback = null;
-      render();
-    }
   } catch (err) {
     toast(err.message);
     btn.disabled = false;
@@ -696,33 +661,7 @@ root.addEventListener("click", async (e) => {
 });
 root.addEventListener("input", (e) => {
   const form = e.target.closest("#pricing-form");
-  if (!form || !game) return;
-  const b = {
-      ...Object.fromEntries(new FormData(form)),
-      id: form.dataset.item,
-    },
-    code = game.code;
-  pendingDrafts++;
-  document.querySelector("#save-status").textContent = "Saving draft…";
-  draftQueue = draftQueue
-    .then(async () => {
-      try {
-        const data = await api(`/games/${code}/draft`, b);
-        failedDrafts.delete(code + ":" + b.id);
-        if (game?.code === code) game = data;
-        const s = document.querySelector("#save-status");
-        if (s) s.textContent = "Draft saved · not checked";
-      } catch (err) {
-        failedDrafts.set(code + ":" + b.id, b);
-        toast("Draft not saved: " + err.message);
-        const s = document.querySelector("#save-status");
-        if (s) s.textContent = "Not saved — retry before leaving";
-        throw err;
-      } finally {
-        pendingDrafts--;
-      }
-    })
-    .catch(() => {});
+  if (form) pricingInput = Object.fromEntries(new FormData(form));
 });
 function previewRestaurant() {
   const form = document.querySelector("#join-form"),
@@ -832,7 +771,7 @@ async function publicView() {
   render();
 })();
 setInterval(async () => {
-  if (pendingDrafts || requestBusy) return;
+  if (requestBusy) return;
   try {
     if (publicRoom) return await publicView();
     if (!user) return;

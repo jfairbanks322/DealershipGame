@@ -11,17 +11,17 @@ test('40 simultaneous owners: ten rounds, teacher attendance, recovery and leade
  await Promise.all(Array.from({length:40},(_,i)=>req('p'+i,url+'/join',{restaurant:options.names[i],icon:options.signs[i%32],color:options.colors[i%16].value})));
  g=await req('teacher',url);g=await req('teacher',url+'/start',{version:g.version});
  const absent=(await req('p39',url)).player.userId;
- await req('p39',url+'/draft',{id:'1',markup:'100',amount:'2.'});g=await req('teacher',url);
+ await req('p39',url+'/draft',{id:'1',markup:'100',amount:'2.'},400);g=await req('teacher',url);
  await req('p0',url+'/skip',{version:g.version,userId:absent},400);
  g=await req('teacher',url+'/skip',{version:g.version,userId:absent});
  await req('p39',url+'/check',{id:'1',markup:'100',amount:'2.40',price:'4.80'},400);
- g=await req('teacher',url+'/restore',{version:g.version,userId:absent});assert.equal((await req('p39',url)).player.drafts['1'].amount,'2.');
+ g=await req('teacher',url+'/restore',{version:g.version,userId:absent});assert.deepEqual((await req('p39',url)).player.drafts,{});
  const stale=g.version;g=await req('teacher',url+'/skip',{version:g.version,userId:absent});await req('teacher',url+'/restore',{version:stale,userId:absent},400);
  await req('teacher',url+'/run',{version:g.version},400);
  for(let round=1;round<=10;round++){
   await Promise.all(Array.from({length:round===1?39:40},async(_,i)=>{
    const who='p'+i,item=catalog[round-1];
-   if(round===2&&i===39){let saved=await req(who,url);assert.equal(saved.player.drafts['1'].amount,'2.');await req(who,url+'/draft',{id:'1',discard:true});}
+
    let v=await req(who,url+'/check',{id:item.id,markup:'100',amount:(item.cost/100).toFixed(2),price:(item.cost/50).toFixed(2)});assert.equal(v.check.correct,true);
    if(round===2&&i===39)await req(who,url+'/check',{id:'1',markup:'100',amount:'2.40',price:'4.80'},400);
    await req(who,url+'/ready',{});

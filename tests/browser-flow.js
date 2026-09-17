@@ -82,8 +82,9 @@ const fs = require("node:fs");
     await a.waitForTimeout(350);
     await a.reload();
     await a.locator("[data-open]").click();
+    await a.locator('[data-select="1"]').first().click();
     await a.locator("#pricing-form").waitFor();
-    assert.equal(await a.locator("[name=markup]").inputValue(), "75");
+    assert.equal(await a.locator("[name=markup]").inputValue(), "");
     await shot(a, "01-pricing-desktop");
     for (let round = 1; round <= 10; round++) {
       for (const p of [a, b]) {
@@ -179,7 +180,7 @@ const fs = require("node:fs");
     await waitRound(a, 10, "complete");
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: real browser registration, customization, saved drafts, 10 multiplayer rounds, math penalties, promotion, responsive layout, 50 badges, featured badge, public/career leaderboards and re-login.",
+      "PASS: real browser registration, customization, unsaved input reset, 10 multiplayer rounds, math penalties, promotion, responsive layout, 50 badges, featured badge, public/career leaderboards and re-login.",
     );
   } finally {
     await browser.close();
