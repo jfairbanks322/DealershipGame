@@ -115,3 +115,7 @@ When round one opens, each student sees a four-step guide for their selected les
 From round 2, before submitting, a student may spend earned profit for one optional sabotage spin: $10 / 35%, $20 / 60%, or $30 / 85% success. The server draws the result; the wheel animates that saved outcome. Success charges the target a $40 equipment-repair expense. Each restaurant may be targeted only once per round, whether the attempt succeeds or misses. Skipped players cannot spin or be selected. Costs are charged immediately, included once in round fees and career totals, and remain charged if the teacher subsequently skips a player. Reset clears the wheel history along with other game progress.
 
 Targets receive a saved popup identifying the attacker and outcome when viewing their game, including after reconnecting. Acknowledging it dismisses it across sessions. Wheel costs are in-game money only.
+
+### Paulie's mystery boxes
+
+In either lesson, students can buy one optional $5 box per round starting in round 2, before submitting. All 30 humorous outcomes are equally likely: 13 rewards, 12 mishaps, and 5 duds. Rewards pay $10–$20 before the purchase price; mishaps add $2–$10 in expenses; duds have no additional effect. Net changes are limited to −$15 through +$15 per box. Students must have $5 in earned profit. The server saves each result, so reloads cannot reroll it. Delivery history, totals, round fees/credits, and career scores include the effect exactly once. A classroom reset clears delivery history.

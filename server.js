@@ -473,6 +473,12 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (action === "mysteryBox") {
+          insist(p, "Join the room first.");
+          require("./lib/mystery-box").buy(g, p);
+          save(g);
+          return view(g, u);
+        }
         if (action === "sabotage" || action === "sabotageSeen") {
           insist(p, "Join the room first.");
           if (action === "sabotage") require("./lib/sabotage").spin(g, p, b);
