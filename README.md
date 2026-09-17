@@ -109,3 +109,9 @@ The room owner's teacher dashboard includes **Manage this game** for both lesson
 ### Student quick start
 
 When round one opens, each student sees a four-step guide for their selected lesson. They can skip it or reopen **How to play** during planning. Completion is saved with their classroom progress across logins and devices. Resetting the classroom makes the guide available automatically again.
+
+### Sabotage wheel (both lessons)
+
+From round 2, before submitting, a student may spend earned profit for one optional sabotage spin: $10 / 35%, $20 / 60%, or $30 / 85% success. The server draws the result; the wheel animates that saved outcome. Success charges the target a $40 equipment-repair expense. Each restaurant may be targeted only once per round, whether the attempt succeeds or misses. Skipped players cannot spin or be selected. Costs are charged immediately, included once in round fees and career totals, and remain charged if the teacher subsequently skips a player. Reset clears the wheel history along with other game progress.
+
+Targets receive a saved popup identifying the attacker and outcome when viewing their game, including after reconnecting. Acknowledging it dismisses it across sessions. Wheel costs are in-game money only.

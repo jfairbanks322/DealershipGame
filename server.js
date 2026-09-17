@@ -124,6 +124,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       host: g.host === u.id,
       board: board(g),
       player: g.players[u.id] || null,
+      sabotage: { tiers: require("./lib/sabotage").tiers, balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
     };
@@ -472,6 +473,13 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (action === "sabotage" || action === "sabotageSeen") {
+          insist(p, "Join the room first.");
+          if (action === "sabotage") require("./lib/sabotage").spin(g, p, b);
+          else { const event = (p.sabotageInbox || []).find(n => n.id === b.id); insist(event, "Notification not found."); event.seen = true; }
+          save(g);
+          return view(g, u);
+        }
         if (action === "tutorial") {
           insist(p, "Join the room first.");
           p.tutorialSeen = true;

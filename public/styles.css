@@ -1679,3 +1679,10 @@ body {
 .tutorial-card h2 { margin-top: 14px; }
 .tutorial-card p { max-width: 760px; line-height: 1.7; }
 .tutorial-help { margin-bottom: 12px; text-align: right; }
+.sabotage-panel { margin-top: 24px; }
+.sabotage-dialog { max-width: 440px; width: calc(100% - 32px); color: var(--ink); background: var(--white); border: 2px solid #da583b; }
+.sabotage-dialog::backdrop { background: #102d26bb; }
+.wheel-wrap { position: relative; width: 220px; margin: 25px auto; }
+.wheel-pointer { position: absolute; top: -20px; left: 99px; z-index: 1; font-size: 26px; }
+.sabotage-wheel { width: 220px; height: 220px; border-radius: 50%; border: 6px solid #fff; box-shadow: 0 3px 15px #0003; display: grid; place-items: center; transition: transform 2.5s cubic-bezier(.15,.7,.2,1); }
+.sabotage-wheel span { border-radius:50%; padding:15px; background:white; color:#173e33; font-size:30px; }

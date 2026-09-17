@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "check": "node --check server.js && node --check lib/game.js && node --check lib/achievements.js && node --check public/app.js && node --check public/avatars.js && node --check public/food-art.js && node --check public/restaurant-options.js && node --check lib/lessons/index.js && node --check lib/lessons/markup-v1.js && node --check lib/lessons/marketing-offers-v1.js && node --check lib/lessons/supply-demand-v1.js",
-    "test": "node --test tests/business-math.test.js tests/classroom-load.test.js tests/supply-demand.test.js tests/game-management.test.js"
+    "test": "node --test tests/business-math.test.js tests/classroom-load.test.js tests/supply-demand.test.js tests/game-management.test.js tests/sabotage.test.js"
   },
   "engines": {
     "node": ">=22.13.0"
