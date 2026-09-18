@@ -136,3 +136,7 @@ After simulation, a saved leaderboard recap shows every owner's rank and movemen
 ### Supply & Demand market decisions
 
 Every round includes customer-traffic, supplier-cost, and price-sensitivity clues tied to that round's simulation conditions. Students must explicitly save a main clue, a demand forecast, and a price/stock plan before submitting. All choices are qualitative; there are no markup calculations or right/wrong math penalties. Plans do not automatically change menu prices or stock: students implement their choices in the existing price-and-stock form. The round report preserves the plan for comparison with sales, leftovers, missed sales, and profit. Teachers see the plan in their live student table and activity feed. A new plan is required each round; existing already-submitted rounds remain intact.
+
+### Private math answer tracker
+
+Cost & Markup teachers see per-student right/wrong pricing-check totals for the current round and entire game. Each check is one attempt: both markup dollars and selling price must be correct for a right answer. Retries and practice rounds count; waiving a penalty does not erase an attempt. New counters are stored with the game but stripped from student API responses and excluded from public leaderboards. Earlier attempts without an exact recorded verdict are shown as unclassified rather than guessed. A classroom reset clears these game-specific totals. Supply & Demand price/stock saves are not counted as math answers.
