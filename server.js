@@ -1,4 +1,5 @@
 "use strict";
+const classroom = require("./lib/classroom");
 const restaurantOptions = require("./public/restaurant-options");
 const {
   DEFAULT_LESSON,
@@ -20,6 +21,7 @@ const { openStore } = require("./lib/store"),
   { badges, sum, evaluateBonus } = require("./lib/achievements");
 const {
   insist,
+  mathPenalty,
   newPlayer,
   pricing,
   validatePromotion,
@@ -107,6 +109,11 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
         rank: a.findIndex((x) => x.profit === p.profit) + 1,
       }));
   function view(g, u) {
+    const player = g.players[u.id] ? structuredClone(g.players[u.id]) : null;
+    if(player) player.sabotageInbox=(player.sabotageInbox||[]).map(n=>n.success&&!n.revealed?{id:n.id,round:n.round,success:true,damage:n.damage,seen:n.seen,revealed:false}:{...n});
+    const spins = player ? [...(player.sabotageHistory||[])] : [];
+    if(player?.sabotageSpin&&!spins.some(x=>x.id===player.sabotageSpin.id))spins.push(player.sabotageSpin);
+    const attempts=spins.filter(x=>x.round===g.round);
     return {
       code: g.code,
       name: g.name,
@@ -121,11 +128,15 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       phase: g.phase,
       paused: g.paused,
       penalty: g.penalty,
+      roundPenalty: mathPenalty(g),
       version: g.version,
       host: g.host === u.id,
       board: board(g),
-      player: g.players[u.id] || null,
-      sabotage: { tiers: require("./lib/sabotage").tiers, balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round)).map(p => p.userId) },
+      player,
+      bonusSettings: classroom.settings(g),
+      roundStandings: g.roundStandings || null,
+      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
+      sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
     };
@@ -483,16 +494,37 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (["bonusSettings","teacherReopen","waiveMath"].includes(action)) {
+          insist(g.host===u.id,"Only this room’s teacher can use these controls.");
+          insist(b.version===g.version,"The room changed. Refresh and try again.");
+          if(action==="bonusSettings") {insist(["sabotage","boxes","hints"].includes(b.key)&&typeof b.enabled==="boolean","Choose a bonus setting.");g.bonusSettings={...classroom.settings(g),[b.key]:b.enabled};}
+          else {
+            insist(g.phase==="planning","Use this control before the round runs.");
+            const target=g.players[b.userId];insist(target,"Choose a student.");
+            if(action==="teacherReopen")target.ready=false;
+            else {target.waivedMathRounds??=[];if(!target.waivedMathRounds.includes(g.round))target.waivedMathRounds.push(g.round);}
+          }
+          classroom.event(g,u.name,action,action==="bonusSettings"?`${b.key}: ${b.enabled?"enabled":"disabled"}`:`${g.players[b.userId].owner}`);
+          save(g);return view(g,u);
+        }
+        if(action==="hint"||action==="bonusContinue") {
+          insist(p,"Join the room first.");
+          insist(g.phase==="planning","Wait for planning.");
+          if(action==="hint")classroom.hint(g,p);else p.bonusPromptRound=g.round;
+          classroom.event(g,p.owner,action,action==="hint"?"Bought a math hint for $5":"Opened menu planning");
+          save(g);return view(g,u);
+        }
         if (action === "mysteryBox") {
           insist(p, "Join the room first.");
-          require("./lib/mystery-box").buy(g, p);
+          const box = require("./lib/mystery-box").buy(g, p);
+          classroom.event(g,p.owner,"mysteryBox",`${box.vendor}: ${box.title}; net $${(box.net/100).toFixed(2)}`);
           save(g);
           return view(g, u);
         }
         if (action === "sabotage" || action === "sabotageSeen") {
           insist(p, "Join the room first.");
-          if (action === "sabotage") require("./lib/sabotage").spin(g, p, b);
-          else { const event = (p.sabotageInbox || []).find(n => n.id === b.id); insist(event, "Notification not found."); event.seen = true; }
+          if (action === "sabotage") { const spin=require("./lib/sabotage").spin(g, p, b); classroom.event(g,p.owner,"sabotage",`${spin.target}: ${spin.success?"success":"miss"}, attempt ${spin.attempt}, ${spin.chance}% chance, paid $${spin.cost/100}`); }
+          else { const event = (p.sabotageInbox || []).find(n => n.id === b.id); insist(event, "Notification not found."); if(!!event.revealed===!!b.revealed)event.seen = true; }
           save(g);
           return view(g, u);
         }
@@ -514,6 +546,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           g.phase = "lobby";
           g.round = 1;
           g.paused = false;
+          g.events = []; g.roundStandings = null;
           for (const [id, owner] of Object.entries(g.players)) {
             g.players[id] = newPlayer(userById(id), owner.restaurant, owner.icon, owner.color);
           }
@@ -577,6 +610,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           }
           if (action === "run") {
             simulate(g, (id) => career(id, g.lessonId));
+            g.roundStandings = {round:g.round,rows:board(g)};
             if (g.phase === "complete") {
               const max = Math.max(...Object.values(g.players).map(sum));
               for (const q of Object.values(g.players))
@@ -620,6 +654,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
               insist(false, "Draft saving has been removed. Refresh the page and use Check math & save price.");
             } else if (action === "check") {
               const check = pricing(g, p, b);
+              classroom.event(g,p.owner,"pricing",`${check.correct?"Correct math / valid decision":"Math corrected"}; item ${b.id}; saved`);
               save(g);
               return { ...view(g, u), check };
             } else if (action === "promotion") {
@@ -632,6 +667,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
             } else insist(false, "Unknown action.");
           }
         }
+        classroom.event(g,u.name,action,["skip","restore"].includes(action)?`${g.players[b.userId]?.owner}`:({ready:"Ready for simulation",unready:"Editing decisions again",join:"Joined the classroom",start:"Planning is open",next:"Planning is open",run:"Results and rank changes saved",pause:g.paused?"Game paused":"Game resumed",promotion:"Promotion saved"}[action]||"Room updated"));
         save(g);
         return view(g, u);
       });

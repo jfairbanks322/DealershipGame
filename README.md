@@ -19,7 +19,7 @@ Open [localhost:3040](http://localhost:3040). Register an account. Use **Teacher
 5. Teacher simulates once everyone is ready, discusses the results, then opens the next round.
 6. Round 10 completes the game and records career results automatically.
 
-You can pause and resume. Accounts, sessions, completed reports, checked menu prices, ready status, and penalties are stored in SQLite. Log in and select a saved game to reopen it. Unfinished calculations do not save. Only a correct math check saves a menu price. Each round allows exactly one new item; existing menu prices can still be adjusted. Legacy unfinished drafts do not block submission.
+You can pause and resume. Accounts, sessions, completed reports, checked menu prices, ready status, and penalties are stored in SQLite. Log in and select a saved game to reopen it. Unfinished calculations do not save. Incorrect math shows the correct calculation and saves the corrected price for the chosen markup, so the student can submit. Each round allows exactly one new item; existing menu prices can still be adjusted. Legacy unfinished drafts do not block submission.
 
 ## Included
 
@@ -27,7 +27,7 @@ You can pause and resume. Accounts, sessions, completed reports, checked menu pr
 - 34 menu items: 5 in round 1, 5 more in round 2, then 3 more each round. Older unlocked products remain available.
 - One new menu item per round, plus price adjustments to existing products.
 - Required server-validated markup dollars and selling price; money rounds to the nearest cent.
-- Free corrections in rounds 1–5; at most one configurable penalty in each of rounds 6–10.
+- Free corrections in rounds 1–5; at most one penalty in each of rounds 6–10, rising by the configured base each round ($5, $10, $15, $20, $25 with the default).
 - Ten promotions from round 3, plus no promotion. Offers show revenue/cost previews and include food costs for all free items and companion products.
 - Deterministic sales simulation based on product popularity, price relative to customer expectations, price sensitivity, menu breadth, promotion, and shared round conditions.
 - Item-by-item sales and profit reports, a receipt-style round summary, top-earner spotlight, and season history.
@@ -36,14 +36,14 @@ You can pause and resume. Accounts, sessions, completed reports, checked menu pr
 - Universal career-profit and best-game rankings based only on completed games.
 - 50 server-awarded account badges; feature up to three, with the first displayed on the classroom board.
 - Teacher pause/resume, readiness dashboard, round attendance controls, and CSV export of round results.
-- During planning, teachers can skip an unsubmitted owner for the current round and restore them before simulation. Skipped rounds have no sales, expenses, or math penalty; saved menu remains. Participation resets next round, with one new menu item required that round rather than catch-up items. At least one owner must submit; all other owners must submit or be skipped. CSV exports mark skipped rounds.
+- During planning, teachers can skip an unsubmitted owner for the current round and restore them before simulation. Skipped rounds have no sales or math penalty; previously purchased bonus effects and hint fees still count; saved menu remains. Participation resets next round, with one new menu item required that round rather than catch-up items. At least one owner must submit; all other owners must submit or be skipped. CSV exports mark skipped rounds.
 - Light/dark toggle remembers the browser preference and starts from the device theme. Switching themes preserves in-progress form entries.
 - Twelve original vector mascot avatars, selectable at registration or from My avatar, saved to accounts and displayed on leaderboards. Existing accounts receive the Chef Sprout avatar through an additive database migration.
 - Responsive desktop/mobile interface and keyboard-accessible forms. Press F outside form fields for fullscreen; Esc exits.
 
 ## Simulation and accounting
 
-All money is stored as integer cents. Markup is a percentage of cost, not profit margin. Students choose 0–500% markup, calculate markup dollars rounded to cents, and add those dollars to cost. Wrong checks receive a formula hint without supplying the answer.
+All money is stored as integer cents. Markup is a percentage of cost, not profit margin. Students choose 0–500% markup, calculate markup dollars rounded to cents, and add those dollars to cost. Wrong checks show the corrected markup dollars and selling price and save that price. Students may purchase a $5 worked-example hint once per round.
 
 Each product has its own expected price, popularity, and price sensitivity. Higher prices generally reduce demand; more menu items share customer attention. The simulation uses the same round conditions for everyone and has no random rerolls. Restaurants do not directly steal customers from one another in this first version.
 
@@ -76,7 +76,7 @@ npm run check
 npm test
 ```
 
-The test suite covers catalog progression, 50 distinct badge definitions, pricing and rounding, promotion accounting, teacher authorization, persistence across restart, repeated incorrect checks, a full two-player ten-round game, duplicate-run protection, account login/logout, private player data, and completed-game career records.
+The test suite covers catalog progression, 70 distinct badge definitions, pricing and rounding, promotion accounting, teacher authorization, persistence across restart, repeated incorrect checks, a full two-player ten-round game, duplicate-run protection, account login/logout, private player data, and completed-game career records.
 
 For browser QA, install/provide Playwright separately, start a disposable preview server, then run:
 
@@ -112,9 +112,9 @@ When round one opens, each student sees a four-step guide for their selected les
 
 ### Sabotage wheel (both lessons)
 
-From round 2, before submitting, a student may spend earned profit for one optional sabotage spin: $10 / 35%, $20 / 60%, or $30 / 85% success. The server draws the result; the wheel animates that saved outcome. Success charges the target a $40 equipment-repair expense. Each restaurant may be targeted only once per round, whether the attempt succeeds or misses. Skipped players cannot spin or be selected. Costs are charged immediately, included once in round fees and career totals, and remain charged if the teacher subsequently skips a player. Reset clears the wheel history along with other game progress.
+From round 2, before submitting, a student may spend earned profit for an optional sabotage spin: $10 / 35%, $20 / 60%, or $30 / 85% success. A success unlocks another paid attempt, up to three in one round. Each follow-up reduces the selected tier’s odds by 15 percentage points (minimum 5%); any failure ends that player’s attempts for the round. The server draws the result; the wheel animates that saved outcome. Success charges the target a $40 equipment-repair expense. Each restaurant may be targeted only once per round, whether the attempt succeeds or misses. Skipped players cannot spin or be selected. Costs are charged immediately, included once in round fees and career totals, and remain charged if the teacher subsequently skips a player. Reset clears the wheel history along with other game progress.
 
-Targets receive a saved popup identifying the attacker and outcome when viewing their game, including after reconnecting. Acknowledging it dismisses it across sessions. Wheel costs are in-game money only.
+Targets receive a saved popup with the outcome when viewing their game, including after reconnecting. Successful attempts conceal the attacker; a failure reveals their identity to all targets from that round. Acknowledging it dismisses it across sessions. Wheel costs are in-game money only.
 
 ### Paulie's mystery boxes
 
@@ -125,3 +125,10 @@ From round 6, Vinnie's **$300 super secret box** replaces Paulie's offer, with 3
 ### Bonus achievements
 
 The collection now has 70 cosmetic badges, including 10 mystery-box and 10 sabotage achievements. Box badges recognize first deliveries, reward/mishap/dud outcomes, buying from both cousins, three deliveries in a game, and a profitable Vinnie box. Sabotage badges recognize first spins, wins and misses, low-cost wins, premium misses, trying all prices, three spins or successes in one game, and being targeted successfully or unsuccessfully. Existing saved events are evaluated at startup; older games retain only their latest outgoing sabotage, so missing historical spins are not inferred. Badges persist on the account after a game reset and never modify profit.
+
+
+### Classroom controls and round flow
+
+From round 2, students first see an optional sabotage/mystery-box choice screen, with a button to continue straight to menu planning. The choice is saved per round. Hints in the math lesson cost $5 once per round and are available even without existing profit (the fee can make profit negative). Hints show a worked example and steps; Supply & Demand has no math hints or penalties.
+
+After simulation, a saved leaderboard recap shows every owner's rank and movement since the previous round's settled totals. Teachers get live activity and per-student check counts, correction status, penalties, hints, boxes, spins, menu size, and submission status. Teacher-only controls can reopen individual submissions, waive the current round's math penalty, and toggle sabotage, boxes, or hints. Controls are version checked, and existing purchases remain charged when a bonus is disabled. The event log retains the latest 500 events and displays the latest 100; historical actions before this update are not reconstructed. Only teachers can see the activity log and hidden sabotage identities.

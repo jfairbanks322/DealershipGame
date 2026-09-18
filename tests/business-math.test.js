@@ -19,13 +19,13 @@ test("catalog progression and 70 distinct achievements", () => {
       r === 1 ? 5 : 10 + (r - 2) * 3,
     );
 });
-test("math gate, once-per-round penalty, and cent rounding", () => {
+test("math correction, once-per-round growing penalty, and cent rounding", () => {
   const p = newPlayer({ id: "a", name: "A", badges: [] }, "A", "🍔", "#da583b");
   const g = { round: 6, phase: "planning", penalty: 500 };
   const b = { id: "1", markup: "33.33", amount: "0", price: "0" };
   assert.equal(pricing(g, p, b).penalty, 500);
   assert.equal(pricing(g, p, b).penalty, 0);
-  assert.equal(p.menu.length, 0);
+  assert.equal(p.menu.length, 1);
   assert.equal(
     pricing(g, p, { ...b, amount: ".80", price: "3.20" }).correct,
     true,
@@ -203,7 +203,7 @@ test("complete two-player game, auth, privacy, saves, restart, and career record
         if (who === "alice") {
           const wrong = { id: item.id, markup: 100, amount: 0, price: 0 };
           let check = await req(who, url + "/check", wrong);
-          assert.equal(check.check.penalty, round > 5 ? 500 : 0);
+          assert.equal(check.check.penalty, round > 5 ? 500 * (round - 5) : 0);
           check = await req(who, url + "/check", wrong);
           assert.equal(check.check.penalty, 0);
         }
@@ -247,7 +247,7 @@ test("complete two-player game, auth, privacy, saves, restart, and career record
       const a = await req("alice", url),
         b = await req("bob", url);
       assert.equal(a.player.reports.length, round);
-      assert.equal(a.player.reports.at(-1).penalty, round > 5 ? 500 : 0);
+      assert.equal(a.player.reports.at(-1).penalty, round > 5 ? 500 * (round - 5) : 0);
       assert.equal(b.player.reports.at(-1).penalty, 0);
       assert.equal(g.player, null);
       assert.ok(
@@ -381,4 +381,20 @@ test("curated restaurant options and lesson snapshots", () => {
   assert.equal(rulesFor({}).totalRounds, 10);
   assert.throws(() => getLesson("discounts-v1"));
   assert.equal(lessonFor(a).id, "cost-markup-v1");
+});
+
+test('wrong math saves corrected price and permits submission in every round with growing penalties',()=>{
+ const {mathPenalty}=require('../lib/game'),{initializeLesson,lessonFor}=require('../lib/lessons');
+ for(let round=1;round<=10;round++){
+  const g=initializeLesson({round,phase:'planning',penalty:500,players:{}}),p=newPlayer({id:'a',name:'Owner',badges:[]},'A','🍔','#123456');
+  g.players.a=p;
+  const result=pricing(g,p,{id:'1',markup:100,amount:1,price:1});
+  assert.equal(result.correct,false);assert.equal(result.saved,true);assert.equal(result.penalty,Math.max(0,round-5)*500);
+  assert.equal(mathPenalty(g),Math.max(0,round-5)*500);assert.equal(p.menu[0].price,480);assert.equal(p.menu[0].markup,100);
+  assert.equal(lessonFor(g).readyError(g,p),null);assert.ok(!p.badges.includes(6));assert.ok(!p.badges.includes(10));
+  assert.equal(pricing(g,p,{id:'1',markup:100,amount:0,price:0}).penalty,0);
+  assert.throws(()=>pricing(g,p,{id:'2',markup:100,amount:0,price:0}),/one new item/);
+  p.ready=true;simulate(g,()=>[]);assert.equal(p.reports[0].penalty,Math.max(0,round-5)*500);
+ }
+ const supply=initializeLesson({round:10,penalty:500},'supply-demand-v1');assert.equal(mathPenalty(supply),0);
 });

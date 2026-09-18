@@ -89,6 +89,7 @@ const fs = require("node:fs");
     for (let round = 1; round <= 10; round++) {
       for (const p of [a, b]) {
         await waitRound(p, round, "planning");
+        if(round>=2) await p.locator('[data-action=bonus-continue]').click();
         const id = String(round);
         await p.locator(`[data-select="${id}"]`).first().click();
         const cost = [240, 260, 190, 280, 160, 60, 120, 90, 110, 200][
@@ -102,6 +103,8 @@ const fs = require("node:fs");
         if (round === 6) {
           await shot(p, p === a ? "06-penalty" : "06-penalty-second");
           const old = (await state(p)).game.player.wrongRounds.length;
+          await p.locator("[name=amount]").fill("0");
+          await p.locator("[name=price]").fill("0");
           const repeated = p.waitForResponse((r) => r.url().endsWith("/check"));
           await p.locator("#pricing-form .btn").first().click();
           await repeated;
