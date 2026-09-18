@@ -135,6 +135,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       board: board(g),
       player,
       bonusSettings: classroom.settings(g),
+      mysteryOffer: require("./lib/mystery-box").describe(g.round),
+      mysterySchedule: require("./lib/mystery-box").tiers.map(({from,name,price})=>({from,name,price})),
       roundStandings: g.roundStandings || null,
       teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
       sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round)).map(p => p.userId) },
