@@ -110,7 +110,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       }));
   function view(g, u) {
     const player = g.players[u.id] ? structuredClone(g.players[u.id]) : null;
-    if(player) delete player.mathChecksByRound;
+    if(player) { delete player.mathChecksByRound; delete player.mathModesByRound; delete player.guidedPracticeByRound; delete player.guidedUsed; }
     if(player) player.sabotageInbox=(player.sabotageInbox||[]).map(n=>n.success&&!n.revealed?{id:n.id,round:n.round,success:true,damage:n.damage,seen:n.seen,revealed:false}:{...n});
     const spins = player ? [...(player.sabotageHistory||[])] : [];
     if(player?.sabotageSpin&&!spins.some(x=>x.id===player.sabotageSpin.id))spins.push(player.sabotageSpin);
@@ -136,7 +136,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       player,
       bonusSettings: classroom.settings(g),
       roundStandings: g.roundStandings || null,
-      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
+      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
       sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
@@ -495,18 +495,30 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
-        if (["bonusSettings","teacherReopen","waiveMath"].includes(action)) {
+        if (["bonusSettings","teacherReopen","waiveMath","guidedSupport"].includes(action)) {
           insist(g.host===u.id,"Only this room’s teacher can use these controls.");
           insist(b.version===g.version,"The room changed. Refresh and try again.");
           if(action==="bonusSettings") {insist(["sabotage","boxes","hints"].includes(b.key)&&typeof b.enabled==="boolean","Choose a bonus setting.");g.bonusSettings={...classroom.settings(g),[b.key]:b.enabled};}
+          else if(action==="guidedSupport") {
+            insist(rulesFor(g).mathChecks!==false,"Guided math is only for the math lesson.");
+            const target=g.players[b.userId];insist(target&&typeof b.enabled==="boolean","Choose a student and support setting.");
+            target.guidedEnabled=b.enabled;
+          }
           else {
             insist(g.phase==="planning","Use this control before the round runs.");
             const target=g.players[b.userId];insist(target,"Choose a student.");
             if(action==="teacherReopen")target.ready=false;
             else {target.waivedMathRounds??=[];if(!target.waivedMathRounds.includes(g.round))target.waivedMathRounds.push(g.round);}
           }
-          classroom.event(g,u.name,action,action==="bonusSettings"?`${b.key}: ${b.enabled?"enabled":"disabled"}`:`${g.players[b.userId].owner}`);
+          classroom.event(g,u.name,action,action==="bonusSettings"?`${b.key}: ${b.enabled?"enabled":"disabled"}`:`${g.players[b.userId].owner}${action==="guidedSupport"?b.enabled?": guided help on":": guided help off":""}`);
           save(g);return view(g,u);
+        }
+        if(action==="guidedStart"||action==="guidedAnswer") {
+          insist(p,"Join the room first.");
+          const guided=require("./lib/guided-math");
+          const feedback=action==="guidedStart"?guided.start(g,p,b):guided.answer(g,p,b);
+          classroom.event(g,p.owner,action,action==="guidedStart"?"Started free guided math":feedback.correct?"Guided step correct":"Guided retry — no penalty");
+          save(g);return {...view(g,u),guidedFeedback:feedback};
         }
         if(action==="hint"||action==="bonusContinue") {
           insist(p,"Join the room first.");

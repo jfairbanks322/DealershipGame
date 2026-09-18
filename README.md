@@ -140,3 +140,9 @@ Every round includes customer-traffic, supplier-cost, and price-sensitivity clue
 ### Private math answer tracker
 
 Cost & Markup teachers see per-student right/wrong pricing-check totals for the current round and entire game. Each check is one attempt: both markup dollars and selling price must be correct for a right answer. Retries and practice rounds count; waiving a penalty does not erase an attempt. New counters are stored with the game but stripped from student API responses and excluded from public leaderboards. Earlier attempts without an exact recorded verdict are shown as unclassified rather than guessed. A classroom reset clears these game-specific totals. Supply & Demand price/stock saves are not counted as math answers.
+
+### Free guided math
+
+Every Cost & Markup student, including existing players, has free “Walk me through it” help enabled by default. Choose a menu item, choose a markup, then practice percent-to-decimal, markup dollars, and selling price in three steps. Incorrect guided steps never add a penalty; completing all three saves the price and records one assisted correct pricing check. Prior penalties remain unless the teacher waives them. Incomplete walkthroughs persist and can be resumed after login.
+
+Teachers can turn guidance off or on for each student. The private dashboard distinguishes independent and assisted pricing checks by round and game, plus separate guided-step successes and retries. Using a walkthrough for an item or buying the round hint marks subsequent corresponding checks as assisted. Earlier checks have no assistance classification. Reset clears the game-specific practice history and restores the default availability. Supply & Demand has no guided math.
