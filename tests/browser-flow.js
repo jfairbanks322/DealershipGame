@@ -89,7 +89,7 @@ const fs = require("node:fs");
     for (let round = 1; round <= 10; round++) {
       for (const p of [a, b]) {
         await waitRound(p, round, "planning");
-        if(round>=2) await p.locator('[data-action=bonus-continue]').click();
+
         const id = String(round);
         await p.locator(`[data-select="${id}"]`).first().click();
         const cost = [240, 260, 190, 280, 160, 60, 120, 90, 110, 200][

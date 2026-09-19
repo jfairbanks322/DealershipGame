@@ -136,6 +136,11 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       host: g.host === u.id,
       board: board(g),
       player,
+      roundProgress: player?{...require('./lib/round-experience').progress(g,g.players[u.id]),support:undefined}:null,
+      pendingEffects: player?require('./lib/round-experience').pending(g,g.players[u.id]):[],
+      roundStory: player?require('./lib/round-experience').story(g,g.players[u.id]):null,
+      lessonPresets: g.host===u.id?require('./lib/round-experience').presets(g):undefined,
+      currentPreset: g.host===u.id?require('./lib/round-experience').currentPreset(g):undefined,
       bonusSettings: classroom.settings(g),
       alliances: require("./lib/alliances").view(g,u.id,g.host===u.id),
       sabotageLedger: g.host===u.id ? (g.sabotageClaims||[]).map(x=>({...x})) : undefined,
@@ -143,7 +148,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       mysteryOffer: require("./lib/mystery-box").describe(g.round),
       mysterySchedule: require("./lib/mystery-box").tiers.map(({from,name,price})=>({from,name,price})),
       roundStandings: g.roundStandings || null,
-      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
+      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,progress:require("./lib/round-experience").progress(g,p),math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
       sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round&&!n.allianceNotice&&!n.exposure)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
@@ -503,6 +508,11 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if(action==='lessonPreset') {
+          insist(g.host===u.id,"Only this room’s teacher can apply a preset.");insist(b.version===g.version,"The room changed. Refresh and try again.");
+          const preset=require('./lib/round-experience').applyPreset(g,b.id);classroom.event(g,u.name,action,preset.name+' applied; previous purchases and scheduled effects remain');save(g);return view(g,u);
+        }
+        if(action==='roundGuide') {insist(p,"Join the room first.");require('./lib/round-experience').acknowledge(g,p,b.key);save(g);return view(g,u);}
         if(action==='competitionSetting') {
           insist(g.host===u.id,"Only this room’s teacher can change the competition lesson.");
           insist(g.lessonId==='supply-demand-v1',"Competition challenges are for Supply & Demand.");
