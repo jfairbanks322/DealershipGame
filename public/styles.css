@@ -1724,3 +1724,39 @@ body {
 .teacher-roster th:nth-child(3) { width: 31%; }
 .teacher-roster th:nth-child(4) { width: 23%; }
 .teacher-roster th:nth-child(5) { width: 19%; }
+
+/* Navigation and visual hierarchy */
+body { line-height: 1.45; }
+.sidebar { background: linear-gradient(165deg, #183e35, #102a25); }
+.sidebar-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mobile-menu { display: none; }
+.sidebar .nav { transition: background .15s ease; }
+.sidebar .nav:hover { background: #ffffff12; color: white; }
+.sidebar .nav.active { background: #ffffff20; box-shadow: inset 3px 0 #efb95c; }
+.topbar { background: var(--white); }
+.content > .page-heading { padding: 24px 0 12px; }
+.page-heading h1 { font-size: clamp(28px, 3.4vw, 44px); letter-spacing: -1.5px; }
+.card { border-radius: 18px; box-shadow: 0 4px 18px #183b3306; }
+.teacher-focus, .result-overview, .round-checklist { border-top: 4px solid var(--green); }
+.experience-fold > summary { padding-right: 12px; }
+.experience-fold[open] > summary { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.section-navigation { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 6px; padding: 10px; margin: -12px 0 18px; background: var(--white); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 6px 22px #0000000b; overflow-x: auto; }
+.section-navigation > span { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--muted); padding: 0 10px; white-space: nowrap; }
+.section-navigation button { flex-shrink: 0; border: 0; border-radius: 9px; padding: 11px 14px; background: transparent; color: var(--ink); font-weight: 700; }
+.section-navigation button:hover, .section-navigation button:focus-visible { background: var(--paper); }
+.content section, .content details, .catalog, .teacher-focus, .result-overview { scroll-margin-top: 88px; }
+.skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; background: var(--white); color: var(--ink); padding: 12px; border-radius: 8px; }
+.skip-link:focus { top: 12px; }
+@media(max-width:760px) {
+ .mobile-menu { display: block; background: #ffffff15; color: white; border: 1px solid #ffffff30; border-radius: 8px; padding: 9px 12px; }
+ .sidebar nav { display: none; }
+ .sidebar.navigation-open nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: visible; }
+ .sidebar .nav { white-space: normal; text-align: left; }
+ .topbar { height: auto; min-height: 62px; flex-wrap: wrap; padding: 12px 16px; gap: 8px; }
+ .topbar > .row { flex-wrap: wrap; }
+ .section-navigation { margin-top: -6px; border-radius: 0 0 12px 12px; margin-left: -16px; margin-right: -16px; padding: 8px; }
+ .section-navigation > span { display: none; }
+ .section-navigation button { padding: 10px 12px; font-size: 12px; }
+ .content > .page-heading { padding-top: 10px; }
+ .card { border-radius: 14px; }
+}
