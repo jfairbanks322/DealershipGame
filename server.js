@@ -120,6 +120,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       name: g.name,
       lesson: { id: g.lessonId || DEFAULT_LESSON, label: lessonFor(g).label },
       market: lessonFor(g).market?.(g) || null,
+      competition: {enabled:require('./lib/lessons/competition').enabled(g),briefing:require('./lib/lessons/competition').briefing(g),response:player?require('./lib/lessons/competition').record(player,g.round)||null:null,effects:player?require('./lib/lessons/competition').effects(g,player):null},
+      competitionTracker: g.host===u.id&&g.lessonId==='supply-demand-v1'?Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,...require('./lib/lessons/competition').summary(p,g.round)})):undefined,
       rules: {
         totalRounds: rulesFor(g).totalRounds,
         practiceRounds: rulesFor(g).practiceRounds,
@@ -501,6 +503,18 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if(action==='competitionSetting') {
+          insist(g.host===u.id,"Only this room’s teacher can change the competition lesson.");
+          insist(g.lessonId==='supply-demand-v1',"Competition challenges are for Supply & Demand.");
+          insist(b.version===g.version,"The room changed. Refresh and try again.");
+          insist(['lobby','results'].includes(g.phase)&&!g.paused,"Change this lesson before starting or between rounds.");
+          insist(typeof b.enabled==='boolean',"Choose on or off.");g.competitionEnabled=b.enabled;
+          classroom.event(g,u.name,action,b.enabled?'Competition challenges enabled for the next planning round':'Competition challenges disabled for the next planning round');save(g);return view(g,u);
+        }
+        if(action==='competitionAnswer') {
+          insist(p,"Join this room first.");require('./lib/lessons/competition').choose(g,p,b);
+          classroom.event(g,p.owner,action,'Competition classification and reasoning saved');save(g);return view(g,u);
+        }
         if (["allianceInvite","allianceAccept","allianceDecline","allianceLeave"].includes(action)) {
           insist(p,"Join this room first.");require('./lib/alliances').act(g,p,action,b);
           classroom.event(g,p.owner,action,action==='allianceInvite'?`Invited ${g.players[b.target].owner}`:action==='allianceAccept'?'Joined an alliance':action==='allianceLeave'?'Left an alliance':'Invitation removed');
