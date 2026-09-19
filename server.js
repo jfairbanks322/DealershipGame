@@ -111,7 +111,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
   function view(g, u) {
     const player = g.players[u.id] ? structuredClone(g.players[u.id]) : null;
     if(player) { delete player.mathChecksByRound; delete player.mathModesByRound; delete player.guidedPracticeByRound; delete player.guidedUsed; }
-    if(player) player.sabotageInbox=(player.sabotageInbox||[]).map(n=>n.success&&!n.revealed?{id:n.id,round:n.round,success:true,damage:n.damage,seen:n.seen,revealed:false}:{...n});
+    if(player) player.sabotageInbox=require("./lib/sabotage").inbox(player);
     const spins = player ? [...(player.sabotageHistory||[])] : [];
     if(player?.sabotageSpin&&!spins.some(x=>x.id===player.sabotageSpin.id))spins.push(player.sabotageSpin);
     const attempts=spins.filter(x=>x.round===g.round);
@@ -135,11 +135,14 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       board: board(g),
       player,
       bonusSettings: classroom.settings(g),
+      alliances: require("./lib/alliances").view(g,u.id,g.host===u.id),
+      sabotageLedger: g.host===u.id ? (g.sabotageClaims||[]).map(x=>({...x})) : undefined,
+      sabotageMode: require("./lib/sabotage").mode(g),
       mysteryOffer: require("./lib/mystery-box").describe(g.round),
       mysterySchedule: require("./lib/mystery-box").tiers.map(({from,name,price})=>({from,name,price})),
       roundStandings: g.roundStandings || null,
       teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
-      sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round)).map(p => p.userId) },
+      sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round&&!n.allianceNotice&&!n.exposure)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
     };
@@ -458,6 +461,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           paused: false,
           penalty,
           players: {},
+          sabotageMode: "sales",
           version: 0,
         };
         initializeLesson(g, b.lessonId || DEFAULT_LESSON);
@@ -497,10 +501,21 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (["allianceInvite","allianceAccept","allianceDecline","allianceLeave"].includes(action)) {
+          insist(p,"Join this room first.");require('./lib/alliances').act(g,p,action,b);
+          classroom.event(g,p.owner,action,action==='allianceInvite'?`Invited ${g.players[b.target].owner}`:action==='allianceAccept'?'Joined an alliance':action==='allianceLeave'?'Left an alliance':'Invitation removed');
+          save(g);return view(g,u);
+        }
+        if(action==='sabotageMode'||action==='allianceDissolve') {
+          insist(g.host===u.id,"Only this room’s teacher can use these controls.");insist(b.version===g.version,"The room changed. Refresh and try again.");
+          if(action==='sabotageMode'){insist(['sales','repair'].includes(b.mode),'Choose sales or repair sabotage.');g.sabotageMode=b.mode;}
+          else require('./lib/alliances').dissolve(g,b.id);
+          classroom.event(g,u.name,action,action==='sabotageMode'?`New attempts use ${b.mode}; existing effects remain`:'Alliance dissolved');save(g);return view(g,u);
+        }
         if (["bonusSettings","teacherReopen","waiveMath","guidedSupport"].includes(action)) {
           insist(g.host===u.id,"Only this room’s teacher can use these controls.");
           insist(b.version===g.version,"The room changed. Refresh and try again.");
-          if(action==="bonusSettings") {insist(["sabotage","boxes","hints"].includes(b.key)&&typeof b.enabled==="boolean","Choose a bonus setting.");g.bonusSettings={...classroom.settings(g),[b.key]:b.enabled};}
+          if(action==="bonusSettings") {insist(["sabotage","boxes","hints","alliances"].includes(b.key)&&typeof b.enabled==="boolean","Choose a bonus setting.");g.bonusSettings={...classroom.settings(g),[b.key]:b.enabled};}
           else if(action==="guidedSupport") {
             insist(rulesFor(g).mathChecks!==false,"Guided math is only for the math lesson.");
             const target=g.players[b.userId];insist(target&&typeof b.enabled==="boolean","Choose a student and support setting.");
@@ -538,7 +553,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
         }
         if (action === "sabotage" || action === "sabotageSeen") {
           insist(p, "Join the room first.");
-          if (action === "sabotage") { const spin=require("./lib/sabotage").spin(g, p, b); classroom.event(g,p.owner,"sabotage",`${spin.target}: ${spin.success?"success":"miss"}, attempt ${spin.attempt}, ${spin.chance}% chance, paid $${spin.cost/100}`); }
+          if (action === "sabotage") { const spin=require("./lib/sabotage").spin(g, p, b); classroom.event(g,p.owner,"sabotage",`${spin.target}: ${spin.success?"success":"miss"}, attempt ${spin.attempt}, ${spin.chance}% chance, paid $${spin.cost/100}; ${spin.backstab?"BACKSTAB; ":""}${spin.mode==="sales"?`${spin.rate}% of round ${spin.dueRound} sales`:"$40 repair damage"}`); }
           else { const event = (p.sabotageInbox || []).find(n => n.id === b.id); insist(event, "Notification not found."); if(!!event.revealed===!!b.revealed)event.seen = true; }
           save(g);
           return view(g, u);
@@ -561,7 +576,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           g.phase = "lobby";
           g.round = 1;
           g.paused = false;
-          g.events = []; g.roundStandings = null;
+          g.events = []; g.roundStandings = null; g.alliances=[];g.allianceInvites=[];g.sabotageClaims=[];
           for (const [id, owner] of Object.entries(g.players)) {
             g.players[id] = newPlayer(userById(id), owner.restaurant, owner.icon, owner.color);
           }
