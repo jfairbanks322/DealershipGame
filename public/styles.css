@@ -1760,3 +1760,68 @@ body { line-height: 1.45; }
  .content > .page-heading { padding-top: 10px; }
  .card { border-radius: 14px; }
 }
+
+/* Counter Culture: bold counter-service branding, with calm reading surfaces. */
+:root { --pop-lime: #dcf572; --pop-purple: #7050ba; --pop-coral: #ff805d; --pop-outline: #21483c; }
+body { background-image: radial-gradient(ellipse at 100% 0%, #dcf57230, transparent 45%); }
+.content > .page-heading {
+ background: #204c40;
+ color: #fffef4;
+ border: 2px solid #173b32;
+ border-radius: 22px;
+ padding: 28px 30px;
+ box-shadow: 5px 5px 0 #dcf572;
+ position: relative;
+ overflow: hidden;
+ isolation: isolate;
+}
+.content > .page-heading::before {
+ content: ''; position: absolute; z-index: -1; right: -45px; top: -75px;
+ width: 240px; height: 240px; border: 32px solid #dcf57213; border-radius: 50%;
+}
+.content > .page-heading .eyebrow { color: #dcf572; letter-spacing: 1.6px; }
+.content > .page-heading h1 { font-weight: 950; letter-spacing: -1.8px; line-height: 1.08; overflow-wrap: anywhere; }
+.content > .page-heading .muted { color: #e0eadf; }
+.content > .page-heading > .pill { background: #dcf572; color: #243728; border: 2px solid #152f28; transform: rotate(3deg); box-shadow: 3px 3px 0 #10271f; flex-shrink: 0; }
+.content > .page-heading > .pill.orange { background: #ffb096; }
+.brand-mark { background: #dcf572; color: #173b32; transform: rotate(-7deg); box-shadow: 3px 3px 0 #00000038; }
+.sidebar .nav.active { background: #dcf572; color: #183b33; box-shadow: 3px 3px 0 #081e18; }
+.sidebar .nav.active:hover { background: #e7ff87; color: #183b33; }
+.section-navigation { border: 2px solid var(--line); }
+.section-navigation button:hover { background: #dcf572; color: #183b33; }
+.btn:not(.ghost):not(.secondary) { box-shadow: 0 3px 0 #12362c; border: 1px solid #153b32; }
+.btn.orange { background: #ffc167; color: #302718; }
+.btn:not(.ghost):not(.secondary):active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #12362c; }
+.round-rail li.current span { background: #7050ba; color: white; box-shadow: 0 0 0 5px #7050ba20; }
+.product { border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); border-radius: 18px; }
+.product .food-icon { background: #fff0cb; border-radius: 18px; }
+.product:nth-child(3n + 2) .food-icon { background: #eee3ff; }
+.product:nth-child(3n) .food-icon { background: #dff1c6; }
+.product.selected { border-color: var(--green); box-shadow: 0 4px 0 var(--green); }
+.product .new { background: #dcf572; color: #183b33; padding: 4px 6px; border-radius: 5px; transform: rotate(3deg); }
+.stat { border-top: 4px solid #3a9b79; }
+.stat:nth-child(2) { border-top: 4px solid #f3b348; }
+.stat:nth-child(3) { border-top: 4px solid #9770d3; }
+.stat:nth-child(4) { border-top: 4px solid #f18264; }
+.stat strong { font-size: clamp(26px, 3vw, 36px); font-weight: 900; }
+.experience-fold { border-left: 5px solid #9770d3; }
+.experience-fold[data-fold$=":optional"] { border-left-color: #f18264; }
+.experience-fold[data-fold$=":math-help"] { border-left-color: #3a9b79; }
+.landing h1 { font-weight: 950; }
+.landing .visual { border-radius: 22px; border: 2px solid var(--line); box-shadow: 6px 6px 0 #dcf572; }
+[data-theme="dark"] body { background-image: radial-gradient(ellipse at 95% 0, #7050ba26, transparent 48%); }
+[data-theme="dark"] .content > .page-heading { background: #24493f; border-color: #729a76; box-shadow: 5px 5px 0 #bcd765; }
+[data-theme="dark"] .content > .page-heading .muted { color: #e0eadf; }
+[data-theme="dark"] .content > .page-heading > .pill { background: #dcf572; color: #243728; }
+[data-theme="dark"] .content > .page-heading > .pill.orange { background: #ffb096; }
+[data-theme="dark"] .btn.orange { background: #ffc167; color: #302718; }
+[data-theme="dark"] .product .food-icon { background: #5b4631; }
+[data-theme="dark"] .product:nth-child(3n + 2) .food-icon { background: #493761; }
+[data-theme="dark"] .product:nth-child(3n) .food-icon { background: #314b38; }
+@media(max-width:760px) {
+ .content > .page-heading { padding: 23px 20px; align-items: flex-start; flex-direction: column; gap: 18px; margin-right: 5px; }
+ .content > .page-heading > .pill { align-self: flex-end; }
+ .content > .page-heading h1 { font-size: 34px; }
+}
+@media(prefers-reduced-motion:reduce) { .product:hover .food-icon, .btn:hover:not(:disabled) { transform: none; } }
+[data-theme="dark"] .round-rail li.current span { background: #7050ba; color: #fff; }
