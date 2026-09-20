@@ -1,5 +1,6 @@
 "use strict";
 const classroom = require("./lib/classroom");
+const storefronts = require("./public/storefronts");
 const restaurantOptions = require("./public/restaurant-options");
 const {
   DEFAULT_LESSON,
@@ -89,6 +90,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
         restaurant: p.restaurant,
         icon: p.icon,
         color: p.color,
+        storefront: p.storefront || "diner",
+        round: g.round,
         profit: sum(p),
         last: p.reports.at(-1)?.profit || 0,
         units: p.reports.reduce((a, r) => a + r.units, 0),
@@ -179,6 +182,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
     "/index.html": ["index.html", "text/html"],
     "/app.js": ["app.js", "text/javascript"],
     "/avatars.js": ["avatars.js", "text/javascript"],
+    "/storefronts.js": ["storefronts.js", "text/javascript"],
     "/restaurant-options.js": ["restaurant-options.js", "text/javascript"],
     "/food-art.js": ["food-art.js", "text/javascript"],
     "/styles.css": ["styles.css", "text/css"],
@@ -602,7 +606,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           g.paused = false;
           g.events = []; g.roundStandings = null; g.alliances=[];g.allianceInvites=[];g.sabotageClaims=[];
           for (const [id, owner] of Object.entries(g.players)) {
-            g.players[id] = newPlayer(userById(id), owner.restaurant, owner.icon, owner.color);
+            g.players[id] = newPlayer(userById(id), owner.restaurant, owner.icon, owner.color, owner.storefront);
           }
           save(g);
           return view(g, u);
@@ -633,10 +637,15 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
               restaurantOptions.colors.some((c) => c.value === color),
               "Choose an available restaurant color.",
             );
-            p = newPlayer(u, restaurant, icon, color);
+            insist(storefronts.styles.some(x=>x.id===(b.storefront||"diner")), "Choose an available storefront.");
+            p = newPlayer(u, restaurant, icon, color, b.storefront);
             p.badges.push(2);
             g.players[u.id] = p;
           }
+        } else if (action === "storefront") {
+          insist(p, "Join this game first.");
+          insist(storefronts.styles.some(x=>x.id===b.storefront), "Choose an available storefront.");
+          p.storefront = b.storefront;
         } else if (["start", "pause", "run", "next", "skip", "restore"].includes(action)) {
           insist(g.host === u.id, "Only the teacher can control rounds.");
           // Expected version prevents double-clicks or stale tabs from advancing twice.

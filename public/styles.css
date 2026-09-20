@@ -1825,3 +1825,19 @@ body { background-image: radial-gradient(ellipse at 100% 0%, #dcf57230, transpar
 }
 @media(prefers-reduced-motion:reduce) { .product:hover .food-icon, .btn:hover:not(:disabled) { transform: none; } }
 [data-theme="dark"] .round-rail li.current span { background: #7050ba; color: #fff; }
+.storefront-art { display: block; width: 100%; height: auto; max-height: 310px; border-radius: 16px; }
+.restaurant-preview:has(.storefront-art) { display: block; padding: 0; overflow: hidden; }
+.storefront-showcase { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; }
+.storefront-gallery { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin-top: 24px; }
+.storefront-gallery strong { display: block; margin-top: 8px; text-align: center; font-size: 12px; }
+td .sf-mini { width: 88px; height: 57px; margin-bottom: 6px; }
+.restaurant-storefront { background: #dbece1; padding: 12px; }
+.sf-steam { animation: storefront-steam 4s ease-in-out infinite; }
+.sf-glow { animation: storefront-glow 3s ease-in-out infinite alternate; }
+.sf-customer { animation: storefront-visit 18s ease-in-out infinite; }
+.sf-mini * { animation: none; }
+@keyframes storefront-steam { 50% { transform: translateY(-7px); opacity: .2; } }
+@keyframes storefront-glow { to { opacity: .55; } }
+@keyframes storefront-visit { 0%,100% { transform: translateX(0); } 40%,65% { transform: translateX(170px); } }
+@media(max-width:760px){ .storefront-showcase { grid-template-columns: 1fr; } .storefront-gallery { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(prefers-reduced-motion:reduce){ .storefront-art * { animation: none !important; } }
