@@ -37,11 +37,11 @@
     "nachos",
   ];
   const palettes = ["#d76247", "#6fa773", "#8666b3", "#e3ad48"];
-  root.CounterFoodArt = function (id) {
+  root.CounterFoodArt = function (id, item) {
     const n = Number(id) - 1,
-      type = families[n] || "burger",
+      type = families[n] || ({Burgers:"burger", Chicken:"sandwich", Tacos:"taco", Pizza:"pizza", Sides:"fries", Drinks:"drink", Desserts:"sundae", Wraps:"wrap", Bowls:"bowl"}[item?.category] || "burger"),
       color = palettes[Math.max(0, n) % 4],
-      wild = n >= 21;
+      wild = item?.wild ?? (n >= 21);
     const circle = (x, y, r, c) =>
       `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
     let art = "";

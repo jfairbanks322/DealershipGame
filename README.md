@@ -24,14 +24,14 @@ You can pause and resume. Accounts, sessions, completed reports, checked menu pr
 ## Included
 
 - 50 curated restaurant names, 32 signs and 16 colors, shared between the browser and server. Names can be reused; owner names distinguish restaurants.
-- 34 menu items: 5 in round 1, 5 more in round 2, then 3 more each round. Older unlocked products remain available.
+- 134 menu items: the original 34 plus 100 additions unlocking 10 per round (5 familiar foods and 5 wild creations). Older unlocked products remain available; newest choices appear first.
 - One new menu item per round, plus price adjustments to existing products.
 - Required server-validated markup dollars and selling price; money rounds to the nearest cent.
 - Free corrections in rounds 1–5; at most one penalty in each of rounds 6–10, rising by the configured base each round ($5, $10, $15, $20, $25 with the default).
 - Ten promotions from round 3, plus no promotion. Offers show revenue/cost previews and include food costs for all free items and companion products.
 - Deterministic sales simulation based on product popularity, price relative to customer expectations, price sensitivity, menu breadth, promotion, and shared round conditions.
 - Item-by-item sales and profit reports, a receipt-style round summary, top-earner spotlight, and season history.
-- Original vector illustrations for the 34-item catalog, a ten-round progress strip, and earned/locked badge filters.
+- Original vector illustrations with category-based art for the expanded catalog, a ten-round progress strip, and earned/locked badge filters.
 - Public room leaderboard with restaurant and owner names, projector mode, and a shareable room link.
 - Universal career-profit and best-game rankings based only on completed games.
 - 50 server-awarded account badges; feature up to three, with the first displayed on the classroom board.

@@ -9,14 +9,22 @@ const { catalog, promotions } = require("../lib/catalog"),
   { pricing, newPlayer, simulate, deal } = require("../lib/game"),
   { createApp } = require("../server");
 test("catalog progression and 70 distinct achievements", () => {
-  assert.equal(catalog.length, 34);
+  assert.equal(catalog.length, 134);
+  const added = catalog.slice(34);
+  assert.equal(new Set(catalog.map(x => x.id)).size, 134);
+  assert.equal(new Set(catalog.map(x => x.name)).size, 134);
+  assert.equal(added.filter(x => x.wild).length, 50);
+  for (let r=1;r<=10;r++) {
+    assert.equal(added.filter(x => x.round === r).length, 10);
+    assert.equal(added.filter(x => x.round === r && x.wild).length, 5);
+  }
   assert.equal(badges.length, 70);
   assert.equal(new Set(badges.map((x) => x.name)).size, 70);
   assert.equal(promotions.length, 11);
   for (let r = 1; r <= 10; r++)
     assert.equal(
       catalog.filter((x) => x.round <= r).length,
-      r === 1 ? 5 : 10 + (r - 2) * 3,
+      (r === 1 ? 5 : 10 + (r - 2) * 3) + r * 10,
     );
 });
 test("math correction, once-per-round growing penalty, and cent rounding", () => {
