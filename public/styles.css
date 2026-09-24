@@ -1843,3 +1843,16 @@ td .sf-mini { width: 88px; height: 57px; margin-bottom: 6px; }
 @media(prefers-reduced-motion:reduce){ .storefront-art * { animation: none !important; } }
 #markdown-form fieldset { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
 #markdown-panel { border-top: 4px solid #a18abe; }
+.alliance-hub { background: var(--paper); border: 1px solid var(--line); padding: 20px; border-radius: 18px; margin: 18px 0; }
+.alliance-hub h3 { font-size: 24px; margin-top: 8px; }
+.crew-roster { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin: 20px 0; }
+.crew-roster > div { display: grid; justify-items: center; text-align: center; gap: 6px; overflow-wrap: anywhere; }
+.crew-roster .owner-art { width: 52px; height: 52px; }
+.crew-roster small { color: var(--muted); }
+.guard-meter progress { display: block; width: 100%; height: 14px; margin: 14px 0; accent-color: var(--green); }
+.risk-ladder { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 20px 0; }
+.risk-ladder > div { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.risk-ladder strong { font-size: 26px; }.risk-ladder small { color: var(--muted); }
+.risk-ladder .won { border-top: 4px solid var(--green); }.risk-ladder .missed { border-top: 4px solid var(--orange); }
+.mission-preview { background: var(--paper); border-left: 4px solid #a18abe; border-radius: 10px; padding: 18px; }
+@media(max-width:760px){.crew-roster { grid-template-columns:repeat(2,minmax(0,1fr)); }.risk-ladder > div { padding:10px; font-size:12px; }}

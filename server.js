@@ -154,7 +154,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       mysterySchedule: require("./lib/mystery-box").tiers.map(({from,name,price})=>({from,name,price})),
       roundStandings: g.roundStandings || null,
       teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,progress:require("./lib/round-experience").progress(g,p),math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
-      sabotage: { attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round&&!n.allianceNotice&&!n.exposure)).map(p => p.userId) },
+      sabotage: { missions:require('./lib/sabotage').missions.map(({id,name,icon})=>({id,name,icon})), guardedTargets:Object.keys(g.players).filter(id=>require('./lib/alliances').guard(g,require('./lib/alliances').group(g,id)).active), attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round&&!n.allianceNotice&&!n.exposure)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
     };
@@ -543,9 +543,9 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           insist(p,"Join this room first.");require('./lib/lessons/competition').choose(g,p,b);
           classroom.event(g,p.owner,action,'Competition classification and reasoning saved');save(g);return view(g,u);
         }
-        if (["allianceInvite","allianceAccept","allianceDecline","allianceLeave"].includes(action)) {
+        if (["allianceInvite","allianceAccept","allianceDecline","allianceLeave","allianceRally"].includes(action)) {
           insist(p,"Join this room first.");require('./lib/alliances').act(g,p,action,b);
-          classroom.event(g,p.owner,action,action==='allianceInvite'?`Invited ${g.players[b.target].owner}`:action==='allianceAccept'?'Joined an alliance':action==='allianceLeave'?'Left an alliance':'Invitation removed');
+          classroom.event(g,p.owner,action,action==='allianceRally'?'Rallied for Team Guard':action==='allianceInvite'?`Invited ${g.players[b.target].owner}`:action==='allianceAccept'?'Joined an alliance':action==='allianceLeave'?'Left an alliance':'Invitation removed');
           save(g);return view(g,u);
         }
         if(action==='sabotageMode'||action==='allianceDissolve') {
