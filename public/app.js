@@ -57,9 +57,43 @@ try {
   const saved = localStorage.getItem("counter-theme");
   if (["light", "dark"].includes(saved)) theme = saved;
 } catch {}
-document.documentElement.dataset.theme = theme;
+let palette = "classic";
+try { const saved=localStorage.getItem("counter-palette"); if(window.CounterThemes.some(t=>t.id===saved)) palette=saved; } catch {}
+function applyAppearance() {
+ const t=window.CounterThemes.find(t=>t.id===palette)||window.CounterThemes[0], el=document.documentElement;
+ el.dataset.theme=theme; el.dataset.palette=t.id;
+ const dark=theme==='dark';
+ const colors={ink:dark?'#f1f3f8':t.deep,muted:dark?'#bac4d5':'#596174',paper:dark?'#14151e':t.paper,white:dark?'#222532':'#fffefc',line:dark?'#485063':'#d5d7df',green:dark?t.accent:t.deep,orange:dark?t.accent:t.deep,'theme-deep':t.deep,'theme-accent':t.accent,'theme-soft':dark?'#303547':t.paper,'theme-button-ink':dark?t.deep:'#ffffff','pop-lime':t.accent,'accent-soft':dark?'#303547':t.paper};
+ for(const [key,value] of Object.entries(colors))el.style.setProperty('--'+key,value);
+ document.querySelector('meta[name="theme-color"]').content=colors.paper;
+ try {localStorage.setItem('counter-theme',theme);localStorage.setItem('counter-palette',palette);} catch {}
+ document.querySelectorAll('.theme-toggle').forEach(b=>{b.textContent=theme==='dark'?'☀ Light':'☾ Dark';b.setAttribute('aria-label',`Switch to ${theme==='dark'?'light':'dark'} mode`);});
+}
+applyAppearance();
 function themeButton() {
-  return `<button type="button" class="btn ghost small theme-toggle" data-action="theme" aria-label="Switch to ${theme === "dark" ? "light" : "dark"} mode">${theme === "dark" ? "☀ Light" : "☾ Dark"}</button>`;
+ return `<button type="button" class="btn ghost small" data-action="appearance">◈ Appearance</button><button type="button" class="btn ghost small theme-toggle" data-action="theme" aria-label="Switch to ${theme==='dark'?'light':'dark'} mode">${theme==='dark'?'☀ Light':'☾ Dark'}</button>`;
+}
+async function saveAppearance(nextPalette, nextMode) {
+ if(user) { const data=await api('/profile',{palette:nextPalette,colorMode:nextMode});user=data.user; }
+ palette=nextPalette;theme=nextMode;applyAppearance();draw();
+}
+function appearanceDialog() {
+ if(document.querySelector('#appearance-dialog'))return;
+ const dialog=document.createElement('dialog');dialog.id='appearance-dialog';dialog.className='appearance-dialog';
+ dialog.setAttribute('aria-labelledby','appearance-title');
+ dialog.innerHTML=`<div class="row between"><h2 id="appearance-title">Make it your vibe.</h2><button class="btn ghost small" data-close-appearance aria-label="Close appearance">✕</button></div><p>Choose your color scheme. ${user?'Saved to your account across devices.':'Saved on this browser until you log in.'} Your choice only changes your screen.</p><div class="theme-grid">${window.CounterThemes.map(t=>`<button class="theme-choice" data-palette="${t.id}" aria-pressed="${palette===t.id}"><span class="theme-preview" style="--preview-deep:${t.deep};--preview-accent:${t.accent};--preview-paper:${t.paper}" aria-hidden="true"><i></i><i></i><i></i></span><strong>${t.name}</strong><small>${t.description}</small></button>`).join('')}</div><div class="row" style="margin-top:20px"><button class="btn secondary" data-mode="light" aria-pressed="${theme==='light'}">☀ Light</button><button class="btn secondary" data-mode="dark" aria-pressed="${theme==='dark'}">☾ Dark</button></div><p class="tiny" id="appearance-status" role="status">Every scheme supports light and dark mode. Restaurant colors are separate.</p>`;
+ dialog.addEventListener('close',()=>dialog.remove());
+ dialog.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-close-appearance'))return dialog.close();
+  const buttons=[...dialog.querySelectorAll('button')];buttons.forEach(x=>x.disabled=true);
+  try {await saveAppearance(b.dataset.palette||palette,b.dataset.mode||theme);
+   dialog.querySelectorAll('[data-palette]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.palette===palette)));
+   dialog.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.mode===theme)));
+   dialog.querySelector('#appearance-status').textContent=user?'Saved to your account.':'Saved on this browser.';
+  } catch(e){dialog.querySelector('#appearance-status').textContent=e.message;}
+  finally{buttons.forEach(x=>x.disabled=false);}
+ });document.body.append(dialog);dialog.showModal();
 }
 function avatarArt(id, cls = "") {
   const a = avatarDefs.find((x) => x.id === id) || avatarDefs[0];
@@ -146,12 +180,13 @@ function apply(g) {
 async function refreshMe() {
   const d = await api("/me");
   user = d.user;
+  if(user){palette=user.palette||"classic";theme=user.colorMode||theme;applyAppearance();}
   games = d.games;
   badgeDefs = d.badges;
   lessonChoices = d.lessons || lessonChoices;
 }
 function auth() {
-  return `<div class="landing"><header class="landing-header">${brand}<div class="row">${themeButton()}<button class="btn small secondary" data-action="teacher-entry">${teacherEntry ? "Student login" : "Teacher login"}</button><button class="btn ghost small" data-action="public">Global leaderboard ↗</button></div></header><div class="landing-grid"><section><span class="pill">10 ROUNDS. YOUR RESTAURANT. YOUR CALL.</span><h1>Small counter.<br><em>Big ambitions.</em></h1><p class="muted intro">Build a menu. Find your price. Turn smart math into a thriving fast-food business.</p><div class="row"><span class="pill">🍔 34 menu possibilities</span><span class="pill">🏅 ${badgeDefs.length || 70} achievements</span></div><div class="visual"><canvas id="restaurant-scene" width="900" height="280" aria-label="An illustrated fast-food restaurant"></canvas></div></section><section class="card auth-card"><div class="auth-tabs"><button data-action="register-tab" class="${authTab === "register" ? "active" : ""}">Create account</button><button data-action="login-tab" class="${authTab === "login" ? "active" : ""}">Log in</button></div><span class="eyebrow">${teacherEntry ? "TEACHER ACCESS" : "YOUR NEXT BIG IDEA STARTS HERE"}</span><h2 style="margin-top:12px">${teacherEntry ? (authTab === "register" ? "Create your teacher account." : "Welcome back, teacher.") : authTab === "register" ? "Meet the owner." : "Welcome back, boss."}</h2><p class="muted">${teacherEntry ? "Log in with your account and teacher access key to run your classroom." : authTab === "register" ? "Your restaurant journey, saved from the first order." : "Pick up right where you left off."}</p><form id="auth-form" class="stack">${authTab === "register" ? '<label>Owner display name<input name="name" autocomplete="nickname" maxlength="40" placeholder="e.g. Jordan" required></label>' : ""}<label>Username<input name="username" autocomplete="username" pattern="(?:[A-Za-z0-9_]|-){3,24}" placeholder="Your unique username" required></label><label>Password<input name="password" type="password" autocomplete="${authTab === "register" ? "new-password" : "current-password"}" minlength="8" maxlength="128" placeholder="At least 8 characters" required></label>${authTab === "register" ? `<fieldset class="avatar-fieldset"><legend>Choose your avatar</legend><input type="hidden" name="avatar" value="${registrationAvatar}">${avatarPicker(registrationAvatar, true)}</fieldset>` : ""}${teacherEntry ? '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" placeholder="Your private classroom key" required></label>' : ""}<div id="form-error"></div><button class="btn orange full">${teacherEntry ? (authTab === "register" ? "Create teacher account" : "Teacher login") : authTab === "register" ? "Create my account" : "Log in"} →</button></form><p class="tiny muted" style="margin:18px 0 0">Your owner display name appears on leaderboards. Your username and password stay private.</p></section></div><footer class="landing-footer"><span>A little creativity. A little competition. A lot of good math.</span><span>COST + MARKUP = YOUR NEXT MOVE</span></footer></div>`;
+  return `<div class="landing"><header class="landing-header">${brand}<div class="row">${themeButton()}<button class="btn small secondary" data-action="teacher-entry">${teacherEntry ? "Student login" : "Teacher login"}</button><button class="btn ghost small" data-action="public">Global leaderboard ↗</button></div></header><div class="landing-grid"><section><span class="pill">10 ROUNDS. YOUR RESTAURANT. YOUR CALL.</span><h1>Small counter.<br><em>Big ambitions.</em></h1><p class="muted intro">Build a menu. Find your price. Turn smart math into a thriving fast-food business.</p><div class="row"><span class="pill">🍔 134 menu possibilities</span><span class="pill">🏅 ${badgeDefs.length || 70} achievements</span></div><div class="visual"><canvas id="restaurant-scene" width="900" height="280" aria-label="An illustrated fast-food restaurant"></canvas></div></section><section class="card auth-card"><div class="auth-tabs"><button data-action="register-tab" class="${authTab === "register" ? "active" : ""}">Create account</button><button data-action="login-tab" class="${authTab === "login" ? "active" : ""}">Log in</button></div><span class="eyebrow">${teacherEntry ? "TEACHER ACCESS" : "YOUR NEXT BIG IDEA STARTS HERE"}</span><h2 style="margin-top:12px">${teacherEntry ? (authTab === "register" ? "Create your teacher account." : "Welcome back, teacher.") : authTab === "register" ? "Meet the owner." : "Welcome back, boss."}</h2><p class="muted">${teacherEntry ? "Log in with your account and teacher access key to run your classroom." : authTab === "register" ? "Your restaurant journey, saved from the first order." : "Pick up right where you left off."}</p><form id="auth-form" class="stack">${authTab === "register" ? '<label>Owner display name<input name="name" autocomplete="nickname" maxlength="40" placeholder="e.g. Jordan" required></label>' : ""}<label>Username<input name="username" autocomplete="username" pattern="(?:[A-Za-z0-9_]|-){3,24}" placeholder="Your unique username" required></label><label>Password<input name="password" type="password" autocomplete="${authTab === "register" ? "new-password" : "current-password"}" minlength="8" maxlength="128" placeholder="At least 8 characters" required></label>${authTab === "register" ? `<fieldset class="avatar-fieldset"><legend>Choose your avatar</legend><input type="hidden" name="avatar" value="${registrationAvatar}">${avatarPicker(registrationAvatar, true)}</fieldset>` : ""}${teacherEntry ? '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" placeholder="Your private classroom key" required></label>' : ""}<div id="form-error"></div><button class="btn orange full">${teacherEntry ? (authTab === "register" ? "Create teacher account" : "Teacher login") : authTab === "register" ? "Create my account" : "Log in"} →</button></form><p class="tiny muted" style="margin:18px 0 0">Your owner display name appears on leaderboards. Your username and password stay private.</p></section></div><footer class="landing-footer"><span>A little creativity. A little competition. A lot of good math.</span><span>COST + MARKUP = YOUR NEXT MOVE</span></footer></div>`;
 }
 let navigationOpen = false;
 function sectionNavigation() {
@@ -807,22 +842,10 @@ root.addEventListener("click", async (e) => {
       render();
       return;
     }
+    if (btn.dataset.action === "appearance") {appearanceDialog();return;}
     if (btn.dataset.action === "theme") {
-      theme = theme === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = theme;
-      try {
-        localStorage.setItem("counter-theme", theme);
-      } catch {}
-      document.querySelectorAll(".theme-toggle").forEach((el) => {
-        el.textContent = theme === "dark" ? "☀ Light" : "☾ Dark";
-        el.setAttribute(
-          "aria-label",
-          `Switch to ${theme === "dark" ? "light" : "dark"} mode`,
-        );
-      });
-      document.querySelector('meta[name="theme-color"]').content =
-        theme === "dark" ? "#101b23" : "#f6f5ee";
-      draw();
+      btn.disabled=true;
+      try {await saveAppearance(palette,theme==='dark'?'light':'dark');} finally{btn.disabled=false;}
       return;
     }
     if (btn.dataset.avatar) {

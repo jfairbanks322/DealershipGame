@@ -1,0 +1,4 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),themes=require('../public/themes');
+function luminance(hex){return hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);}
+function contrast(a,b){const x=luminance(a),y=luminance(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+test('ten distinct palettes maintain readable text and button contrast in both modes',()=>{assert.equal(themes.length,10);assert.equal(new Set(themes.map(t=>t.id)).size,10);for(const t of themes)for(const [fg,bg] of [[t.deep,t.paper],[t.deep,t.accent],['#ffffff',t.deep],['#596174',t.paper],['#f1f3f8','#222532'],['#bac4d5','#222532'],[t.accent,'#222532']])assert.ok(contrast(fg,bg)>=4.5,`${t.id}: ${fg} on ${bg}`);});

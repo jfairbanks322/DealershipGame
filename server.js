@@ -12,6 +12,7 @@ const {
   draftFor,
 } = require("./lib/lessons");
 const avatars = require("./public/avatars");
+const themes = require("./public/themes");
 const http = require("node:http"),
   fs = require("node:fs"),
   path = require("node:path"),
@@ -48,6 +49,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
     name: u.name,
     username: u.username,
     avatar: u.avatar,
+    palette: u.palette,
+    colorMode: u.colorMode,
     badges: u.badges,
     featured: u.featured,
   });
@@ -183,6 +186,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
     "/": ["index.html", "text/html"],
     "/index.html": ["index.html", "text/html"],
     "/app.js": ["app.js", "text/javascript"],
+    "/themes.js": ["themes.js", "text/javascript"],
+    "/themes.css": ["themes.css", "text/css"],
     "/avatars.js": ["avatars.js", "text/javascript"],
     "/storefronts.js": ["storefronts.js", "text/javascript"],
     "/restaurant-options.js": ["restaurant-options.js", "text/javascript"],
@@ -415,6 +420,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
         return send(200, { ok: true });
       }
       if (url.pathname === "/api/profile" && req.method === "POST") {
+        if (b.palette !== undefined) insist(themes.some(t => t.id === b.palette), "Choose an available color scheme.");
+        if (b.colorMode !== undefined) insist(["light", "dark"].includes(b.colorMode), "Choose light or dark mode.");
         if (b.avatar !== undefined)
           insist(
             avatars.some((a) => a.id === b.avatar),
@@ -437,6 +444,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
             b.avatar,
             u.id,
           );
+        if (b.palette !== undefined) db.prepare("UPDATE users SET palette=? WHERE id=?").run(b.palette, u.id);
+        if (b.colorMode !== undefined) db.prepare("UPDATE users SET colorMode=? WHERE id=?").run(b.colorMode, u.id);
         return send(200, {
           user: safeUser(userById(u.id), session.teacher === 1),
         });
