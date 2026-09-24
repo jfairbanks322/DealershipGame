@@ -113,7 +113,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       }));
   function view(g, u) {
     const player = g.players[u.id] ? structuredClone(g.players[u.id]) : null;
-    if(player) { delete player.mathChecksByRound; delete player.mathModesByRound; delete player.guidedPracticeByRound; delete player.guidedUsed; }
+    if(player) { delete player.markdownChecks; delete player.mathChecksByRound; delete player.mathModesByRound; delete player.guidedPracticeByRound; delete player.guidedUsed; }
     if(player) player.sabotageInbox=require("./lib/sabotage").inbox(player);
     const spins = player ? [...(player.sabotageHistory||[])] : [];
     if(player?.sabotageSpin&&!spins.some(x=>x.id===player.sabotageSpin.id))spins.push(player.sabotageSpin);
@@ -123,6 +123,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       name: g.name,
       lesson: { id: g.lessonId || DEFAULT_LESSON, label: lessonFor(g).label },
       market: lessonFor(g).market?.(g) || null,
+      markdown: {configured:require('./lib/markdowns').configured(g),fromRound:3,enabled:require('./lib/markdowns').enabled(g),current:player?require('./lib/markdowns').current(g,player):null,valid:player?require('./lib/markdowns').valid(g,player):false},
+      markdownTracker:g.host===u.id?Object.values(g.players).map(p=>({owner:p.owner,...require('./lib/markdowns').summary(p,g.round)})):undefined,
       competition: {enabled:require('./lib/lessons/competition').enabled(g),briefing:require('./lib/lessons/competition').briefing(g),response:player?require('./lib/lessons/competition').record(player,g.round)||null:null,effects:player?require('./lib/lessons/competition').effects(g,player):null},
       competitionTracker: g.host===u.id&&g.lessonId==='supply-demand-v1'?Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,...require('./lib/lessons/competition').summary(p,g.round)})):undefined,
       rules: {
@@ -517,6 +519,18 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           const preset=require('./lib/round-experience').applyPreset(g,b.id);classroom.event(g,u.name,action,preset.name+' applied; previous purchases and scheduled effects remain');save(g);return view(g,u);
         }
         if(action==='roundGuide') {insist(p,"Join the room first.");require('./lib/round-experience').acknowledge(g,p,b.key);save(g);return view(g,u);}
+        if(action==='markdownSetting') {
+          insist(g.host===u.id,"Only this room’s teacher can change markdown lessons.");
+          insist((g.lessonId||DEFAULT_LESSON)==='cost-markup-v1',"Markdown lessons are for Cost & Markup.");
+          insist(b.version===g.version,"The room changed. Refresh and try again.");
+          insist(['lobby','results'].includes(g.phase)&&!g.paused,"Change markdown lessons before starting or between rounds.");
+          insist(typeof b.enabled==='boolean',"Choose on or off.");g.markdownsEnabled=b.enabled;
+          classroom.event(g,u.name,action,b.enabled?'Markdown lesson enabled; replaces promotions':'Markdown lesson disabled');save(g);return view(g,u);
+        }
+        if(action==='markdown'||action==='markdownHelp') {
+          insist(p,"Join this room first.");const result=require('./lib/markdowns')[action==='markdown'?'choose':'help'](g,p,b);
+          classroom.event(g,p.owner,action,action==='markdown'?`${result.correct?'Correct':'Corrected'} markdown; ${result.rate}% off saved`:'Opened free markdown walkthrough');save(g);return {...view(g,u),markdownFeedback:result};
+        }
         if(action==='competitionSetting') {
           insist(g.host===u.id,"Only this room’s teacher can change the competition lesson.");
           insist(g.lessonId==='supply-demand-v1',"Competition challenges are for Supply & Demand.");

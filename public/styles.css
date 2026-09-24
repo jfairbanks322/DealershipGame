@@ -1841,3 +1841,5 @@ td .sf-mini { width: 88px; height: 57px; margin-bottom: 6px; }
 @keyframes storefront-visit { 0%,100% { transform: translateX(0); } 40%,65% { transform: translateX(170px); } }
 @media(max-width:760px){ .storefront-showcase { grid-template-columns: 1fr; } .storefront-gallery { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(prefers-reduced-motion:reduce){ .storefront-art * { animation: none !important; } }
+#markdown-form fieldset { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
+#markdown-panel { border-top: 4px solid #a18abe; }
