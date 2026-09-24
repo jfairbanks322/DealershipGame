@@ -199,7 +199,7 @@ function sectionNavigation() {
  return links.length?`<nav class="section-navigation" aria-label="Game sections"><span>JUMP TO</span>${links.map(([target,label])=>`<button data-section="${target}">${label}</button>`).join('')}</nav>`:'';
 }
 function shell(body) {
-  return `<div class="app-shell ${projector ? "projector" : ""}"><a class="skip-link" href="#main-content">Skip to content</a><aside class="sidebar ${navigationOpen ? "navigation-open" : ""}"><div class="sidebar-heading">${brand}<button class="mobile-menu" data-action="toggle-navigation" aria-controls="primary-navigation" aria-expanded="${navigationOpen}">${navigationOpen ? "Close ✕" : "Menu ☰"}</button></div><nav id="primary-navigation" aria-label="Main navigation"><button class="nav ${page === "profile" ? "active" : ""}" data-action="profile">◉ &nbsp; My avatar</button><button class="nav ${page === "home" ? "active" : ""}" data-action="home">▦ &nbsp; My businesses</button>${game ? `<button class="nav ${page === "game" ? "active" : ""}" data-action="game">🍔 &nbsp; ${game.host ? "Teacher dashboard" : "My restaurant"}</button><button class="nav ${page === "board" ? "active" : ""}" data-action="board">↗ &nbsp; Game leaderboard</button>` : ""}<button class="nav ${page === "global" ? "active" : ""}" data-action="global">◎ &nbsp; Global leaderboard</button><button class="nav ${page === "badges" ? "active" : ""}" data-action="badges">✦ &nbsp; Achievements</button></nav><div class="side-foot">BUILT ONE ROUND AT A TIME<hr>Good math. Bold menus.<br>Your business story.</div></aside><div><header class="topbar"><span class="muted">${game ? `ROOM <strong>${esc(game.code)}</strong> &nbsp; / &nbsp; ${esc(game.name)}` : "BUSINESS MATH / OWNER HQ"}</span><div class="row">${themeButton()}${user ? `<button class="avatar-trigger" data-action="profile" aria-label="Choose your avatar">${avatarArt(user.avatar)}</button>` : ""}<strong>${esc(user?.name || "Public view")}</strong><button class="btn ghost small" data-action="${user ? "logout" : "login-tab"}">${user ? "Log out" : "Log in"}</button></div></header><main class="content" id="main-content" tabindex="-1">${sectionNavigation()}${body}</main></div></div>`;
+  return `<div class="app-shell ${projector ? "projector" : ""}"><a class="skip-link" href="#main-content">Skip to content</a><aside class="sidebar ${navigationOpen ? "navigation-open" : ""}"><div class="sidebar-heading">${brand}<button class="mobile-menu" data-action="toggle-navigation" aria-controls="primary-navigation" aria-expanded="${navigationOpen}">${navigationOpen ? "Close ✕" : "Menu ☰"}</button></div><nav id="primary-navigation" aria-label="Main navigation"><button class="nav ${page === "profile" ? "active" : ""}" data-action="profile">◉ &nbsp; My avatar</button><button class="nav ${page === "home" ? "active" : ""}" data-action="home">▦ &nbsp; My businesses</button>${game ? `<button class="nav ${page === "game" ? "active" : ""}" data-action="game">🍔 &nbsp; ${game.host ? "Teacher dashboard" : "My restaurant"}</button><button class="nav ${page === "board" ? "active" : ""}" data-action="board">↗ &nbsp; Game leaderboard</button>` : ""}<button class="nav ${page === "global" ? "active" : ""}" data-action="global">◎ &nbsp; Global leaderboard</button><button class="nav ${page === "badges" ? "active" : ""}" data-action="badges">✦ &nbsp; Achievements</button></nav><div class="side-foot">BUILT ONE ROUND AT A TIME<hr>Good math. Bold menus.<br>Your business story.</div></aside><div><header class="topbar"><span class="muted">${game ? `ROOM <strong>${esc(game.code)}</strong> &nbsp; / &nbsp; ${esc(game.name)}` : "BUSINESS MATH / OWNER HQ"}</span><div class="row">${themeButton()}${user ? `<button class="avatar-trigger" data-action="profile" aria-label="Choose your avatar">${avatarArt(user.avatar)}</button>` : ""}<strong>${esc(user?.name || "Public view")}</strong><button class="btn ghost small" data-action="${user ? "logout" : "login-tab"}">${user ? "Log out" : "Log in"}</button></div></header><main class="content" id="main-content" tabindex="-1">${sectionNavigation()}${game?.player&&game.flash?'<button class="btn secondary small" data-action="flash-open">⚡ View Flash Challenge</button>':''}${body}</main></div></div>`;
 }
 function home() {
   return `<div class="page-heading"><div><span class="eyebrow">${user.teacher ? "TEACHER HEADQUARTERS" : "THE OWNER’S OFFICE"}</span><h1 style="margin-top:10px">Your next chapter.</h1><p class="muted">Join your class, reopen a business, or host a new competition.</p></div><span class="pill">${user.badges.length} / ${badgeDefs.length} BADGES</span></div><div class="grid2"><section class="card"><h2>Open your restaurant</h2><p class="muted">Get a room code from your teacher. Make the place your own.</p><form id="join-form" class="stack"><label>Room code<input name="code" maxlength="6" minlength="6" placeholder="ABC123" required style="text-transform:uppercase"></label><label>Restaurant name<select name="restaurant" required><option value="">Choose from 50 restaurant names</option>${restaurantOptions.names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select></label><div class="grid2"><label>Your sign<select name="icon">${restaurantOptions.signs.map((x) => `<option>${x}</option>`).join("")}</select></label><label>Restaurant color<select name="color">${restaurantOptions.colors.map((c) => `<option value="${c.value}">${c.name}</option>`).join("")}</select></label></div><label>Storefront style<select name="storefront">${window.CounterStorefronts.styles.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")}</select></label><div id="restaurant-preview" class="restaurant-preview"><span>🍔</span><div><strong>Pick your restaurant</strong><small>50 names · 32 signs · 16 colors</small></div></div><button class="btn">Join the kitchen →</button></form></section><section class="card soft"><span class="eyebrow">FOR TEACHERS</span><h2 style="margin-top:12px">Run the room.</h2><p class="muted">You control each round. Choose a lesson below. Saved decisions and round results are kept between sessions.</p><form id="host-form" class="stack"><label>Competition name<input name="name" maxlength="60" placeholder="Period 3 · Fast Food Founders" required></label>${user.teacher ? '<div class="success tiny">✓ Teacher access verified for this session.</div>' : '<label>Teacher access key<input name="teacherKey" type="password" autocomplete="off" required></label>'}<label>Lesson<select name="lessonId">${lessonChoices.map((l) => `<option value="${esc(l.id)}">${esc(l.label)}</option>`).join("")}</select></label><label>Math penalty increase per round after round 5 ($5 gives $5, $10, $15, $20, $25)<input name="penalty" type="number" min="0" max="20" step="0.01" value="5" required></label><button class="btn secondary">Create a classroom →</button></form></section></div><div class="section-title"><h2>Your saved games</h2><span class="muted tiny">Resume with the same account on any device</span></div><div class="stack">${games.length ? games.map((g) => `<button class="card row between" data-open="${g.code}" style="text-align:left;color:inherit"><span><strong>${esc(g.name)}</strong><br><span class="muted tiny">${g.code} · ${g.host ? "Teacher" : "Owner"}</span></span><span class="pill">ROUND ${g.round} · ${esc(g.phase)}</span><span>Open →</span></button>`).join("") : '<div class="card empty">Your first business story starts above.</div>'}</div>`;
@@ -292,7 +292,7 @@ function teacherFocus() {
  const students=game.teacherData.students,ready=students.filter(p=>p.ready&&!p.skipped).length,waiting=students.filter(p=>!p.ready&&!p.skipped),help=students.filter(p=>!p.skipped&&p.progress.support.length);
  let action='',next='';
  if(game.phase==='lobby'){next=students.length?'Start round 1 when everyone has joined.':'Wait for students to join using the room code.';action=`<button class="btn orange" data-control="start" ${!students.length||game.paused?'disabled':''}>Start round 1 →</button>`;}
- else if(game.phase==='planning'){next=game.paused?'Resume the game to let students continue.':waiting.length?`${waiting.length} student${waiting.length===1?' still needs':'s still need'} to submit or be skipped.`:ready?'Everyone is ready or skipped. Simulate this round.':'At least one student must submit before simulation.';action=`<button class="btn orange" data-control="run" ${waiting.length||!ready||game.paused?'disabled':''}>Simulate round ${game.round} →</button>`;}
+ else if(game.phase==='planning'){next=game.paused?'Resume the game to let students continue.':waiting.length?`${waiting.length} student${waiting.length===1?' still needs':'s still need'} to submit or be skipped.`:ready?'Everyone is ready or skipped. Simulate this round.':'At least one student must submit before simulation.';action=`<button class="btn orange" data-control="run" ${waiting.length||!ready||game.paused||game.flash?.open?'disabled':''}>Simulate round ${game.round} →</button>`;}
  else if(game.phase==='results'){next='Discuss the results, adjust settings if needed, then open the next round.';action=`<button class="btn orange" data-control="next" ${game.paused?'disabled':''}>Open round ${game.round+1} →</button>`;}else next='The game is complete. Results and career scores are saved.';
  return `<section class="card teacher-focus"><span class="eyebrow">TEACHER · NEXT ACTION</span><h2>${esc(next)}</h2><div class="row">${action}${game.phase!=='complete'?`<button class="btn secondary" data-control="pause">${game.paused?'Resume':'Pause'}</button>`:''}</div></section><div class="stats">${stat('Room code',game.code,'Share with students')}${stat('Ready',ready+' / '+students.length,'Skipped students are excluded from ready count')}${stat('Still deciding',waiting.length,'See missing decisions below')}${stat('Check in with',help.length,'Based on corrections or challenge feedback')}</div><section class="card"><h2>Who needs what?</h2><p>Live status refreshes automatically. A suggested check-in is separate from a submission blocker.</p><div class="table-wrap"><table class="teacher-roster"><thead><tr><th>Owner</th><th>Status</th><th>Missing required decisions</th><th>Suggested check-in</th><th>Quick controls</th></tr></thead><tbody>${students.map(p=>`<tr><td><strong>${esc(p.owner)}</strong><small>${esc(p.restaurant)}</small></td><td>${esc(p.progress.status)}</td><td>${game.phase==='planning'&&!p.ready&&!p.skipped?p.progress.missing.map(x=>esc(x.label)).join('; ')||'Decisions saved · awaiting submit':'—'}</td><td>${p.progress.support.map(esc).join('; ')||'—'}</td><td>${game.phase==='planning'?`${p.ready?`<button class="btn ghost small" data-control="teacherReopen" data-owner="${p.id}">Reopen</button>`:`<button class="btn ghost small" data-control="${p.skipped?'restore':'skip'}" data-owner="${p.id}" ${game.paused?'disabled':''}>${p.skipped?'Restore':'Skip round'}</button>`}${p.penalty?`<button class="btn ghost small" data-control="waiveMath" data-owner="${p.id}">Waive penalty</button>`:''}`:'—'}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
@@ -418,7 +418,7 @@ function gameManagement() {
   return `<section class="card" style="margin-top:20px"><h3>Manage this game</h3><p class="muted">Reset returns everyone to the round-one lobby, keeping the room code, lesson, and restaurants. Delete permanently removes the room. Both clear this game’s results and global leaderboard scores. Accounts and earned badges stay saved.</p><div class="row"><button class="btn secondary" data-manage="reset">Reset game</button><button class="btn secondary" data-manage="delete">Delete game</button></div></section>`;
 }
 function teacher() {
- return heading()+teacherFocus()+fold('teacher-leaderboard','Classroom leaderboard',`<div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div>${leaderboard()}${roundUpdate()}`);
+ return heading()+teacherFocus()+flashTeacher()+fold('teacher-leaderboard','Classroom leaderboard',`<div class="row"><button class="btn ghost small" data-action="export">Download results ↓</button><button class="btn ghost small" data-action="board">Project leaderboard ↗</button></div>${leaderboard()}${roundUpdate()}`);
 }
 
 let guidedOpen = false;
@@ -697,6 +697,7 @@ function render() {
   sabotagePreview();
   previewRestaurant();
   if(page === "game") notifySabotage(game);
+  notifyFlash(game);
 }
 async function openGame(code) {
   apply(await api("/games/" + code));
@@ -736,6 +737,12 @@ root.addEventListener("submit", async (e) => {
     if (form.id === "sabotage-form") {
       const result=await api(`/games/${game.code}/sabotage`, b);
       apply(result); render(); sabotageDialog(result.player.sabotageSpin, true);
+    }
+    if (form.id === 'flash-form') {
+      const payload={question:b.question,options:[0,1,2,3].map(i=>b['option'+i]),correct:Number(b.correct),seconds:Number(b.seconds),prizes:[0,1,2].map(i=>Math.round(Number(b['prize'+i])*100)),version:game.version};
+      try {payload.version=(await api(`/games/${game.code}`)).version;apply(await api(`/games/${game.code}/flashStart`,payload));render();toast('Flash Challenge sent. Answers open in five seconds.');}
+      catch(e){form.querySelector('#flash-form-status').textContent=e.message;}
+      return;
     }
     if (form.getAttribute("id") === "auth-form") {
       await api("/" + authTab, { ...b, teacherLogin: teacherEntry });
@@ -842,6 +849,9 @@ root.addEventListener("click", async (e) => {
       render();
       return;
     }
+    if (btn.hasAttribute('data-flash-random')) {const choices=(game.flashBank||[]).filter(q=>!isSupply()||['demand','supply','competition','stock'].includes(q.topic));const q=choices[Math.floor(Math.random()*choices.length)];if(q){const select=root.querySelector('#flash-bank');select.value=q.id;select.dispatchEvent(new Event('change',{bubbles:true}));}return;}
+    if (btn.dataset.flashClose) {await actionRoom('flashClose',{id:btn.dataset.flashClose});return;}
+    if (btn.dataset.action === "flash-open") {notifyFlash(game,true);return;}
     if (btn.dataset.action === "appearance") {appearanceDialog();return;}
     if (btn.dataset.action === "theme") {
       btn.disabled=true;
@@ -1164,11 +1174,14 @@ setInterval(async () => {
   try {
     if (publicRoom) return await publicView();
     if (!user) return;
-    if (game && ["game", "board"].includes(page)) {
+    if (game) {
       const next = await api("/games/" + game.code);
+      notifyFlash(next);
+      if (["game","board"].includes(page)) {
       notifySabotage(next);
-      if (next.version !== game.version) {
-        const editing = ["INPUT", "SELECT", "TEXTAREA"].includes(
+      if(document.querySelector('#flash-dialog') && next.phase===game.phase && next.round===game.round) return;
+      if (next.version !== game.version || next.flash?.open !== game.flash?.open) {
+        const editing = root.querySelector("#flash-form")?.dataset.dirty === "true" || ["INPUT", "SELECT", "TEXTAREA"].includes(
           document.activeElement.tagName,
         );
         if (
@@ -1189,6 +1202,7 @@ setInterval(async () => {
         render();
       }
     }
+    }
     if (page === "global") {
       boardData = (await api("/leaderboard?lessonId=" + encodeURIComponent(boardLesson))).board;
       render();
@@ -1203,5 +1217,8 @@ setInterval(async () => {
 }, 2500);
 
 root.addEventListener("change", async (e) => {
+ if(e.target.id === 'flash-bank') {const q=game.flashBank.find(q=>q.id===e.target.value);if(q){const f=e.target.form;f.dataset.dirty='true';f.elements.question.value=q.question;q.options.forEach((x,i)=>f.elements['option'+i].value=x);f.elements.correct.value=q.correct;}return;}
  if(e.target.id === "leaderboard-lesson") {boardLesson=e.target.value;try {boardData=(await api("/leaderboard?lessonId="+encodeURIComponent(boardLesson))).board;render();}catch(err){toast(err.message);}}
 });
+
+root.addEventListener("input",e=>{if(e.target.form?.id==="flash-form")e.target.form.dataset.dirty="true";});

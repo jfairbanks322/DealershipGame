@@ -135,6 +135,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
         practiceRounds: rulesFor(g).practiceRounds,
         promotionsFromRound: rulesFor(g).promotionsFromRound,
       },
+      flash: require("./lib/flash-challenges").view(g,u.id,g.host===u.id),
+      flashBank: g.host===u.id?require("./lib/flash-challenges").bank:undefined,
       round: g.round,
       phase: g.phase,
       paused: g.paused,
@@ -185,6 +187,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
   const files = {
     "/": ["index.html", "text/html"],
     "/index.html": ["index.html", "text/html"],
+    "/flash.js": ["flash.js", "text/javascript"],
     "/app.js": ["app.js", "text/javascript"],
     "/themes.js": ["themes.js", "text/javascript"],
     "/themes.css": ["themes.css", "text/css"],
@@ -523,6 +526,17 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
+        if (["flashStart","flashClose","flashAnswer"].includes(action)) {
+          const flash=require('./lib/flash-challenges');
+          if(action==='flashAnswer') flash.answer(g,p,b);
+          else {
+            insist(g.host===u.id,"Only this room's teacher can send or close challenges.");
+            if(action==='flashStart'){insist(b.version===g.version,"The room changed. Review and send again.");flash.start(g,b);}
+            else flash.close(g,b.id);
+            classroom.event(g,u.name,action,action==='flashStart'?'Flash Challenge sent':'Flash Challenge closed');
+          }
+          save(g);return view(g,u);
+        }
         if(action==='lessonPreset') {
           insist(g.host===u.id,"Only this room’s teacher can apply a preset.");insist(b.version===g.version,"The room changed. Refresh and try again.");
           const preset=require('./lib/round-experience').applyPreset(g,b.id);classroom.event(g,u.name,action,preset.name+' applied; previous purchases and scheduled effects remain');save(g);return view(g,u);
@@ -627,7 +641,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           g.phase = "lobby";
           g.round = 1;
           g.paused = false;
-          g.events = []; g.roundStandings = null; g.alliances=[];g.allianceInvites=[];g.sabotageClaims=[];
+          g.flashChallenge = null; g.events = []; g.roundStandings = null; g.alliances=[];g.allianceInvites=[];g.sabotageClaims=[];
           for (const [id, owner] of Object.entries(g.players)) {
             g.players[id] = newPlayer(userById(id), owner.restaurant, owner.icon, owner.color, owner.storefront);
           }
@@ -691,10 +705,12 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
             g.phase = "planning";
           }
           if (action === "pause") {
+            if (!g.paused && g.flashChallenge) require("./lib/flash-challenges").close(g,g.flashChallenge.id);
             insist(g.phase !== "complete", "The game is complete.");
             g.paused = !g.paused;
           }
           if (action === "run") {
+            insist(!require("./lib/flash-challenges").active(g.flashChallenge),"Close the Flash Challenge before simulating this round.");
             simulate(g, (id) => career(id, g.lessonId));
             g.roundStandings = {round:g.round,rows:board(g)};
             if (g.phase === "complete") {

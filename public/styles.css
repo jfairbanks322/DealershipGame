@@ -1856,3 +1856,13 @@ td .sf-mini { width: 88px; height: 57px; margin-bottom: 6px; }
 .risk-ladder .won { border-top: 4px solid var(--green); }.risk-ladder .missed { border-top: 4px solid var(--orange); }
 .mission-preview { background: var(--paper); border-left: 4px solid #a18abe; border-radius: 10px; padding: 18px; }
 @media(max-width:760px){.crew-roster { grid-template-columns:repeat(2,minmax(0,1fr)); }.risk-ladder > div { padding:10px; font-size:12px; }}
+.flash-teacher { margin:24px 0; border-top:4px solid var(--green); }
+.flash-prizes {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0;}
+.flash-prizes input {width:100%;min-width:0;}
+.flash-answers {display:grid;gap:12px;margin:20px 0;}
+.flash-answers button {text-align:left;white-space:normal;}
+.flash-winners {list-style:none;padding:0;}
+.flash-winners li {display:flex;justify-content:space-between;gap:12px;padding:10px;border-bottom:1px solid var(--line);}
+#flash-question {font-size:21px;font-weight:700;}
+#flash-timer {font-weight:700;color:var(--green);}
+textarea {font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px;resize:vertical;width:100%;}

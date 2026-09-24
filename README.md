@@ -195,3 +195,8 @@ Sabotage offers Coupon Caper, Mascot Mix-up, and Drive-thru Decoy story themes w
 
 ### Appearance
 Players and teachers can open **Appearance** in the top bar to choose from ten color schemes, each supporting light and dark mode. Signed-in preferences save to the account across devices; signed-out choices stay on the browser. Theme changes preserve unfinished pricing inputs and do not change restaurant branding or anyone else's screen.
+
+### Flash Challenges
+During open planning, the room's teacher can write a four-choice question, choose from ten ready-made questions, or pick one randomly. Review the correct answer, 15–180 second timer, and three cash prizes ($0–$1,000 each, descending order) before sending. A five-second countdown precedes answering. Each participating student gets one attempt; the first three correct submissions received by the server win. Network latency can affect order. Ready students may participate; skipped students cannot.
+
+Prizes are credited immediately, then included exactly once in the round report and career score. Challenges close after three winners, all eligible answers, time expiry, or teacher close. Pausing closes a challenge; an open challenge must end before simulation. Reset clears challenges and their prizes. Challenges and private answers stay within their room; only the teacher sees all responses. The popup preserves unfinished restaurant inputs and works in both lessons. Random bank picks in Supply & Demand exclude calculation questions.
