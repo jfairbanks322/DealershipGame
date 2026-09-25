@@ -126,6 +126,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       name: g.name,
       lesson: { id: g.lessonId || DEFAULT_LESSON, label: lessonFor(g).label },
       market: lessonFor(g).market?.(g) || null,
+      business: lessonFor(g).publicResearch?.(g,g.players[u.id],g.host===u.id) || null,
       markdown: {configured:require('./lib/markdowns').configured(g),fromRound:3,enabled:require('./lib/markdowns').enabled(g),current:player?require('./lib/markdowns').current(g,player):null,valid:player?require('./lib/markdowns').valid(g,player):false},
       markdownTracker:g.host===u.id?Object.values(g.players).map(p=>({owner:p.owner,...require('./lib/markdowns').summary(p,g.round)})):undefined,
       competition: {enabled:require('./lib/lessons/competition').enabled(g),briefing:require('./lib/lessons/competition').briefing(g),response:player?require('./lib/lessons/competition').record(player,g.round)||null:null,effects:player?require('./lib/lessons/competition').effects(g,player):null},
@@ -158,7 +159,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       mysteryOffer: require("./lib/mystery-box").describe(g.round),
       mysterySchedule: require("./lib/mystery-box").tiers.map(({from,name,price})=>({from,name,price})),
       roundStandings: g.roundStandings || null,
-      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,progress:require("./lib/round-experience").progress(g,p),math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
+      teacherData: g.host === u.id ? {events:(g.events||[]).slice(-100).reverse(),students:Object.values(g.players).map(p=>({id:p.userId,owner:p.owner,restaurant:p.restaurant,ready:p.ready,progress:require("./lib/round-experience").progress(g,p),math:rulesFor(g).mathChecks===false?null:require("./lib/math-progress").summary(p,g.round),support:rulesFor(g).mathChecks===false?null:require("./lib/guided-math").progress(p,g.round),attempts:Object.entries(p.attempts).filter(([k])=>k.startsWith(g.round+":")).reduce((n,[k,v])=>n+v,0),wrong:p.wrongRounds.includes(g.round),penalty:p.skippedRound!==g.round&&p.wrongRounds.includes(g.round)&&!(p.waivedMathRounds||[]).includes(g.round)?mathPenalty(g):0,hint:(p.hintRounds||[]).includes(g.round),box:(p.mysteryBoxes||[]).find(x=>x.round===g.round),spins:(p.sabotageHistory||[]).filter(x=>x.round===g.round).length,strategy:(g.lessonId==='pricing-v1'?p.pricingPlans||[]:p.marketStrategies||[]).find(x=>x.round===g.round)||null,menu:p.menu.length,skipped:p.skippedRound===g.round}))} : undefined,
       sabotage: { missions:require('./lib/sabotage').missions.map(({id,name,icon})=>({id,name,icon})), guardedTargets:Object.keys(g.players).filter(id=>require('./lib/alliances').guard(g,require('./lib/alliances').group(g,id)).active), attempts:attempts.length, canSpin:attempts.length<3&&attempts.every(x=>x.success), tiers: require("./lib/sabotage").tiers.map(t=>({...t,chance:Math.max(5,t.chance-attempts.length*15)})), balance: g.players[u.id] ? sum(g.players[u.id]) : 0, targeted: Object.values(g.players).filter(p => (p.sabotageInbox || []).some(n => n.round === g.round&&!n.allianceNotice&&!n.exposure)).map(p => p.userId) },
       catalog: rulesFor(g).catalog.filter((x) => x.round <= g.round),
       promotions: rulesFor(g).promotions,
@@ -187,6 +188,7 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
   const files = {
     "/": ["index.html", "text/html"],
     "/index.html": ["index.html", "text/html"],
+    "/pricing.js": ["pricing.js", "text/javascript"],
     "/flash.js": ["flash.js", "text/javascript"],
     "/app.js": ["app.js", "text/javascript"],
     "/themes.js": ["themes.js", "text/javascript"],
@@ -770,8 +772,8 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
               save(g);
               return { ...view(g, u), check };
             } else if (action === "strategy") {
-              const decision=require("./lib/lessons/market-strategy").choose(g,p,b);
-              classroom.event(g,p.owner,"strategy",`Clue: ${decision.clue}; demand ${decision.demand}; price ${decision.price}; stock ${decision.stock}`);
+              const decision=lessonFor(g).choose?lessonFor(g).choose(g,p,b):require("./lib/lessons/market-strategy").choose(g,p,b);
+              classroom.event(g,p.owner,"strategy",decision.target?`${decision.strategy} pricing for ${decision.target}`:`Clue: ${decision.clue}; demand ${decision.demand}; price ${decision.price}; stock ${decision.stock}`);
             } else if (action === "promotion") {
               p.promotion = validatePromotion(g, p, b);
             } else if (action === "ready") {

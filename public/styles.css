@@ -1869,3 +1869,9 @@ textarea {font:inherit;color:var(--ink);background:var(--white);border:1px solid
 .flash-dialog > .row:first-child {flex-wrap:nowrap;align-items:flex-start;gap:12px;}
 .flash-dialog #flash-title {flex:1;min-width:0;overflow-wrap:anywhere;}
 .flash-dialog [data-flash-dismiss] {flex-shrink:0;}
+.customer-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:20px 0;}
+.customer-grid article {padding:16px;border:1px solid var(--line);border-radius:14px;}
+.business-season {margin:24px 0;border-top:5px solid var(--green);}
+@media(max-width:900px){.customer-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:540px){.customer-grid{grid-template-columns:1fr;}}
+[data-business-for][hidden] {display:none;}
