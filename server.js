@@ -392,6 +392,15 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
       if (!u && url.pathname === "/api/me" && req.method === "GET")
         return send(200, { user: null, games: [], badges, lessons: publishedLessons() });
       if (!u) return send(401, { error: "Please log in to continue." });
+      if (url.pathname === "/api/flashInbox" && req.method === "GET") {
+        const flash=require('./lib/flash-challenges'), now=Date.now();
+        const challenges=db.prepare("SELECT data FROM games").all().map(r=>JSON.parse(r.data))
+          .filter(g=>g.players[u.id]&&g.flashChallenge?.eligible.includes(u.id))
+          .filter(g=>flash.active(g.flashChallenge,now)||now-Math.min(g.flashChallenge.closedAt||Infinity,g.flashChallenge.endsAt)<60000)
+          .map(g=>({code:g.code,name:g.name,player:true,host:false,flash:flash.view(g,u.id,false,now)}))
+          .sort((a,b)=>Number(b.flash.open)-Number(a.flash.open)||b.flash.startsAt-a.flash.startsAt);
+        return send(200,{challenges});
+      }
       if (url.pathname === "/api/me" && req.method === "GET") {
         const games = db
           .prepare("SELECT data FROM games")
@@ -526,9 +535,10 @@ function createApp({ dbPath, teacherKey, production = false } = {}) {
           return view(g, u);
         }
         insist(req.method === "POST" && action, "Unknown action.");
-        if (["flashStart","flashClose","flashAnswer"].includes(action)) {
+        if (["flashStart","flashClose","flashAnswer","flashSeen"].includes(action)) {
           const flash=require('./lib/flash-challenges');
           if(action==='flashAnswer') flash.answer(g,p,b);
+          else if(action==='flashSeen') {insist(p&&g.flashChallenge?.id===b.id&&g.flashChallenge.eligible.includes(u.id),'Challenge unavailable.');const c=g.flashChallenge;c.received??={};if(c.received[u.id])return view(g,u);c.received[u.id]=Date.now();}
           else {
             insist(g.host===u.id,"Only this room's teacher can send or close challenges.");
             if(action==='flashStart'){insist(b.version===g.version,"The room changed. Review and send again.");flash.start(g,b);}

@@ -1866,3 +1866,6 @@ td .sf-mini { width: 88px; height: 57px; margin-bottom: 6px; }
 #flash-question {font-size:21px;font-weight:700;}
 #flash-timer {font-weight:700;color:var(--green);}
 textarea {font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:8px;padding:12px;resize:vertical;width:100%;}
+.flash-dialog > .row:first-child {flex-wrap:nowrap;align-items:flex-start;gap:12px;}
+.flash-dialog #flash-title {flex:1;min-width:0;overflow-wrap:anywhere;}
+.flash-dialog [data-flash-dismiss] {flex-shrink:0;}

@@ -697,7 +697,7 @@ function render() {
   sabotagePreview();
   previewRestaurant();
   if(page === "game") notifySabotage(game);
-  notifyFlash(game);
+  if(!user)document.querySelector("#flash-dialog")?.close();
 }
 async function openGame(code) {
   apply(await api("/games/" + code));
@@ -1176,7 +1176,7 @@ setInterval(async () => {
     if (!user) return;
     if (game) {
       const next = await api("/games/" + game.code);
-      notifyFlash(next);
+      // Flash delivery has its own account-wide poll, independent of room editing.
       if (["game","board"].includes(page)) {
       notifySabotage(next);
       if(document.querySelector('#flash-dialog') && next.phase===game.phase && next.round===game.round) return;
